@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #FAF6F0;
+  color: #3E2A3E;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .font-display {
+    font-family: 'Playfair Display', ui-serif, serif;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center rounded-full px-5 py-3 font-medium transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-coral text-white shadow-soft hover:brightness-105;
+  }
+  .btn-secondary {
+    @apply btn bg-plum text-cream hover:brightness-110;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-plum hover:bg-plum/5;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-card p-5;
+  }
+  .input {
+    @apply w-full rounded-xl border border-plum/15 bg-white px-4 py-3 text-plum outline-none focus:ring-2 focus:ring-champagne;
+  }
+  .label {
+    @apply block text-sm font-medium text-plum/80 mb-1;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full bg-champagne/20 text-plum px-3 py-1 text-xs font-medium;
+  }
+}
+
+/* Stamp animation */
+@keyframes stamp {
+  0% { transform: scale(2) rotate(-18deg); opacity: 0; }
+  60% { transform: scale(0.9) rotate(-12deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-12deg); opacity: 1; }
+}
+.animate-stamp { animation: stamp 500ms ease-out both; }
+
+/* Confetti */
+@keyframes confetti {
+  0% { transform: translateY(-20vh) rotate(0); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0.6; }
+}
+.confetti-piece {
+  position: fixed;
+  top: 0;
+  width: 10px;
+  height: 16px;
+  animation: confetti 2.6s linear forwards;
+  z-index: 60;
+  border-radius: 2px;
+}
+
+/* Wheel */
+@keyframes spinwheel {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(var(--spin-end, 1440deg)); }
+}
+.wheel-spin { animation: spinwheel 4.5s cubic-bezier(0.22, 0.9, 0.24, 1) forwards; }
+
+/* ----- Redesign utilities ----- */
+
+/* Metallic gold foil gradient — used for stamps, pills, accents */
+.foil-gold {
+  background: linear-gradient(
+    135deg,
+    #B58B5A 0%,
+    #D4AF7A 25%,
+    #F5E6C8 50%,
+    #D4AF7A 75%,
+    #B58B5A 100%
+  );
+  background-size: 200% 200%;
+}
+.foil-gold-text {
+  background: linear-gradient(135deg, #B58B5A 0%, #F5E6C8 50%, #B58B5A 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Ticket-style perforated edge. Usage: put `.ticket-perforation` on a divider div. */
+.ticket-perforation {
+  position: relative;
+  height: 24px;
+}
+.ticket-perforation::before,
+.ticket-perforation::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: #FAF6F0; /* cream — matches page bg */
+}
+.ticket-perforation::before { left: -12px; }
+.ticket-perforation::after { right: -12px; }
+.ticket-perforation > .dash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+}
+.ticket-perforation > .dash::before {
+  content: '';
+  flex: 1;
+  border-top: 2px dashed rgba(62, 42, 62, 0.18);
+}
+
+/* Status pill colors */
+.pill-not-started { @apply bg-plum/10 text-plum/70; }
+.pill-in-progress { @apply bg-plum text-cream; }
+.pill-completed   { @apply bg-coral text-white; }
+
+/* Locked image desaturation */
+.img-locked { filter: grayscale(0.9) brightness(0.75); opacity: 0.55; }
+
+/* Shine sweep for the gold entries pill */
+@keyframes shine {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.animate-shine { animation: shine 3.5s linear infinite; }
+
+/* Bottom sheet slide-up */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}

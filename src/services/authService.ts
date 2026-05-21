@@ -1,0 +1,55 @@
+import { supabase } from '../lib/supabase';
+import type { Admin, Store } from '../types';
+
+const rowToStore = (r: {
+  id: string;
+  event_id: string;
+  name: string;
+  category: string;
+  description: string;
+  logo_url: string;
+  image_url: string | null;
+  booth_number: string;
+  qr_token: string;
+  passcode: string;
+}): Store => ({
+  id: r.id,
+  eventId: r.event_id,
+  name: r.name,
+  category: r.category,
+  description: r.description,
+  logoUrl: r.logo_url,
+  imageUrl: r.image_url ?? undefined,
+  boothNumber: r.booth_number,
+  qrToken: r.qr_token,
+  passcode: r.passcode,
+});
+
+export const loginAdmin = async (email: string, passcode: string): Promise<Admin | null> => {
+  const e = email.toLowerCase().trim();
+  const { data, error } = await supabase
+    .from('admins')
+    .select('*')
+    .eq('email', e)
+    .eq('passcode', passcode)
+    .maybeSingle();
+  if (error) throw error;
+  return data ?? null;
+};
+
+export const loginStore = async (storeId: string, passcode: string): Promise<Store | null> => {
+  const { data, error } = await supabase
+    .from('stores')
+    .select('*')
+    .eq('id', storeId)
+    .eq('passcode', passcode)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToStore(data) : null;
+};
+
+export const listStoresForLogin = async (): Promise<Store[]> => {
+  const { data, error } = await supabase.from('stores').select('*').order('booth_number');
+  if (error) throw error;
+  return (data ?? []).map(rowToStore);
+};
