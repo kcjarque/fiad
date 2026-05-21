@@ -6,6 +6,12 @@ export type Guest = {
   qrToken: string;
   registeredAt: string;
   eventId: string;
+  /**
+   * Plaintext 6-char access code. Only included in admin-facing queries so admins
+   * can read it back to guests who lost their welcome email. Never sent to
+   * non-admin clients (the login Edge Function compares server-side).
+   */
+  accessCode?: string;
 };
 
 export type Store = {

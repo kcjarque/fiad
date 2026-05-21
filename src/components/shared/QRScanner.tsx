@@ -122,11 +122,11 @@ export function QRScanner({ onResult, onClose, hint }: Props) {
 
       {mode === 'manual' && (
         <div className="space-y-3">
-          <label className="label">QR token</label>
+          <label className="label">Code</label>
           <input
             autoFocus
             className="input"
-            placeholder="Paste or type the QR token"
+            placeholder="Paste or type the code"
             value={manual}
             onChange={(e) => setManual(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && manual.trim() && onResult(manual.trim())}
@@ -140,7 +140,7 @@ export function QRScanner({ onResult, onClose, hint }: Props) {
             Submit
           </button>
           <div className="text-xs text-plum/50 text-center">
-            Tip: on the admin or store pages you can open a booth's QR to see the token.
+            Use this if your camera doesn't open.
           </div>
         </div>
       )}

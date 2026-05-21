@@ -11,6 +11,7 @@ type Row = {
   mobile: string;
   qr_token: string;
   registered_at: string;
+  access_code?: string | null;
 };
 
 const rowToGuest = (r: Row): Guest => ({
@@ -21,6 +22,7 @@ const rowToGuest = (r: Row): Guest => ({
   mobile: r.mobile,
   qrToken: r.qr_token,
   registeredAt: r.registered_at,
+  accessCode: r.access_code ?? undefined,
 });
 
 export const registerGuest = async (data: {
