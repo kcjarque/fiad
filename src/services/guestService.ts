@@ -88,9 +88,12 @@ export const loginGuestWithAccessCode = async (
     body: { email: email.trim().toLowerCase(), code: code.trim().toUpperCase() },
   });
   if (error) {
-    const status = (error as { status?: number }).status;
-    if (status === 401) throw new Error('Invalid email or access code.');
-    throw new Error(error.message ?? 'Sign-in failed.');
+    // supabase-js v2: FunctionsHttpError wraps status in error.context.status
+    const status =
+      (error as { context?: { status?: number } }).context?.status ??
+      (error as { status?: number }).status;
+    if (status === 401 || status === 400) throw new Error('Invalid email or access code.');
+    throw new Error('Sign-in failed. Please try again.');
   }
   if (!data?.ok || !data.guest) throw new Error('Invalid email or access code.');
   return rowToGuest(data.guest);
