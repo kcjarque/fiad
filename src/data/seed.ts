@@ -1,4 +1,5 @@
 import type { MockDb } from './mockDb';
+// Note: prizes are now stored in Supabase (see supabase/migrations/0002_prizes.sql)
 
 export const seed = (): MockDb => {
   const eventId = 'evt_fiad_dec25';
@@ -58,24 +59,6 @@ export const seed = (): MockDb => {
   const transactions: MockDb['transactions'] = [];
   const raffleEntries: MockDb['raffleEntries'] = [];
   const overrides: MockDb['overrides'] = [];
-
-  const prizes = [
-    { name: 'Grand Prize: Tagaytay Wedding Package', description: 'Full wedding package worth ₱500,000 from our partner suppliers.', qty: 1, img: 'photo-1519741497674-611481863552' },
-    { name: 'Honeymoon for Two — Palawan', description: '3 nights, Sunlit Honeymoons.', qty: 1, img: 'photo-1510414842594-a61c69b5ae57' },
-    { name: 'Couture Gown Voucher', description: '₱50,000 credit at Maison Blanche.', qty: 1, img: 'photo-1594552072238-b8a33785b261' },
-    { name: 'Photography Package', description: 'Full-day coverage + album.', qty: 2, img: 'photo-1519225421980-715cb0215aed' },
-    { name: 'Catering Credit', description: '₱30,000 catering credit.', qty: 2, img: 'photo-1555244162-803834f70033' },
-    { name: 'Floral Installation', description: 'Ceremony floral setup.', qty: 1, img: 'photo-1509610973147-232dfea52a97' },
-    { name: 'Cake Upgrade Voucher', description: 'Three-tier upgrade.', qty: 3, img: 'photo-1522673607200-164d1b6ce486' },
-    { name: 'Cinema Film Package', description: 'Same-day edit + highlight reel.', qty: 1, img: 'photo-1492691527719-9d1e07e534b4' },
-  ].map((p, i) => ({
-    id: `prize_${i + 1}`,
-    eventId,
-    name: p.name,
-    description: p.description,
-    imageUrl: img(p.img, 900),
-    quantity: p.qty,
-  }));
 
   const challenges = [
     {
@@ -184,7 +167,6 @@ export const seed = (): MockDb => {
     guests,
     transactions,
     raffleEntries,
-    prizes,
     challenges,
     challengeCompletions: [],
     passportStamps,

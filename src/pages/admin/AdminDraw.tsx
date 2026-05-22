@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
-import { useDb } from '../../hooks/useDb';
 import { drawWinner, listPrizes } from '../../services/prizeService';
 import { allActiveEntries } from '../../services/raffleService';
 import { listGuests } from '../../services/guestService';
@@ -14,14 +13,14 @@ const CENTER_INDEX = Math.floor(VISIBLE_ROWS / 2);
 
 export function AdminDraw() {
   const queryClient = useQueryClient();
-  const prizes = useDb(() => listPrizes());
+  const { data: prizes = [] } = useQuery({ queryKey: ['prizes'], queryFn: listPrizes });
   const { data: entries = [] } = useQuery({ queryKey: ['raffle', 'active'], queryFn: allActiveEntries });
   const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
 
   const undrawn = prizes.filter((p) => !p.winnerGuestId);
 
-  const [prizeId, setPrizeId] = useState<string>(undrawn[0]?.id ?? '');
+  const [prizeId, setPrizeId] = useState<string>('');
   const [phase, setPhase] = useState<'idle' | 'spinning' | 'revealed'>('idle');
   const [winner, setWinner] = useState<{ name: string; ticketNumber: string; prizeName: string } | null>(null);
   const [reel, setReel] = useState<string[]>([]);
@@ -29,7 +28,9 @@ export function AdminDraw() {
   const [transition, setTransition] = useState('none');
   const resetTimer = useRef<number | null>(null);
 
-  const prize = prizes.find((p) => p.id === prizeId);
+  // Default to first undrawn prize once prizes load
+  const effectivePrizeId = prizeId || undrawn[0]?.id || '';
+  const prize = prizes.find((p) => p.id === effectivePrizeId);
 
   const idleNames = useMemo(() => {
     const names = new Set<string>();
@@ -54,13 +55,13 @@ export function AdminDraw() {
     const result = await drawWinner(prize.id);
     if (!result) return;
 
-    const pool: string[] = [];
     const allNames = entries
       .map((e) => guestsById.get(e.guestId)?.name)
       .filter((n): n is string => Boolean(n));
     if (allNames.length === 0) return;
 
     const SPIN_ITEMS = 60;
+    const pool: string[] = [];
     for (let i = 0; i < SPIN_ITEMS; i++) {
       pool.push(allNames[Math.floor(Math.random() * allNames.length)]);
     }
@@ -89,6 +90,7 @@ export function AdminDraw() {
     resetTimer.current = window.setTimeout(() => {
       setWinner({ name: result.winnerName, ticketNumber: result.ticketNumber, prizeName: prize.name });
       setPhase('revealed');
+      queryClient.invalidateQueries({ queryKey: ['prizes'] });
       queryClient.invalidateQueries({ queryKey: ['raffle'] });
       queryClient.invalidateQueries({ queryKey: ['guests'] });
     }, 4500);
@@ -100,7 +102,8 @@ export function AdminDraw() {
     setReel([]);
     setTranslateY(0);
     setTransition('none');
-    const nextUndrawn = listPrizes().find((p) => !p.winnerGuestId);
+    // prizes already refreshed via invalidation in spin(); pick next undrawn
+    const nextUndrawn = prizes.find((p) => !p.winnerGuestId);
     if (nextUndrawn) setPrizeId(nextUndrawn.id);
   };
 
@@ -126,13 +129,7 @@ export function AdminDraw() {
                 style={{ top: CENTER_INDEX * ROW_HEIGHT, height: ROW_HEIGHT }}
               />
 
-              <div
-                style={{
-                  transform: `translateY(${translateY}px)`,
-                  transition,
-                  willChange: 'transform',
-                }}
-              >
+              <div style={{ transform: `translateY(${translateY}px)`, transition, willChange: 'transform' }}>
                 {displayReel.map((name, i) => (
                   <div
                     key={`${i}-${name}`}
@@ -161,7 +158,11 @@ export function AdminDraw() {
         <div className="space-y-4">
           <div className="card">
             <div className="font-display text-xl mb-3">Select Prize</div>
-            <select className="input" value={prizeId} onChange={(e) => setPrizeId(e.target.value)}>
+            <select
+              className="input"
+              value={effectivePrizeId}
+              onChange={(e) => setPrizeId(e.target.value)}
+            >
               {prizes.map((p) => (
                 <option key={p.id} value={p.id} disabled={!!p.winnerGuestId}>
                   {p.name} {p.winnerGuestId ? '· drawn' : ''}
@@ -185,7 +186,9 @@ export function AdminDraw() {
                   <div className="text-plum/60">{guestsById.get(p.winnerGuestId!)?.name}</div>
                 </div>
               ))}
-              {prizes.every((p) => !p.winnerGuestId) && <div className="text-plum/50 text-sm">No prizes drawn yet.</div>}
+              {prizes.every((p) => !p.winnerGuestId) && (
+                <div className="text-plum/50 text-sm">No prizes drawn yet.</div>
+              )}
             </div>
           </div>
         </div>
@@ -197,7 +200,9 @@ export function AdminDraw() {
           <div className="text-sm uppercase tracking-[0.4em] text-cream/80">Winner</div>
           <div className="font-display text-5xl sm:text-6xl md:text-8xl mt-4 leading-tight">{winner.name}</div>
           <div className="mt-4 text-xl text-cream/90">Ticket {winner.ticketNumber}</div>
-          <div className="mt-10 chip bg-white text-plum text-base px-5 py-2 inline-flex items-center gap-2"><Trophy size={16} /> {winner.prizeName}</div>
+          <div className="mt-10 chip bg-white text-plum text-base px-5 py-2 inline-flex items-center gap-2">
+            <Trophy size={16} /> {winner.prizeName}
+          </div>
           <button className="btn bg-white text-plum mt-10 px-8" onClick={reset}>
             Next draw
           </button>

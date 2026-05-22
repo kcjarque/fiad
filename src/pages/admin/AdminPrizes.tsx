@@ -1,36 +1,54 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
-import { useDb } from '../../hooks/useDb';
 import { createPrize, deletePrize, listPrizes, updatePrize } from '../../services/prizeService';
+import { listGuests } from '../../services/guestService';
 import { Modal } from '../../components/shared/Modal';
 import { toast } from '../../stores/toastStore';
-import { listGuests } from '../../services/guestService';
 import type { Prize } from '../../types';
 
 const empty = { name: '', description: '', imageUrl: '', quantity: 1 };
 
 export function AdminPrizes() {
-  const prizes = useDb(() => listPrizes());
+  const qc = useQueryClient();
+  const { data: prizes = [] } = useQuery({ queryKey: ['prizes'], queryFn: listPrizes });
   const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Prize | null>(null);
   const [draft, setDraft] = useState(empty);
 
-  const save = () => {
-    if (!draft.name) return toast.error('Name required');
-    if (editing) {
-      updatePrize(editing.id, draft);
-      toast.success('Prize updated');
-    } else {
-      createPrize({ ...draft, imageUrl: draft.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(draft.name)}/400/400` });
-      toast.success('Prize added');
-    }
-    setOpen(false);
-    setEditing(null);
-    setDraft(empty);
-  };
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['prizes'] });
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!draft.name) throw new Error('Name required');
+      if (editing) {
+        await updatePrize(editing.id, draft);
+        toast.success('Prize updated');
+      } else {
+        await createPrize({
+          ...draft,
+          imageUrl: draft.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(draft.name)}/400/400`,
+        });
+        toast.success('Prize added');
+      }
+    },
+    onSuccess: () => {
+      invalidate();
+      setOpen(false);
+      setEditing(null);
+      setDraft(empty);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deletePrize,
+    onSuccess: invalidate,
+    onError: () => toast.error('Delete failed'),
+  });
 
   const edit = (p: Prize) => {
     setEditing(p);
@@ -42,7 +60,12 @@ export function AdminPrizes() {
     <AdminShell>
       <div className="flex items-center justify-between mb-4 md:mb-6 gap-3">
         <h1 className="font-display text-2xl md:text-3xl">Prizes</h1>
-        <button className="btn-primary !px-4 !py-2 text-sm md:text-base md:!px-5 md:!py-3" onClick={() => { setEditing(null); setDraft(empty); setOpen(true); }}>+ Add</button>
+        <button
+          className="btn-primary !px-4 !py-2 text-sm md:text-base md:!px-5 md:!py-3"
+          onClick={() => { setEditing(null); setDraft(empty); setOpen(true); }}
+        >
+          + Add
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -61,7 +84,12 @@ export function AdminPrizes() {
               )}
               <div className="mt-4 flex gap-2">
                 <button className="btn-ghost text-sm" onClick={() => edit(p)}>Edit</button>
-                <button className="btn-ghost text-sm text-red-600" onClick={() => { if (confirm('Delete?')) deletePrize(p.id); }}>Delete</button>
+                <button
+                  className="btn-ghost text-sm text-red-600"
+                  onClick={() => { if (confirm('Delete this prize?')) deleteMutation.mutate(p.id); }}
+                >
+                  Delete
+                </button>
               </div>
             </div>
           );
@@ -81,14 +109,25 @@ export function AdminPrizes() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Quantity</label>
-              <input type="number" className="input" value={draft.quantity} onChange={(e) => setDraft({ ...draft, quantity: Number(e.target.value) })} />
+              <input
+                type="number"
+                className="input"
+                value={draft.quantity}
+                onChange={(e) => setDraft({ ...draft, quantity: Number(e.target.value) })}
+              />
             </div>
             <div>
               <label className="label">Image URL</label>
               <input className="input" value={draft.imageUrl} onChange={(e) => setDraft({ ...draft, imageUrl: e.target.value })} />
             </div>
           </div>
-          <button className="btn-primary w-full" onClick={save}>Save</button>
+          <button
+            className="btn-primary w-full"
+            onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending}
+          >
+            {saveMutation.isPending ? 'Saving…' : 'Save'}
+          </button>
         </div>
       </Modal>
     </AdminShell>

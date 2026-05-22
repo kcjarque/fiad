@@ -25,6 +25,9 @@ export type Store = {
   qrToken: string;
   passcode: string;
   eventId: string;
+  email?: string;
+  contact?: string;
+  socialMedia?: string;
 };
 
 export type Admin = {
@@ -81,6 +84,7 @@ export type Prize = {
   drawnAt?: string;
   winnerGuestId?: string;
   winningTicketNumber?: string;
+  sponsoredByStoreId?: string;
 };
 
 export type ChallengeType = 'booth' | 'activity' | 'visit_all';

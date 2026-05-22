@@ -9,7 +9,6 @@ import type {
   Interest,
   OverrideRequest,
   PassportStamp,
-  Prize,
   RaffleEntry,
   Store,
   Transaction,
@@ -24,7 +23,6 @@ export type MockDb = {
   guests: Guest[];
   transactions: Transaction[];
   raffleEntries: RaffleEntry[];
-  prizes: Prize[];
   challenges: Challenge[];
   challengeCompletions: ChallengeCompletion[];
   passportStamps: PassportStamp[];
@@ -35,7 +33,7 @@ export type MockDb = {
   dealClaims: DealClaim[];
 };
 
-const STORAGE_KEY = 'fiad.mockdb.v3';
+const STORAGE_KEY = 'fiad.mockdb.v4';
 
 const load = (): MockDb => {
   try {

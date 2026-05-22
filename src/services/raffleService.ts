@@ -1,6 +1,5 @@
 import { supabase } from '../lib/supabase';
 import type { RaffleEntry } from '../types';
-import { db } from '../data/mockDb';
 
 type Row = {
   id: string;
@@ -38,11 +37,12 @@ export const totalEntries = async (): Promise<number> => {
 };
 
 export const allActiveEntries = async (): Promise<RaffleEntry[]> => {
-  // Prizes still live in the mock layer; cross-filter against mock.prizes.
+  const { data: wonRows } = await supabase
+    .from('prizes')
+    .select('winning_ticket_number')
+    .not('winning_ticket_number', 'is', null);
   const drawnTickets = new Set(
-    db.prizes
-      .filter((p) => p.winningTicketNumber)
-      .map((p) => p.winningTicketNumber as string),
+    (wonRows ?? []).map((r) => r.winning_ticket_number as string).filter(Boolean),
   );
   const { data, error } = await supabase.from('raffle_entries').select('*');
   if (error) throw error;

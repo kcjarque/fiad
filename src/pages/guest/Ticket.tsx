@@ -9,7 +9,6 @@ import { listPrizes } from '../../services/prizeService';
 import { getActiveEvent } from '../../services/eventService';
 import { QRDisplay } from '../../components/shared/QRDisplay';
 import { Modal } from '../../components/shared/Modal';
-import { useDb } from '../../hooks/useDb';
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown';
 
 export function Ticket() {
@@ -25,7 +24,7 @@ export function Ticket() {
     queryFn: () => entriesForGuest(guestId),
   });
   const { data: event } = useQuery({ queryKey: ['activeEvent'], queryFn: getActiveEvent });
-  const prizes = useDb(() => listPrizes());
+  const { data: prizes = [] } = useQuery({ queryKey: ['prizes'], queryFn: listPrizes });
   const [howOpen, setHowOpen] = useState(false);
 
   const nextPrize = prizes.find((p) => !p.winnerGuestId);

@@ -9,7 +9,6 @@ import { listTransactions } from '../../services/transactionService';
 import { listStores } from '../../services/storeService';
 import { listGuests } from '../../services/guestService';
 import { getActiveEvent } from '../../services/eventService';
-import { useDb } from '../../hooks/useDb';
 import { Hero } from '../../components/shared/Hero';
 import { Confetti } from '../../components/shared/Confetti';
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown';
@@ -35,8 +34,11 @@ export function Raffle() {
   const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
   const { data: event } = useQuery({ queryKey: ['activeEvent'], queryFn: getActiveEvent });
 
-  const prizes = useDb(() => listPrizes());
-  const latestWin = useDb(() => latestWinFor(guestId));
+  const { data: prizes = [] } = useQuery({ queryKey: ['prizes'], queryFn: listPrizes });
+  const { data: latestWin = null } = useQuery({
+    queryKey: ['prizes', 'win', guestId],
+    queryFn: () => latestWinFor(guestId),
+  });
 
   const storesById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
