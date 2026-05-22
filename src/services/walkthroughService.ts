@@ -13,6 +13,7 @@ type Row = {
   image_url: string | null;
   time: string | null;
   sort_order: number;
+  store_id: string | null;
 };
 
 const rowToItem = (r: Row): WalkthroughItem => ({
@@ -24,6 +25,7 @@ const rowToItem = (r: Row): WalkthroughItem => ({
   imageUrl: r.image_url ?? undefined,
   time: r.time ?? undefined,
   order: r.sort_order,
+  storeId: r.store_id ?? undefined,
 });
 
 export const listWalkthrough = async (type?: WalkthroughType): Promise<WalkthroughItem[]> => {
@@ -46,6 +48,7 @@ export const createWalkthrough = async (
     image_url: w.imageUrl ?? null,
     time: w.time ?? null,
     sort_order: w.order,
+    store_id: w.storeId ?? null,
   };
   const { error } = await supabase.from('walkthrough_items').insert(row);
   if (error) throw error;
@@ -63,6 +66,7 @@ export const updateWalkthrough = async (
   if (patch.imageUrl !== undefined) dbPatch.image_url = patch.imageUrl ?? null;
   if (patch.time !== undefined) dbPatch.time = patch.time ?? null;
   if (patch.order !== undefined) dbPatch.sort_order = patch.order;
+  if (patch.storeId !== undefined) dbPatch.store_id = patch.storeId ?? null;
   const { data, error } = await supabase
     .from('walkthrough_items')
     .update(dbPatch)

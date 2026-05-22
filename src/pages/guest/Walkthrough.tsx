@@ -78,7 +78,13 @@ export function Walkthrough() {
           }} />
         )}
 
-        {tab === 'promo' && <PromosTab promos={promos} />}
+        {tab === 'promo' && (
+          <PromosTab
+            promos={promos}
+            stores={stores}
+            onLocate={(storeId) => { if (storeId) setMapPreselect(storeId); setTab('map'); }}
+          />
+        )}
 
         {tab === 'schedule_item' && <ScheduleTab schedule={schedule} />}
       </div>
@@ -219,7 +225,17 @@ function BoothDetail({ store, onLocate }: { store: Store; onLocate: () => void }
 }
 
 /* ---------- Promos tab ---------- */
-function PromosTab({ promos }: { promos: WalkthroughItem[] }) {
+function PromosTab({
+  promos,
+  stores,
+  onLocate,
+}: {
+  promos: WalkthroughItem[];
+  stores: Store[];
+  onLocate: (storeId: string) => void;
+}) {
+  const storeById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
+
   if (promos.length === 0) {
     return (
       <div className="rounded-2xl bg-white shadow-card p-6 text-center text-plum/60 text-sm">
@@ -229,30 +245,50 @@ function PromosTab({ promos }: { promos: WalkthroughItem[] }) {
   }
   return (
     <div className="space-y-4">
-      {promos.map((p) => (
-        <div key={p.id} className="rounded-2xl bg-white shadow-card overflow-hidden">
-          <div className="relative aspect-[16/9]">
-            <img
-              src={p.imageUrl ?? 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=1000&auto=format&fit=crop&q=70'}
-              alt={p.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-plum/70 to-transparent" />
-            <div className="absolute top-3 left-3 foil-gold rounded-full px-3 py-1 text-xs font-bold text-plum shadow">
-              <Tag size={12} className="inline -mt-0.5 mr-1" /> Promo
+      {promos.map((p) => {
+        const store = p.storeId ? storeById.get(p.storeId) : undefined;
+        return (
+          <div key={p.id} className="rounded-2xl bg-white shadow-card overflow-hidden">
+            <div className="relative aspect-[16/9]">
+              <img
+                src={p.imageUrl ?? 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=1000&auto=format&fit=crop&q=70'}
+                alt={p.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-plum/70 to-transparent" />
+              <div className="absolute top-3 left-3 foil-gold rounded-full px-3 py-1 text-xs font-bold text-plum shadow">
+                <Tag size={12} className="inline -mt-0.5 mr-1" /> Promo
+              </div>
+              <div className="absolute bottom-3 left-3 right-3 text-cream">
+                {store && (
+                  <div className="text-[11px] font-mono text-champagne mb-1 uppercase tracking-wider">
+                    {store.name} · Booth {store.boothNumber}
+                  </div>
+                )}
+                <div className="font-display text-xl leading-tight">{p.title}</div>
+              </div>
             </div>
-            <div className="absolute bottom-3 left-3 right-3 text-cream">
-              <div className="font-display text-xl leading-tight">{p.title}</div>
+            <div className="p-4">
+              <p className="text-sm text-plum/75">{p.content}</p>
+              {store ? (
+                <button
+                  onClick={() => onLocate(store.id)}
+                  className="mt-3 text-coral text-sm font-medium inline-flex items-center gap-1 hover:underline"
+                >
+                  Find {store.name} on map <ChevronRight size={14} />
+                </button>
+              ) : (
+                <button
+                  onClick={() => onLocate('')}
+                  className="mt-3 text-coral text-sm font-medium inline-flex items-center gap-1 hover:underline"
+                >
+                  Browse all booths <ChevronRight size={14} />
+                </button>
+              )}
             </div>
           </div>
-          <div className="p-4">
-            <p className="text-sm text-plum/75">{p.content}</p>
-            <button className="mt-3 text-coral text-sm font-medium inline-flex items-center gap-1 hover:underline">
-              Tap to visit booth <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

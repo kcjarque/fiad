@@ -128,6 +128,7 @@ export type WalkthroughItem = {
   imageUrl?: string;
   time?: string;
   order: number;
+  storeId?: string;
 };
 
 export type OverrideStatus = 'pending' | 'approved' | 'denied';
