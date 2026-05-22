@@ -1,18 +1,13 @@
 import type {
   Admin,
-  Challenge,
-  ChallengeCompletion,
   DealClaim,
   EventInfo,
   FlashDeal,
   Guest,
   Interest,
-  OverrideRequest,
-  PassportStamp,
   RaffleEntry,
   Store,
   Transaction,
-  WalkthroughItem,
 } from '../types';
 import { seed } from './seed';
 
@@ -23,17 +18,12 @@ export type MockDb = {
   guests: Guest[];
   transactions: Transaction[];
   raffleEntries: RaffleEntry[];
-  challenges: Challenge[];
-  challengeCompletions: ChallengeCompletion[];
-  passportStamps: PassportStamp[];
-  walkthrough: WalkthroughItem[];
-  overrides: OverrideRequest[];
   interests: Interest[];
   flashDeals: FlashDeal[];
   dealClaims: DealClaim[];
 };
 
-const STORAGE_KEY = 'fiad.mockdb.v4';
+const STORAGE_KEY = 'fiad.mockdb.v5';
 
 const load = (): MockDb => {
   try {

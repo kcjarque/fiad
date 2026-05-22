@@ -1,28 +1,68 @@
-import { db, notify } from '../data/mockDb';
+import { supabase } from '../lib/supabase';
 import type { OverrideRequest } from '../types';
 import { ticketNumber, uid } from '../utils/id';
-import { supabase } from '../lib/supabase';
 import { getActiveEvent } from './eventService';
 
-export const listOverrides = (filter?: { storeId?: string; status?: OverrideRequest['status'] }): OverrideRequest[] => {
-  let list = [...db.overrides];
-  if (filter?.storeId) list = list.filter((o) => o.storeId === filter.storeId);
-  if (filter?.status) list = list.filter((o) => o.status === filter.status);
-  return list.sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
+type Row = {
+  id: string;
+  transaction_id: string;
+  store_id: string;
+  guest_id: string;
+  amount: number;
+  note: string;
+  status: OverrideRequest['status'];
+  requested_at: string;
+  responded_at: string | null;
+  responded_by: string | null;
+};
+
+const rowToOverride = (r: Row): OverrideRequest => ({
+  id: r.id,
+  transactionId: r.transaction_id,
+  storeId: r.store_id,
+  guestId: r.guest_id,
+  amount: r.amount,
+  note: r.note,
+  status: r.status,
+  requestedAt: r.requested_at,
+  respondedAt: r.responded_at ?? undefined,
+  respondedBy: r.responded_by ?? undefined,
+});
+
+export const listOverrides = async (filter?: {
+  storeId?: string;
+  status?: OverrideRequest['status'];
+}): Promise<OverrideRequest[]> => {
+  let q = supabase
+    .from('override_requests')
+    .select('*')
+    .order('requested_at', { ascending: false });
+  if (filter?.storeId) q = q.eq('store_id', filter.storeId);
+  if (filter?.status) q = q.eq('status', filter.status);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []).map(rowToOverride);
 };
 
 export const approveOverride = async (
   overrideId: string,
   adminId: string,
 ): Promise<OverrideRequest | undefined> => {
-  const ovr = db.overrides.find((o) => o.id === overrideId);
-  if (!ovr || ovr.status !== 'pending') return ovr;
+  const { data: ovrRow, error: fetchErr } = await supabase
+    .from('override_requests')
+    .select('*')
+    .eq('id', overrideId)
+    .maybeSingle();
+  if (fetchErr) throw fetchErr;
+  if (!ovrRow || ovrRow.status !== 'pending') return ovrRow ? rowToOverride(ovrRow) : undefined;
+
   const event = await getActiveEvent();
   const { data: tx } = await supabase
     .from('transactions')
     .select('*')
-    .eq('id', ovr.transactionId)
+    .eq('id', ovrRow.transaction_id)
     .maybeSingle();
+
   if (tx) {
     const entries = Math.floor(tx.amount / event.raffleRate);
     await supabase
@@ -41,26 +81,39 @@ export const approveOverride = async (
       await supabase.from('raffle_entries').insert(rows);
     }
   }
-  ovr.status = 'approved';
-  ovr.respondedAt = new Date().toISOString();
-  ovr.respondedBy = adminId;
-  notify();
-  return ovr;
+
+  const now = new Date().toISOString();
+  const { data: updated, error: updateErr } = await supabase
+    .from('override_requests')
+    .update({ status: 'approved', responded_at: now, responded_by: adminId })
+    .eq('id', overrideId)
+    .select('*')
+    .maybeSingle();
+  if (updateErr) throw updateErr;
+  return updated ? rowToOverride(updated) : undefined;
 };
 
 export const denyOverride = async (
   overrideId: string,
   adminId: string,
 ): Promise<OverrideRequest | undefined> => {
-  const ovr = db.overrides.find((o) => o.id === overrideId);
-  if (!ovr || ovr.status !== 'pending') return ovr;
-  await supabase
-    .from('transactions')
-    .update({ status: 'rejected' })
-    .eq('id', ovr.transactionId);
-  ovr.status = 'denied';
-  ovr.respondedAt = new Date().toISOString();
-  ovr.respondedBy = adminId;
-  notify();
-  return ovr;
+  const { data: ovrRow, error: fetchErr } = await supabase
+    .from('override_requests')
+    .select('*')
+    .eq('id', overrideId)
+    .maybeSingle();
+  if (fetchErr) throw fetchErr;
+  if (!ovrRow || ovrRow.status !== 'pending') return ovrRow ? rowToOverride(ovrRow) : undefined;
+
+  await supabase.from('transactions').update({ status: 'rejected' }).eq('id', ovrRow.transaction_id);
+
+  const now = new Date().toISOString();
+  const { data: updated, error: updateErr } = await supabase
+    .from('override_requests')
+    .update({ status: 'denied', responded_at: now, responded_by: adminId })
+    .eq('id', overrideId)
+    .select('*')
+    .maybeSingle();
+  if (updateErr) throw updateErr;
+  return updated ? rowToOverride(updated) : undefined;
 };

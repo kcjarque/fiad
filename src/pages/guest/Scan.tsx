@@ -25,7 +25,7 @@ export function Scan() {
         setScanning(false);
         return;
       }
-      const result = stampPassport(guestId, store.id);
+      const result = await stampPassport(guestId, store.id);
       if ('alreadyStamped' in result) {
         toast.info(`You already stamped ${store.name}.`);
       } else {

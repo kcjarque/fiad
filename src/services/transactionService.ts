@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import { db, notify } from '../data/mockDb';
 import type { OverrideRequest, Transaction } from '../types';
 import { ticketNumber, todayKey, uid } from '../utils/id';
 import { getActiveEvent } from './eventService';
@@ -90,7 +89,6 @@ export const issueEntries = async (params: {
       timestamp: now,
     });
     if (txErr) throw txErr;
-    // Override requests live in the mock layer until that table migrates.
     const override: OverrideRequest = {
       id: uid('ovr'),
       transactionId: txId,
@@ -101,8 +99,17 @@ export const issueEntries = async (params: {
       status: 'pending',
       requestedAt: now,
     };
-    db.overrides.push(override);
-    notify();
+    const { error: ovrErr } = await supabase.from('override_requests').insert({
+      id: override.id,
+      transaction_id: override.transactionId,
+      store_id: override.storeId,
+      guest_id: override.guestId,
+      amount: override.amount,
+      note: override.note,
+      status: 'pending',
+      requested_at: override.requestedAt,
+    });
+    if (ovrErr) throw ovrErr;
     return { kind: 'override', transaction, override };
   }
 

@@ -14,6 +14,9 @@ type Row = {
   booth_number: string;
   qr_token: string;
   passcode: string;
+  email?: string | null;
+  contact?: string | null;
+  social_media?: string | null;
 };
 
 const rowToStore = (r: Row): Store => ({
@@ -27,6 +30,9 @@ const rowToStore = (r: Row): Store => ({
   boothNumber: r.booth_number,
   qrToken: r.qr_token,
   passcode: r.passcode,
+  email: r.email ?? undefined,
+  contact: r.contact ?? undefined,
+  socialMedia: r.social_media ?? undefined,
 });
 
 const storeToInsert = (s: Store): Row => ({
@@ -40,6 +46,9 @@ const storeToInsert = (s: Store): Row => ({
   booth_number: s.boothNumber,
   qr_token: s.qrToken,
   passcode: s.passcode,
+  email: s.email ?? null,
+  contact: s.contact ?? null,
+  social_media: s.socialMedia ?? null,
 });
 
 export const listStores = async (): Promise<Store[]> => {

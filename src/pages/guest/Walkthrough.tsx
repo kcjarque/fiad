@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Clock, Tag, MapPin, Calendar, Heart, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { useDb } from '../../hooks/useDb';
 import { listWalkthrough } from '../../services/walkthroughService';
 import { listStores } from '../../services/storeService';
 import { getActiveEvent } from '../../services/eventService';
+import type { WalkthroughItem } from '../../types';
 import { Hero } from '../../components/shared/Hero';
 import { Modal } from '../../components/shared/Modal';
 import { FloorPlan, getCategoryMeta } from '../../components/guest/FloorPlan';
@@ -26,8 +26,8 @@ export function Walkthrough() {
 
   const { data: event } = useQuery({ queryKey: ['activeEvent'], queryFn: getActiveEvent });
   const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
-  const promos = useDb(() => listWalkthrough('promo'));
-  const schedule = useDb(() => listWalkthrough('schedule_item'));
+  const { data: promos = [] } = useQuery({ queryKey: ['walkthrough', 'promo'], queryFn: () => listWalkthrough('promo') });
+  const { data: schedule = [] } = useQuery({ queryKey: ['walkthrough', 'schedule_item'], queryFn: () => listWalkthrough('schedule_item') });
 
   return (
     <div className="min-h-full pb-28 bg-cream">
@@ -219,7 +219,7 @@ function BoothDetail({ store, onLocate }: { store: Store; onLocate: () => void }
 }
 
 /* ---------- Promos tab ---------- */
-function PromosTab({ promos }: { promos: ReturnType<typeof listWalkthrough> }) {
+function PromosTab({ promos }: { promos: WalkthroughItem[] }) {
   if (promos.length === 0) {
     return (
       <div className="rounded-2xl bg-white shadow-card p-6 text-center text-plum/60 text-sm">
@@ -258,7 +258,7 @@ function PromosTab({ promos }: { promos: ReturnType<typeof listWalkthrough> }) {
 }
 
 /* ---------- Schedule tab ---------- */
-function ScheduleTab({ schedule }: { schedule: ReturnType<typeof listWalkthrough> }) {
+function ScheduleTab({ schedule }: { schedule: WalkthroughItem[] }) {
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const toggle = (id: string) => {
     setSaved((prev) => {

@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
-import { useDb } from '../../hooks/useDb';
 import { listTransactions } from '../../services/transactionService';
 import { listGuests } from '../../services/guestService';
 import { listStores } from '../../services/storeService';
@@ -24,7 +23,10 @@ export function AdminDashboard() {
   const { data: transactions = [] } = useQuery({ queryKey: ['transactions'], queryFn: () => listTransactions() });
   const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
   const { data: entries = 0 } = useQuery({ queryKey: ['raffle', 'total'], queryFn: totalEntries });
-  const pendingOvr = useDb(() => listOverrides({ status: 'pending' }).length);
+  const { data: pendingOverrides = [] } = useQuery({
+    queryKey: ['overrides', 'pending'],
+    queryFn: () => listOverrides({ status: 'pending' }),
+  });
 
   const approvedTxs = useMemo(() => transactions.filter((t) => t.status === 'approved'), [transactions]);
   const totalRevenue = approvedTxs.reduce((sum, t) => sum + t.amount, 0);
@@ -45,7 +47,7 @@ export function AdminDashboard() {
         <Stat label="Registered Guests" value={guests.length} />
         <Stat label="Raffle Entries" value={entries} tone="coral" />
         <Stat label="Approved Sales" value={peso(totalRevenue)} tone="champagne" />
-        <Stat label="Pending Overrides" value={pendingOvr} />
+        <Stat label="Pending Overrides" value={pendingOverrides.length} />
       </div>
 
       <div className="mt-6 md:mt-8 grid grid-cols-1 lg:grid-cols-2 gap-4">

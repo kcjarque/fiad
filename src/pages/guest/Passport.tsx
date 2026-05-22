@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../stores/authStore';
 import { listStores } from '../../services/storeService';
 import { stampsForGuest } from '../../services/passportService';
-import { useDb } from '../../hooks/useDb';
 import { Modal } from '../../components/shared/Modal';
 import { Hero } from '../../components/shared/Hero';
 import type { Store, PassportStamp } from '../../types';
@@ -15,7 +14,10 @@ export function Passport() {
   if (session.role !== 'guest') return <Navigate to="/app/register" replace />;
   const guestId = session.guestId;
   const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
-  const stamps = useDb(() => stampsForGuest(guestId));
+  const { data: stamps = [] } = useQuery({
+    queryKey: ['stamps', guestId],
+    queryFn: () => stampsForGuest(guestId),
+  });
   const stampMap = new Map(stamps.map((s) => [s.storeId, s]));
   const stampedCount = stampMap.size;
   const total = stores.length;

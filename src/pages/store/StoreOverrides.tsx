@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../stores/authStore';
-import { useDb } from '../../hooks/useDb';
 import { listOverrides } from '../../services/overrideService';
 import { listGuests } from '../../services/guestService';
 import { PageShell } from '../../components/shared/PageShell';
@@ -20,7 +19,11 @@ export function StoreOverrides() {
   const session = useAuth((s) => s.session);
   if (session.role !== 'store') return <Navigate to="/store/login" replace />;
   const storeId = session.storeId;
-  const overrides = useDb(() => listOverrides({ storeId }));
+  const { data: overrides = [] } = useQuery({
+    queryKey: ['overrides', 'store', storeId],
+    queryFn: () => listOverrides({ storeId }),
+    refetchInterval: 15_000,
+  });
   const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
 

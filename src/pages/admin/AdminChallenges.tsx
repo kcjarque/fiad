@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
-import { useDb } from '../../hooks/useDb';
 import { createChallenge, deleteChallenge, listChallenges, updateChallenge } from '../../services/challengeService';
 import { listStores } from '../../services/storeService';
 import { Modal } from '../../components/shared/Modal';
@@ -16,24 +15,26 @@ const empty: Omit<Challenge, 'id' | 'eventId'> = {
 };
 
 export function AdminChallenges() {
-  const challenges = useDb(() => listChallenges());
+  const qc = useQueryClient();
+  const { data: challenges = [], refetch } = useQuery({ queryKey: ['challenges'], queryFn: listChallenges });
   const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Challenge | null>(null);
   const [draft, setDraft] = useState<Omit<Challenge, 'id' | 'eventId'>>(empty);
 
-  const save = () => {
+  const save = async () => {
     if (!draft.name) {
       toast.error('Name required');
       return;
     }
     if (editing) {
-      updateChallenge(editing.id, draft);
+      await updateChallenge(editing.id, draft);
       toast.success('Challenge updated');
     } else {
-      createChallenge({ ...draft, eventId: 'evt_fiad_dec25' });
+      await createChallenge({ ...draft, eventId: 'evt_fiad_dec25' });
       toast.success('Challenge added');
     }
+    qc.invalidateQueries({ queryKey: ['challenges'] });
     setOpen(false);
     setEditing(null);
     setDraft(empty);
@@ -68,7 +69,7 @@ export function AdminChallenges() {
               </div>
               <div className="flex gap-2">
                 <button className="btn-ghost text-sm" onClick={() => edit(c)}>Edit</button>
-                <button className="btn-ghost text-sm text-red-600" onClick={() => { if (confirm('Delete?')) deleteChallenge(c.id); }}>Delete</button>
+                <button className="btn-ghost text-sm text-red-600" onClick={async () => { if (confirm('Delete?')) { await deleteChallenge(c.id); qc.invalidateQueries({ queryKey: ['challenges'] }); } }}>Delete</button>
               </div>
             </div>
           </div>

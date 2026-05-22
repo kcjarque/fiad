@@ -1,66 +1,153 @@
-import { db, notify } from '../data/mockDb';
-import type { Challenge, ChallengeCompletion } from '../types';
+import { supabase } from '../lib/supabase';
+import type { Challenge, ChallengeCompletion, PassportStamp } from '../types';
 import { uid } from '../utils/id';
 
-export const listChallenges = (): Challenge[] => db.challenges;
+const ACTIVE_EVENT_ID = 'evt_fiad_dec25';
 
-export const createChallenge = (c: Omit<Challenge, 'id'>): Challenge => {
-  const ch: Challenge = { ...c, id: uid('ch') };
-  db.challenges.push(ch);
-  notify();
-  return ch;
+type ChallengeRow = {
+  id: string;
+  event_id: string;
+  type: Challenge['type'];
+  name: string;
+  description: string;
+  store_id: string | null;
+  image_url: string | null;
+  reward_type: Challenge['rewardType'];
+  reward_value: number | null;
 };
 
-export const updateChallenge = (id: string, patch: Partial<Challenge>): Challenge | undefined => {
-  const idx = db.challenges.findIndex((c) => c.id === id);
-  if (idx === -1) return undefined;
-  db.challenges[idx] = { ...db.challenges[idx], ...patch };
-  notify();
-  return db.challenges[idx];
+type CompletionRow = {
+  id: string;
+  challenge_id: string;
+  guest_id: string;
+  completed_at: string;
 };
 
-export const deleteChallenge = (id: string): void => {
-  const idx = db.challenges.findIndex((c) => c.id === id);
-  if (idx >= 0) {
-    db.challenges.splice(idx, 1);
-    notify();
-  }
+const rowToChallenge = (r: ChallengeRow): Challenge => ({
+  id: r.id,
+  eventId: r.event_id,
+  type: r.type,
+  name: r.name,
+  description: r.description,
+  storeId: r.store_id ?? undefined,
+  imageUrl: r.image_url ?? undefined,
+  rewardType: r.reward_type,
+  rewardValue: r.reward_value ?? undefined,
+});
+
+const rowToCompletion = (r: CompletionRow): ChallengeCompletion => ({
+  id: r.id,
+  challengeId: r.challenge_id,
+  guestId: r.guest_id,
+  completedAt: r.completed_at,
+});
+
+export const listChallenges = async (): Promise<Challenge[]> => {
+  const { data, error } = await supabase.from('challenges').select('*').order('id');
+  if (error) throw error;
+  return (data ?? []).map(rowToChallenge);
 };
 
-export const completionsForGuest = (guestId: string): ChallengeCompletion[] =>
-  db.challengeCompletions.filter((c) => c.guestId === guestId);
+export const createChallenge = async (c: Omit<Challenge, 'id'>): Promise<Challenge> => {
+  const row: ChallengeRow = {
+    id: uid('ch'),
+    event_id: c.eventId || ACTIVE_EVENT_ID,
+    type: c.type,
+    name: c.name,
+    description: c.description,
+    store_id: c.storeId ?? null,
+    image_url: c.imageUrl ?? null,
+    reward_type: c.rewardType,
+    reward_value: c.rewardValue ?? null,
+  };
+  const { error } = await supabase.from('challenges').insert(row);
+  if (error) throw error;
+  return rowToChallenge(row);
+};
 
-export const isChallengeComplete = (
+export const updateChallenge = async (
+  id: string,
+  patch: Partial<Challenge>,
+): Promise<Challenge | undefined> => {
+  const dbPatch: Partial<ChallengeRow> = {};
+  if (patch.type !== undefined) dbPatch.type = patch.type;
+  if (patch.name !== undefined) dbPatch.name = patch.name;
+  if (patch.description !== undefined) dbPatch.description = patch.description;
+  if (patch.storeId !== undefined) dbPatch.store_id = patch.storeId ?? null;
+  if (patch.imageUrl !== undefined) dbPatch.image_url = patch.imageUrl ?? null;
+  if (patch.rewardType !== undefined) dbPatch.reward_type = patch.rewardType;
+  if (patch.rewardValue !== undefined) dbPatch.reward_value = patch.rewardValue ?? null;
+  const { data, error } = await supabase
+    .from('challenges')
+    .update(dbPatch)
+    .eq('id', id)
+    .select('*')
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToChallenge(data) : undefined;
+};
+
+export const deleteChallenge = async (id: string): Promise<void> => {
+  const { error } = await supabase.from('challenges').delete().eq('id', id);
+  if (error) throw error;
+};
+
+export const completionsForGuest = async (guestId: string): Promise<ChallengeCompletion[]> => {
+  const { data, error } = await supabase
+    .from('challenge_completions')
+    .select('*')
+    .eq('guest_id', guestId);
+  if (error) throw error;
+  return (data ?? []).map(rowToCompletion);
+};
+
+export const completeChallenge = async (
   guestId: string,
+  challengeId: string,
+): Promise<ChallengeCompletion> => {
+  const row = {
+    id: uid('cc'),
+    challenge_id: challengeId,
+    guest_id: guestId,
+    completed_at: new Date().toISOString(),
+  };
+  const { data, error } = await supabase
+    .from('challenge_completions')
+    .insert(row)
+    .select('*')
+    .maybeSingle();
+  if (error) {
+    // Unique constraint — already completed
+    if (error.code === '23505') {
+      const { data: existing } = await supabase
+        .from('challenge_completions')
+        .select('*')
+        .eq('challenge_id', challengeId)
+        .eq('guest_id', guestId)
+        .maybeSingle();
+      if (existing) return rowToCompletion(existing);
+    }
+    throw error;
+  }
+  return data ? rowToCompletion(data) : rowToCompletion(row);
+};
+
+/**
+ * Pure synchronous helper — call after pre-fetching stamps and completions.
+ * Used by Challenges.tsx to avoid N+1 async calls per challenge.
+ */
+export const isChallengeCompletedSync = (
   challenge: Challenge,
-  allStoreIds: string[] = [],
+  stamps: PassportStamp[],
+  completions: ChallengeCompletion[],
+  allStoreIds: string[],
 ): boolean => {
   if (challenge.type === 'booth' && challenge.storeId) {
-    return db.passportStamps.some((s) => s.guestId === guestId && s.storeId === challenge.storeId);
+    return stamps.some((s) => s.storeId === challenge.storeId);
   }
   if (challenge.type === 'visit_all') {
-    const stamped = new Set(
-      db.passportStamps.filter((s) => s.guestId === guestId).map((s) => s.storeId),
-    );
+    const stamped = new Set(stamps.map((s) => s.storeId));
     return allStoreIds.length > 0 && allStoreIds.every((id) => stamped.has(id));
   }
-  return db.challengeCompletions.some(
-    (c) => c.challengeId === challenge.id && c.guestId === guestId,
-  );
-};
-
-export const completeChallenge = (guestId: string, challengeId: string): ChallengeCompletion => {
-  const existing = db.challengeCompletions.find(
-    (c) => c.guestId === guestId && c.challengeId === challengeId,
-  );
-  if (existing) return existing;
-  const c: ChallengeCompletion = {
-    id: uid('cc'),
-    guestId,
-    challengeId,
-    completedAt: new Date().toISOString(),
-  };
-  db.challengeCompletions.push(c);
-  notify();
-  return c;
+  return completions.some((c) => c.challengeId === challenge.id);
 };

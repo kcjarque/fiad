@@ -28,7 +28,10 @@ create table if not exists stores (
   image_url text,
   booth_number text not null,
   qr_token text not null unique,
-  passcode text not null
+  passcode text not null,
+  email text,
+  contact text,
+  social_media text
 );
 
 create table if not exists guests (

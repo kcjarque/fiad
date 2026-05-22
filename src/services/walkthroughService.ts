@@ -1,34 +1,79 @@
-import { db, notify } from '../data/mockDb';
+import { supabase } from '../lib/supabase';
 import type { WalkthroughItem, WalkthroughType } from '../types';
 import { uid } from '../utils/id';
 
 const ACTIVE_EVENT_ID = 'evt_fiad_dec25';
 
-export const listWalkthrough = (type?: WalkthroughType): WalkthroughItem[] => {
-  let list = [...db.walkthrough];
-  if (type) list = list.filter((w) => w.type === type);
-  return list.sort((a, b) => a.order - b.order);
+type Row = {
+  id: string;
+  event_id: string;
+  type: WalkthroughType;
+  title: string;
+  content: string;
+  image_url: string | null;
+  time: string | null;
+  sort_order: number;
 };
 
-export const createWalkthrough = (w: Omit<WalkthroughItem, 'id' | 'eventId'>): WalkthroughItem => {
-  const item: WalkthroughItem = { ...w, id: uid('wt'), eventId: ACTIVE_EVENT_ID };
-  db.walkthrough.push(item);
-  notify();
-  return item;
+const rowToItem = (r: Row): WalkthroughItem => ({
+  id: r.id,
+  eventId: r.event_id,
+  type: r.type,
+  title: r.title,
+  content: r.content,
+  imageUrl: r.image_url ?? undefined,
+  time: r.time ?? undefined,
+  order: r.sort_order,
+});
+
+export const listWalkthrough = async (type?: WalkthroughType): Promise<WalkthroughItem[]> => {
+  let q = supabase.from('walkthrough_items').select('*').order('sort_order');
+  if (type) q = q.eq('type', type);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []).map(rowToItem);
 };
 
-export const updateWalkthrough = (id: string, patch: Partial<WalkthroughItem>): WalkthroughItem | undefined => {
-  const idx = db.walkthrough.findIndex((w) => w.id === id);
-  if (idx === -1) return undefined;
-  db.walkthrough[idx] = { ...db.walkthrough[idx], ...patch };
-  notify();
-  return db.walkthrough[idx];
+export const createWalkthrough = async (
+  w: Omit<WalkthroughItem, 'id' | 'eventId'>,
+): Promise<WalkthroughItem> => {
+  const row: Row = {
+    id: uid('wt'),
+    event_id: ACTIVE_EVENT_ID,
+    type: w.type,
+    title: w.title,
+    content: w.content,
+    image_url: w.imageUrl ?? null,
+    time: w.time ?? null,
+    sort_order: w.order,
+  };
+  const { error } = await supabase.from('walkthrough_items').insert(row);
+  if (error) throw error;
+  return rowToItem(row);
 };
 
-export const deleteWalkthrough = (id: string): void => {
-  const idx = db.walkthrough.findIndex((w) => w.id === id);
-  if (idx >= 0) {
-    db.walkthrough.splice(idx, 1);
-    notify();
-  }
+export const updateWalkthrough = async (
+  id: string,
+  patch: Partial<WalkthroughItem>,
+): Promise<WalkthroughItem | undefined> => {
+  const dbPatch: Partial<Row> = {};
+  if (patch.type !== undefined) dbPatch.type = patch.type;
+  if (patch.title !== undefined) dbPatch.title = patch.title;
+  if (patch.content !== undefined) dbPatch.content = patch.content;
+  if (patch.imageUrl !== undefined) dbPatch.image_url = patch.imageUrl ?? null;
+  if (patch.time !== undefined) dbPatch.time = patch.time ?? null;
+  if (patch.order !== undefined) dbPatch.sort_order = patch.order;
+  const { data, error } = await supabase
+    .from('walkthrough_items')
+    .update(dbPatch)
+    .eq('id', id)
+    .select('*')
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToItem(data) : undefined;
+};
+
+export const deleteWalkthrough = async (id: string): Promise<void> => {
+  const { error } = await supabase.from('walkthrough_items').delete().eq('id', id);
+  if (error) throw error;
 };

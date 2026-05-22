@@ -3,8 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { CheckCircle2, Clock, MapPin, Award, Sparkles, Trophy } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../stores/authStore';
-import { useDb } from '../../hooks/useDb';
-import { isChallengeComplete, listChallenges } from '../../services/challengeService';
+import { isChallengeCompletedSync, listChallenges, completionsForGuest } from '../../services/challengeService';
 import { listStores } from '../../services/storeService';
 import { stampsForGuest } from '../../services/passportService';
 import { Hero } from '../../components/shared/Hero';
@@ -22,15 +21,22 @@ export function Challenges() {
   const session = useAuth((s) => s.session);
   if (session.role !== 'guest') return <Navigate to="/app/register" replace />;
   const guestId = session.guestId;
-  const challenges = useDb(() => listChallenges());
+  const { data: challenges = [] } = useQuery({ queryKey: ['challenges'], queryFn: listChallenges });
   const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
   const storesById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
-  const stamps = useDb(() => stampsForGuest(guestId));
+  const { data: stamps = [] } = useQuery({
+    queryKey: ['stamps', guestId],
+    queryFn: () => stampsForGuest(guestId),
+  });
+  const { data: completions = [] } = useQuery({
+    queryKey: ['completions', guestId],
+    queryFn: () => completionsForGuest(guestId),
+  });
   const stampedIds = new Set(stamps.map((s) => s.storeId));
   const allStoreIds = useMemo(() => stores.map((s) => s.id), [stores]);
 
   const statusFor = (c: Challenge): QuestStatus => {
-    if (isChallengeComplete(guestId, c, allStoreIds)) return 'completed';
+    if (isChallengeCompletedSync(c, stamps, completions, allStoreIds)) return 'completed';
     if (c.type === 'visit_all' && stampedIds.size > 0) return 'in_progress';
     return 'not_started';
   };

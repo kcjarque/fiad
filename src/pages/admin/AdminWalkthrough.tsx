@@ -1,6 +1,6 @@
 import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
-import { useDb } from '../../hooks/useDb';
 import { createWalkthrough, deleteWalkthrough, listWalkthrough, updateWalkthrough } from '../../services/walkthroughService';
 import { Modal } from '../../components/shared/Modal';
 import { toast } from '../../stores/toastStore';
@@ -21,21 +21,23 @@ const empty: Omit<WalkthroughItem, 'id' | 'eventId'> = {
 };
 
 export function AdminWalkthrough() {
+  const qc = useQueryClient();
   const [filter, setFilter] = useState<WalkthroughType>('booth_info');
-  const items = useDb(() => listWalkthrough(filter));
+  const { data: items = [] } = useQuery({ queryKey: ['walkthrough', filter], queryFn: () => listWalkthrough(filter) });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<WalkthroughItem | null>(null);
   const [draft, setDraft] = useState<Omit<WalkthroughItem, 'id' | 'eventId'>>(empty);
 
-  const save = () => {
+  const save = async () => {
     if (!draft.title) return toast.error('Title required');
     if (editing) {
-      updateWalkthrough(editing.id, draft);
+      await updateWalkthrough(editing.id, draft);
       toast.success('Updated');
     } else {
-      createWalkthrough(draft);
+      await createWalkthrough(draft);
       toast.success('Added');
     }
+    qc.invalidateQueries({ queryKey: ['walkthrough', filter] });
     setOpen(false);
     setEditing(null);
     setDraft({ ...empty, type: filter });
@@ -78,7 +80,7 @@ export function AdminWalkthrough() {
             {w.imageUrl && <img src={w.imageUrl} alt="" className="w-full sm:w-24 h-32 sm:h-24 rounded-xl object-cover" />}
             <div className="flex sm:flex-col gap-2 self-end sm:self-auto">
               <button className="btn-ghost text-sm" onClick={() => edit(w)}>Edit</button>
-              <button className="btn-ghost text-sm text-red-600" onClick={() => { if (confirm('Delete?')) deleteWalkthrough(w.id); }}>Delete</button>
+              <button className="btn-ghost text-sm text-red-600" onClick={async () => { if (confirm('Delete?')) { await deleteWalkthrough(w.id); qc.invalidateQueries({ queryKey: ['walkthrough', filter] }); } }}>Delete</button>
             </div>
           </div>
         ))}

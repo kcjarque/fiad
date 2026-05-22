@@ -12,6 +12,9 @@ const rowToStore = (r: {
   booth_number: string;
   qr_token: string;
   passcode: string;
+  email?: string | null;
+  contact?: string | null;
+  social_media?: string | null;
 }): Store => ({
   id: r.id,
   eventId: r.event_id,
@@ -23,6 +26,9 @@ const rowToStore = (r: {
   boothNumber: r.booth_number,
   qrToken: r.qr_token,
   passcode: r.passcode,
+  email: r.email ?? undefined,
+  contact: r.contact ?? undefined,
+  socialMedia: r.social_media ?? undefined,
 });
 
 export const loginAdmin = async (email: string, passcode: string): Promise<Admin | null> => {

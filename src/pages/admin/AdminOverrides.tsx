@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
-import { useDb } from '../../hooks/useDb';
 import { approveOverride, denyOverride, listOverrides } from '../../services/overrideService';
 import { listGuests } from '../../services/guestService';
 import { listStores } from '../../services/storeService';
@@ -15,8 +14,18 @@ export function AdminOverrides() {
   const queryClient = useQueryClient();
   const session = useAuth((s) => s.session);
   const adminId = session.role === 'admin' ? session.adminId : 'unknown';
-  const pending = useDb(() => listOverrides({ status: 'pending' }));
-  const recent = useDb(() => listOverrides().filter((o) => o.status !== 'pending').slice(0, 10));
+  const { data: pending = [] } = useQuery({
+    queryKey: ['overrides', 'pending'],
+    queryFn: () => listOverrides({ status: 'pending' }),
+    refetchInterval: 15_000,
+  });
+  const { data: recent = [] } = useQuery({
+    queryKey: ['overrides', 'recent'],
+    queryFn: async () => {
+      const all = await listOverrides();
+      return all.filter((o) => o.status !== 'pending').slice(0, 10);
+    },
+  });
 
   const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
   const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
@@ -31,6 +40,8 @@ export function AdminOverrides() {
       await approveOverride(id, adminId);
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['raffle'] });
+      queryClient.invalidateQueries({ queryKey: ['overrides', 'pending'] });
+      queryClient.invalidateQueries({ queryKey: ['overrides', 'recent'] });
       toast.success('Override approved. Entries issued.');
     } catch (err) {
       toast.error(`Approval failed: ${(err as Error).message}`);
@@ -40,6 +51,8 @@ export function AdminOverrides() {
     try {
       await denyOverride(id, adminId);
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['overrides', 'pending'] });
+      queryClient.invalidateQueries({ queryKey: ['overrides', 'recent'] });
       toast.info('Override denied.');
     } catch (err) {
       toast.error(`Denial failed: ${(err as Error).message}`);
