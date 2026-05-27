@@ -1,7 +1,5 @@
 import { supabase } from '../lib/supabase';
 import type { OverrideRequest } from '../types';
-import { ticketNumber, uid } from '../utils/id';
-import { getActiveEvent } from './eventService';
 
 type Row = {
   id: string;
@@ -48,72 +46,36 @@ export const approveOverride = async (
   overrideId: string,
   adminId: string,
 ): Promise<OverrideRequest | undefined> => {
-  const { data: ovrRow, error: fetchErr } = await supabase
+  const { error } = await supabase.rpc('approve_override', {
+    p_override_id: overrideId,
+    p_admin_id: adminId,
+  });
+  if (error) throw error;
+
+  const { data, error: fetchErr } = await supabase
     .from('override_requests')
     .select('*')
     .eq('id', overrideId)
     .maybeSingle();
   if (fetchErr) throw fetchErr;
-  if (!ovrRow || ovrRow.status !== 'pending') return ovrRow ? rowToOverride(ovrRow) : undefined;
-
-  const event = await getActiveEvent();
-  const { data: tx } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('id', ovrRow.transaction_id)
-    .maybeSingle();
-
-  if (tx) {
-    const entries = Math.floor(tx.amount / event.raffleRate);
-    await supabase
-      .from('transactions')
-      .update({ status: 'approved', entries_issued: entries, approved_by: adminId })
-      .eq('id', tx.id);
-    if (entries > 0) {
-      const rows = Array.from({ length: entries }, () => ({
-        id: uid('re'),
-        event_id: event.id,
-        guest_id: tx.guest_id,
-        transaction_id: tx.id,
-        ticket_number: ticketNumber(),
-        created_at: new Date().toISOString(),
-      }));
-      await supabase.from('raffle_entries').insert(rows);
-    }
-  }
-
-  const now = new Date().toISOString();
-  const { data: updated, error: updateErr } = await supabase
-    .from('override_requests')
-    .update({ status: 'approved', responded_at: now, responded_by: adminId })
-    .eq('id', overrideId)
-    .select('*')
-    .maybeSingle();
-  if (updateErr) throw updateErr;
-  return updated ? rowToOverride(updated) : undefined;
+  return data ? rowToOverride(data) : undefined;
 };
 
 export const denyOverride = async (
   overrideId: string,
   adminId: string,
 ): Promise<OverrideRequest | undefined> => {
-  const { data: ovrRow, error: fetchErr } = await supabase
+  const { error } = await supabase.rpc('deny_override', {
+    p_override_id: overrideId,
+    p_admin_id: adminId,
+  });
+  if (error) throw error;
+
+  const { data, error: fetchErr } = await supabase
     .from('override_requests')
     .select('*')
     .eq('id', overrideId)
     .maybeSingle();
   if (fetchErr) throw fetchErr;
-  if (!ovrRow || ovrRow.status !== 'pending') return ovrRow ? rowToOverride(ovrRow) : undefined;
-
-  await supabase.from('transactions').update({ status: 'rejected' }).eq('id', ovrRow.transaction_id);
-
-  const now = new Date().toISOString();
-  const { data: updated, error: updateErr } = await supabase
-    .from('override_requests')
-    .update({ status: 'denied', responded_at: now, responded_by: adminId })
-    .eq('id', overrideId)
-    .select('*')
-    .maybeSingle();
-  if (updateErr) throw updateErr;
-  return updated ? rowToOverride(updated) : undefined;
+  return data ? rowToOverride(data) : undefined;
 };

@@ -1,7 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { OverrideRequest, Transaction } from '../types';
-import { ticketNumber, todayKey, uid } from '../utils/id';
-import { getActiveEvent } from './eventService';
+import { todayKey } from '../utils/id';
 
 type Row = {
   id: string;
@@ -51,107 +50,81 @@ export type IssueResult =
   | { kind: 'override'; transaction: Transaction; override: OverrideRequest };
 
 export const issueEntries = async (params: {
+  idempotencyKey: string;
   storeId: string;
   guestId: string;
   amount: number;
   receiptPhotoUrl: string;
   overrideNote?: string;
 }): Promise<IssueResult> => {
-  const event = await getActiveEvent();
-  const alreadySpent = await getTodaySpent(params.guestId, params.storeId);
-  const willExceed = alreadySpent + params.amount > event.dailyCapPerGuestPerStore;
-  const now = new Date().toISOString();
+  const { data, error } = await supabase.rpc('issue_entries', {
+    p_idempotency_key: params.idempotencyKey,
+    p_store_id: params.storeId,
+    p_guest_id: params.guestId,
+    p_amount: params.amount,
+    p_receipt_url: params.receiptPhotoUrl,
+    p_override_note: params.overrideNote ?? null,
+  });
+  if (error) throw error;
 
-  if (willExceed) {
-    const txId = uid('tx');
-    const transaction: Transaction = {
-      id: txId,
-      eventId: event.id,
-      storeId: params.storeId,
-      guestId: params.guestId,
-      amount: params.amount,
-      receiptPhotoUrl: params.receiptPhotoUrl,
-      entriesIssued: 0,
-      status: 'pending_override',
-      overrideNote: params.overrideNote ?? 'Exceeds daily cap',
-      timestamp: now,
-    };
-    const { error: txErr } = await supabase.from('transactions').insert({
-      id: txId,
-      event_id: event.id,
-      store_id: params.storeId,
-      guest_id: params.guestId,
-      amount: params.amount,
-      receipt_photo_url: params.receiptPhotoUrl,
-      entries_issued: 0,
-      status: 'pending_override',
-      override_note: transaction.overrideNote,
-      timestamp: now,
-    });
-    if (txErr) throw txErr;
-    const override: OverrideRequest = {
-      id: uid('ovr'),
-      transactionId: txId,
-      storeId: params.storeId,
-      guestId: params.guestId,
-      amount: params.amount,
-      note: transaction.overrideNote ?? 'Exceeds daily cap',
-      status: 'pending',
-      requestedAt: now,
-    };
-    const { error: ovrErr } = await supabase.from('override_requests').insert({
-      id: override.id,
-      transaction_id: override.transactionId,
-      store_id: override.storeId,
-      guest_id: override.guestId,
-      amount: override.amount,
-      note: override.note,
-      status: 'pending',
-      requested_at: override.requestedAt,
-    });
+  const result = data as {
+    kind: string;
+    transaction_id: string;
+    entries_added?: number;
+    override_id?: string;
+  };
+
+  const { data: txRow, error: txErr } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('id', result.transaction_id)
+    .maybeSingle();
+  if (txErr) throw txErr;
+  if (!txRow) throw new Error('transaction not found after issue_entries');
+  const transaction = rowToTx(txRow as Row);
+
+  const isOverride =
+    result.kind === 'override' ||
+    (result.kind === 'duplicate' && transaction.status === 'pending_override');
+
+  if (isOverride) {
+    const { data: ovrRow, error: ovrErr } = await supabase
+      .from('override_requests')
+      .select('*')
+      .eq('transaction_id', result.transaction_id)
+      .maybeSingle();
     if (ovrErr) throw ovrErr;
+    const override: OverrideRequest = ovrRow
+      ? {
+          id: ovrRow.id,
+          transactionId: ovrRow.transaction_id,
+          storeId: ovrRow.store_id,
+          guestId: ovrRow.guest_id,
+          amount: ovrRow.amount,
+          note: ovrRow.note,
+          status: ovrRow.status,
+          requestedAt: ovrRow.requested_at,
+          respondedAt: ovrRow.responded_at ?? undefined,
+          respondedBy: ovrRow.responded_by ?? undefined,
+        }
+      : {
+          id: '',
+          transactionId: result.transaction_id,
+          storeId: params.storeId,
+          guestId: params.guestId,
+          amount: params.amount,
+          note: params.overrideNote ?? 'Exceeds daily cap',
+          status: 'pending',
+          requestedAt: new Date().toISOString(),
+        };
     return { kind: 'override', transaction, override };
   }
 
-  const entries = Math.floor(params.amount / event.raffleRate);
-  const txId = uid('tx');
-  const transaction: Transaction = {
-    id: txId,
-    eventId: event.id,
-    storeId: params.storeId,
-    guestId: params.guestId,
-    amount: params.amount,
-    receiptPhotoUrl: params.receiptPhotoUrl,
-    entriesIssued: entries,
-    status: 'approved',
-    timestamp: now,
+  return {
+    kind: 'approved',
+    transaction,
+    entries: result.entries_added ?? transaction.entriesIssued,
   };
-  const { error: txErr } = await supabase.from('transactions').insert({
-    id: txId,
-    event_id: event.id,
-    store_id: params.storeId,
-    guest_id: params.guestId,
-    amount: params.amount,
-    receipt_photo_url: params.receiptPhotoUrl,
-    entries_issued: entries,
-    status: 'approved',
-    timestamp: now,
-  });
-  if (txErr) throw txErr;
-
-  if (entries > 0) {
-    const entryRows = Array.from({ length: entries }, () => ({
-      id: uid('re'),
-      event_id: event.id,
-      guest_id: params.guestId,
-      transaction_id: txId,
-      ticket_number: ticketNumber(),
-      created_at: now,
-    }));
-    const { error: reErr } = await supabase.from('raffle_entries').insert(entryRows);
-    if (reErr) throw reErr;
-  }
-  return { kind: 'approved', transaction, entries };
 };
 
 export const listTransactions = async (filter?: {

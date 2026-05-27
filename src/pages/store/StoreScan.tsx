@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../stores/authStore';
@@ -14,7 +14,7 @@ import { peso } from '../../utils/id';
 import type { Guest } from '../../types';
 import { Camera, Sparkles } from 'lucide-react';
 
-type Step = 'scan' | 'form' | 'done';
+type Step = 'idle' | 'scan' | 'form' | 'done';
 
 export function StoreScan() {
   const session = useAuth((s) => s.session);
@@ -24,13 +24,15 @@ export function StoreScan() {
 
   const { data: event } = useQuery({ queryKey: ['activeEvent'], queryFn: getActiveEvent });
 
-  const [step, setStep] = useState<Step>('scan');
+  const [step, setStep] = useState<Step>('idle');
   const [guest, setGuest] = useState<Guest | null>(null);
   const [amount, setAmount] = useState('');
   const [photo, setPhoto] = useState<string>('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string>('');
+  // One UUID per form mount, reused across retries so duplicate submits collapse
+  const idempotencyKey = useRef(crypto.randomUUID());
 
   const { data: alreadySpent = 0 } = useQuery({
     queryKey: ['todaySpent', guest?.id, storeId],
@@ -74,6 +76,7 @@ export function StoreScan() {
     setBusy(true);
     try {
       const r = await issueEntries({
+        idempotencyKey: idempotencyKey.current,
         storeId,
         guestId: guest.id,
         amount: amt,
@@ -99,12 +102,13 @@ export function StoreScan() {
   };
 
   const reset = () => {
+    idempotencyKey.current = crypto.randomUUID();
     setGuest(null);
     setAmount('');
     setPhoto('');
     setNote('');
     setResult('');
-    setStep('scan');
+    setStep('idle');
   };
 
   const cap = event?.dailyCapPerGuestPerStore ?? 5000;
@@ -114,6 +118,20 @@ export function StoreScan() {
 
   return (
     <PageShell title="Issue Raffle Entries" subtitle={`₱${raffleRate} = 1 entry · Cap ${peso(cap)}/day/guest`}>
+      {step === 'idle' && (
+        <Card className="text-center py-8">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-champagne/40 text-plum mb-4">
+            <Camera size={28} />
+          </div>
+          <div className="font-display text-lg mb-1">Issue Raffle Entry</div>
+          <div className="text-plum/60 text-sm mb-6">Scan a guest's QR code to record their purchase.</div>
+          <Button onClick={() => setStep('scan')}>
+            <Camera size={16} className="mr-2" />
+            Scan Guest QR
+          </Button>
+        </Card>
+      )}
+
       {step === 'scan' && (
         <Card>
           <QRScanner onResult={onQr} />

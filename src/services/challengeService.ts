@@ -105,31 +105,21 @@ export const completeChallenge = async (
   guestId: string,
   challengeId: string,
 ): Promise<ChallengeCompletion> => {
-  const row = {
-    id: uid('cc'),
-    challenge_id: challengeId,
-    guest_id: guestId,
-    completed_at: new Date().toISOString(),
-  };
-  const { data, error } = await supabase
+  const { error } = await supabase.rpc('complete_challenge', {
+    p_guest_id:     guestId,
+    p_challenge_id: challengeId,
+  });
+  if (error) throw error;
+
+  const { data, error: fetchErr } = await supabase
     .from('challenge_completions')
-    .insert(row)
     .select('*')
+    .eq('challenge_id', challengeId)
+    .eq('guest_id', guestId)
     .maybeSingle();
-  if (error) {
-    // Unique constraint — already completed
-    if (error.code === '23505') {
-      const { data: existing } = await supabase
-        .from('challenge_completions')
-        .select('*')
-        .eq('challenge_id', challengeId)
-        .eq('guest_id', guestId)
-        .maybeSingle();
-      if (existing) return rowToCompletion(existing);
-    }
-    throw error;
-  }
-  return data ? rowToCompletion(data) : rowToCompletion(row);
+  if (fetchErr) throw fetchErr;
+  if (!data) throw new Error('completion not found after complete_challenge');
+  return rowToCompletion(data);
 };
 
 /**
