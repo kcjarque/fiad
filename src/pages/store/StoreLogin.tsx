@@ -22,8 +22,11 @@ export function StoreLogin() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Trim whitespace and normalise case — supplier codes are uppercase,
+    // but it's easy to type them lowercase or paste with a trailing space.
+    const cleaned = passcode.trim().toUpperCase();
     try {
-      const store = await loginStore(storeId, passcode);
+      const store = await loginStore(storeId, cleaned);
       if (!store) {
         toast.error('Invalid passcode.');
         return;
@@ -59,10 +62,14 @@ export function StoreLogin() {
           <div>
             <label className="label">Passcode</label>
             <input
-              type="password"
-              className="input"
+              type="text"
+              className="input uppercase tracking-widest"
+              autoCapitalize="characters"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
+              onChange={(e) => setPasscode(e.target.value.toUpperCase())}
               placeholder="Enter passcode"
             />
           </div>
