@@ -57,6 +57,9 @@ export function QRScanner({ onResult, onClose, hint }: Props) {
         const msg = e instanceof Error ? e.message : 'Camera unavailable';
         setError(msg);
         setMode('manual');
+        // Clear cached consent so the next visit re-shows the idle gate
+        // rather than auto-trying a camera that just failed.
+        try { localStorage.removeItem('fiad.cameraConsent'); } catch { /* ignore */ }
       }
     };
     start().catch(() => {});

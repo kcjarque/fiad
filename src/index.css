@@ -13,8 +13,22 @@ html, body, #root {
 body {
   margin: 0;
   background-color: #FFF2F6;
+  color: #3E2A3E;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  position: relative;
+}
+
+/* Marble veining — fixed pseudo-element instead of background-attachment:fixed
+   to avoid iOS Safari rendering bugs with camera/video elements. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-image:
-    /* Marble veining — multiple thin streaks at varied angles */
     linear-gradient(132deg, transparent 21%, rgba(255, 255, 255, 0.55) 24%, transparent 28%),
     linear-gradient(158deg, transparent 47%, rgba(244, 160, 181, 0.22) 51%, transparent 56%),
     linear-gradient(95deg, transparent 66%, rgba(255, 255, 255, 0.45) 70%, transparent 74%),
@@ -23,11 +37,6 @@ body {
     linear-gradient(112deg, transparent 55%, rgba(212, 175, 122, 0.12) 59%, transparent 63%),
     linear-gradient(38deg, transparent 36%, rgba(244, 160, 181, 0.18) 40%, transparent 45%);
   background-size: 1100px 900px;
-  background-attachment: fixed;
-  color: #3E2A3E;
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 @layer components {

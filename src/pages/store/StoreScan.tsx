@@ -24,7 +24,11 @@ export function StoreScan() {
 
   const { data: event } = useQuery({ queryKey: ['activeEvent'], queryFn: getActiveEvent });
 
-  const [step, setStep] = useState<Step>('idle');
+  // Remember camera consent across sessions so the clerk doesn't have to
+  // tap "Scan Guest QR" every time they open the page.
+  const cameraConsented = typeof localStorage !== 'undefined' &&
+    localStorage.getItem('fiad.cameraConsent') === '1';
+  const [step, setStep] = useState<Step>(cameraConsented ? 'scan' : 'idle');
   const [guest, setGuest] = useState<Guest | null>(null);
   const [amount, setAmount] = useState('');
   const [photo, setPhoto] = useState<string>('');
@@ -125,7 +129,10 @@ export function StoreScan() {
           </div>
           <div className="font-display text-lg mb-1">Issue Raffle Entry</div>
           <div className="text-plum/60 text-sm mb-6">Scan a guest's QR code to record their purchase.</div>
-          <Button onClick={() => setStep('scan')}>
+          <Button onClick={() => {
+            try { localStorage.setItem('fiad.cameraConsent', '1'); } catch { /* ignore */ }
+            setStep('scan');
+          }}>
             <Camera size={16} className="mr-2" />
             Scan Guest QR
           </Button>
