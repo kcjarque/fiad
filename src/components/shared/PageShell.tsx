@@ -14,7 +14,7 @@ export function PageShell({
   return (
     <div className="min-h-full pb-28">
       {(title || subtitle || right) && (
-        <div className="px-5 pt-6 pb-3 flex items-start justify-between gap-3">
+        <div className="px-5 pt-6 pb-4 flex items-start justify-between gap-3 bg-gradient-to-b from-rose/25 to-transparent">
           <div>
             {title && <h1 className="font-display text-2xl text-plum">{title}</h1>}
             {subtitle && <p className="text-plum/60 text-sm mt-1">{subtitle}</p>}

@@ -6,9 +6,9 @@ export default {
       colors: {
         champagne: '#D4AF7A',
         plum: '#3E2A3E',
-        cream: '#FAF6F0',
-        rose: '#E8B4B8',
-        coral: '#E8826B',
+        cream: '#FFF2F6',
+        rose: '#F4A0B5',
+        coral: '#E63F75',
       },
       fontFamily: {
         serif: ['"Playfair Display"', 'ui-serif', 'serif'],

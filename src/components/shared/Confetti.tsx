@@ -1,4 +1,4 @@
-const colors = ['#E8826B', '#D4AF7A', '#E8B4B8', '#3E2A3E', '#FAF6F0'];
+const colors = ['#E63F75', '#D4AF7A', '#F4A0B5', '#3E2A3E', '#FFF2F6'];
 
 export function Confetti({ count = 60 }: { count?: number }) {
   return (

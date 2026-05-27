@@ -8,7 +8,7 @@ export function Landing() {
   const eventChip = event ? (event.name.split('—')[1]?.trim() ?? event.name) : '…';
 
   return (
-    <div className="min-h-[100svh] bg-gradient-to-b from-cream to-rose/30 flex flex-col">
+    <div className="min-h-[100svh] bg-gradient-to-b from-cream via-rose/20 to-rose/40 flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 max-w-md mx-auto w-full">
         <div className="text-center">
           <img
