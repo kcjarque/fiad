@@ -118,11 +118,11 @@ export function AdminDraw() {
         <div className="card flex flex-col items-center">
           <div className="w-full max-w-[360px]">
             <div
-              className="relative mx-auto rounded-2xl overflow-hidden border-4 border-champagne bg-gradient-to-b from-plum to-[#2a1d2a] shadow-soft"
+              className="relative mx-auto rounded-2xl overflow-hidden border-4 border-champagne bg-gradient-to-b from-coral to-[#8B2348] shadow-soft"
               style={{ height: VISIBLE_ROWS * ROW_HEIGHT }}
             >
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-plum/90 to-transparent z-10" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-plum/90 to-transparent z-10" />
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#8B2348]/90 to-transparent z-10" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#8B2348]/90 to-transparent z-10" />
 
               <div
                 className="absolute inset-x-2 border-y-2 border-coral/80 bg-coral/10 z-10 rounded-md"
@@ -195,7 +195,7 @@ export function AdminDraw() {
       </div>
 
       {phase === 'revealed' && winner && (
-        <div className="fixed inset-0 z-50 bg-gradient-to-br from-plum via-plum to-coral text-white flex flex-col items-center justify-center px-6 text-center">
+        <div className="fixed inset-0 z-50 bg-gradient-to-br from-[#8B2348] via-coral to-rose text-white flex flex-col items-center justify-center px-6 text-center">
           <Confetti count={80} />
           <div className="text-sm uppercase tracking-[0.4em] text-cream/80">Winner</div>
           <div className="font-display text-5xl sm:text-6xl md:text-8xl mt-4 leading-tight">{winner.name}</div>

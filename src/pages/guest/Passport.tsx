@@ -86,7 +86,7 @@ export function Passport() {
                         STAMPED
                       </div>
                       {/* Bottom gradient */}
-                      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-plum/80 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#8B2348]/80 to-transparent" />
                     </>
                   )}
                 </div>
@@ -106,7 +106,7 @@ export function Passport() {
 
       {/* Completion reward card */}
       <div className="px-5 mt-6">
-        <div className={`rounded-2xl shadow-card overflow-hidden ${completed ? 'bg-gradient-to-br from-coral to-plum text-white' : 'bg-white'}`}>
+        <div className={`rounded-2xl shadow-card overflow-hidden ${completed ? 'bg-gradient-to-br from-coral to-[#8B2348] text-white' : 'bg-white'}`}>
           <div className="p-5 flex gap-4 items-center">
             <div className={`h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 ${completed ? 'foil-gold text-plum' : 'bg-champagne/15 text-champagne'}`}>
               <Gift size={26} />
@@ -138,7 +138,7 @@ export function Passport() {
                 alt={selected.store.name}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-plum/70 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#8B2348]/70 to-transparent" />
               <div className="absolute top-3 right-3 foil-gold rounded-full px-3 py-1 text-xs font-bold text-plum shadow">
                 STAMPED
               </div>

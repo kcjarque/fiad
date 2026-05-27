@@ -137,7 +137,7 @@ export function Raffle() {
 
       {wins.length > 0 && (
         <div className="px-5 mt-5">
-          <div className="rounded-2xl bg-gradient-to-br from-coral via-[#d46a54] to-plum p-5 text-white shadow-soft">
+          <div className="rounded-2xl bg-gradient-to-br from-coral via-[#c5305f] to-[#8B2348] p-5 text-white shadow-soft">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-cream/80">
               <Trophy size={12} /> You've won
             </div>
@@ -218,7 +218,7 @@ export function Raffle() {
                 <div key={p.id} className="rounded-2xl bg-white shadow-card overflow-hidden">
                   <div className="relative h-28">
                     <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-plum/80 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#8B2348]/80 to-transparent" />
                     <div className="absolute bottom-2 left-2 right-2 text-cream">
                       <div className="text-[10px] uppercase tracking-[0.2em] text-champagne">Winner</div>
                       <div className="font-display text-sm leading-tight line-clamp-1">{winner?.name ?? '—'}</div>
@@ -236,7 +236,7 @@ export function Raffle() {
       </div>
 
       {showWin && latestWin && (
-        <div className="fixed inset-0 z-50 bg-gradient-to-b from-coral to-plum text-white flex flex-col items-center justify-center px-6 text-center">
+        <div className="fixed inset-0 z-50 bg-gradient-to-b from-coral to-[#8B2348] text-white flex flex-col items-center justify-center px-6 text-center">
           <Confetti />
           <div className="text-sm uppercase tracking-[0.3em]">You won</div>
           <div className="font-display text-5xl mt-3">{latestWin.prize.name}</div>

@@ -374,7 +374,7 @@ export function FloorPlan({ stores, initialSelectedId, onSelect }: Props) {
               {selected.imageUrl && (
                 <div className="relative -mx-6 -mt-5 aspect-[16/10] overflow-hidden">
                   <img src={selected.imageUrl} alt={selected.name} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-plum/70 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#8B2348]/70 to-transparent" />
                   <div className="absolute bottom-3 left-5 right-5 flex items-end justify-between">
                     <div className="text-cream">
                       <div className="text-[10px] uppercase tracking-[0.25em] text-champagne">{selected.category}</div>

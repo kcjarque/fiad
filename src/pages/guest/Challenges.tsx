@@ -190,7 +190,7 @@ function QuestCard({ quest, status, storesById }: { quest: Challenge; status: Qu
             <StatusPill status={status} />
           </div>
           {status === 'completed' && (
-            <div className="absolute inset-0 bg-gradient-to-t from-plum/60 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#8B2348]/60 via-transparent to-transparent" />
           )}
         </div>
       )}
@@ -234,7 +234,7 @@ function BossQuest({
   return (
     <div className="relative rounded-3xl overflow-hidden shadow-soft">
       {quest.imageUrl && <img src={quest.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />}
-      <div className="absolute inset-0 bg-gradient-to-br from-plum/95 via-plum/80 to-plum/95" />
+      <div className="absolute inset-0 bg-gradient-to-br from-coral/90 via-[#8B2348]/80 to-coral/90" />
       <div className="relative p-5 text-cream">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.3em] text-champagne">

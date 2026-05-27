@@ -198,7 +198,7 @@ function BoothDetail({ store, onLocate }: { store: Store; onLocate: () => void }
     <div className="space-y-4">
       <div className="relative -mx-6 -mt-5 aspect-[16/10] overflow-hidden">
         <img src={store.imageUrl ?? store.logoUrl} alt={store.name} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-plum/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#8B2348]/80 to-transparent" />
         <div className="absolute bottom-3 left-5 right-5 flex items-end justify-between text-cream">
           <div>
             <div className="text-[10px] uppercase tracking-[0.25em] text-champagne">{store.category}</div>
@@ -255,7 +255,7 @@ function PromosTab({
                 alt={p.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-plum/70 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#8B2348]/70 to-transparent" />
               <div className="absolute top-3 left-3 foil-gold rounded-full px-3 py-1 text-xs font-bold text-plum shadow">
                 <Tag size={12} className="inline -mt-0.5 mr-1" /> Promo
               </div>

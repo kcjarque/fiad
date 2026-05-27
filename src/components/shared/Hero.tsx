@@ -37,14 +37,14 @@ export function Hero({
     <div className={`relative overflow-hidden ${heightMap[height]} ${className}`}>
       {/* Background */}
       {solid || !imageUrl ? (
-        <div className="absolute inset-0 bg-gradient-to-br from-plum via-[#4a3550] to-[#2a1d2a]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-rose via-coral to-[#8B2348]" />
       ) : (
         <>
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${imageUrl})` }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-plum/30 via-plum/60 to-plum/95" />
+          <div className="absolute inset-0 bg-gradient-to-b from-coral/20 via-coral/60 to-[#8B2348]/95" />
         </>
       )}
 

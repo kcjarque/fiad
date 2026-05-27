@@ -45,7 +45,7 @@ export function Ticket() {
   return (
     <div className="min-h-full pb-28 bg-cream">
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-plum via-[#4a3550] to-[#2a1d2a]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-rose via-coral to-[#8B2348]" />
         <div
           className="absolute inset-0 opacity-[0.08]"
           style={{
