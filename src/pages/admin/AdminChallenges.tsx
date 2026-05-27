@@ -16,7 +16,7 @@ const empty: Omit<Challenge, 'id' | 'eventId'> = {
 
 export function AdminChallenges() {
   const qc = useQueryClient();
-  const { data: challenges = [], refetch } = useQuery({ queryKey: ['challenges'], queryFn: listChallenges });
+  const { data: challenges = [] } = useQuery({ queryKey: ['challenges'], queryFn: listChallenges });
   const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Challenge | null>(null);
