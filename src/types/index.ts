@@ -117,7 +117,7 @@ export type PassportStamp = {
   stampedAt: string;
 };
 
-export type WalkthroughType = 'booth_info' | 'promo' | 'schedule_item' | 'map';
+export type WalkthroughType = 'booth_info' | 'promo' | 'schedule_item' | 'map' | 'activity';
 
 export type WalkthroughItem = {
   id: string;

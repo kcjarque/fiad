@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Clock, Tag, MapPin, Calendar, Heart, ChevronRight } from 'lucide-react';
+import { Clock, Tag, MapPin, Calendar, Heart, ChevronRight, Sparkles } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { listWalkthrough } from '../../services/walkthroughService';
 import { listStores } from '../../services/storeService';
@@ -13,6 +13,7 @@ import type { Store } from '../../types';
 const tabs = [
   { key: 'map', label: 'Map' },
   { key: 'booth_info', label: 'Booths' },
+  { key: 'activity', label: 'Activities' },
   { key: 'promo', label: 'Promos' },
   { key: 'schedule_item', label: 'Schedule' },
 ] as const;
@@ -28,6 +29,7 @@ export function Walkthrough() {
   const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
   const { data: promos = [] } = useQuery({ queryKey: ['walkthrough', 'promo'], queryFn: () => listWalkthrough('promo') });
   const { data: schedule = [] } = useQuery({ queryKey: ['walkthrough', 'schedule_item'], queryFn: () => listWalkthrough('schedule_item') });
+  const { data: activities = [] } = useQuery({ queryKey: ['walkthrough', 'activity'], queryFn: () => listWalkthrough('activity') });
 
   return (
     <div className="min-h-full pb-28 bg-cream">
@@ -76,6 +78,14 @@ export function Walkthrough() {
             setMapPreselect(s.id);
             setTab('map');
           }} />
+        )}
+
+        {tab === 'activity' && (
+          <ActivitiesTab
+            activities={activities}
+            stores={stores}
+            onOpenStore={(storeId) => { setMapPreselect(storeId); setTab('map'); }}
+          />
         )}
 
         {tab === 'promo' && (
@@ -220,6 +230,74 @@ function BoothDetail({ store, onLocate }: { store: Store; onLocate: () => void }
           <Heart size={16} className="mr-1.5" /> Save
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ---------- Activities tab ---------- */
+function ActivitiesTab({
+  activities,
+  stores,
+  onOpenStore,
+}: {
+  activities: WalkthroughItem[];
+  stores: Store[];
+  onOpenStore: (storeId: string) => void;
+}) {
+  const storeById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
+
+  if (activities.length === 0) {
+    return (
+      <div className="rounded-2xl bg-white shadow-card p-6 text-center text-plum/60 text-sm">
+        No interactive activities posted yet.
+      </div>
+    );
+  }
+
+  const costStyle = (cost?: string) => {
+    const c = (cost ?? '').toLowerCase();
+    if (c.includes('free')) return 'bg-emerald-100 text-emerald-700';
+    if (c.includes('paid')) return 'bg-amber-100 text-amber-700';
+    return 'bg-champagne/25 text-plum';
+  };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-plum/60 -mt-1 mb-1">
+        Free experiences and hands-on activities around the halls. Tap one to find the booth.
+      </p>
+      {activities.map((a) => {
+        const store = a.storeId ? storeById.get(a.storeId) : undefined;
+        return (
+          <div key={a.id} className="rounded-2xl bg-white shadow-card p-4">
+            <div className="flex items-start gap-3">
+              <div className="h-11 w-11 rounded-2xl bg-champagne/20 text-plum flex items-center justify-center shrink-0">
+                <Sparkles size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="font-display text-plum text-base leading-tight">{a.title}</div>
+                  {a.time && (
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${costStyle(a.time)}`}>
+                      {a.time}
+                    </span>
+                  )}
+                </div>
+                {a.content && <div className="text-xs text-plum/60 mt-1">{a.content}</div>}
+                {store && (
+                  <button
+                    onClick={() => onOpenStore(store.id)}
+                    className="mt-2 text-coral text-sm font-medium inline-flex items-center gap-1 hover:underline"
+                  >
+                    <MapPin size={13} /> {store.name} · Booth {store.boothNumber}
+                    <ChevronRight size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
