@@ -3,6 +3,7 @@ import {
   Cake, Shirt, MapPin, Camera, UtensilsCrossed, ClipboardCheck, Mail,
   Flower2, Mic2, Film, Gem as GemIcon, Plane, Store as StoreIcon,
   DoorOpen, Heart, Calendar, Music, Gift, Wine, Coffee, Zap, Sparkles,
+  ExternalLink,
   type LucideIcon,
 } from 'lucide-react';
 import type { Store } from '../../types';
@@ -386,11 +387,42 @@ export function FloorPlan({ stores, initialSelectedId, onSelect }: Props) {
                   </div>
                 </div>
               )}
+
+              {/* Logo + name header */}
+              <div className="flex items-center gap-3">
+                {selected.logoUrl && (
+                  <img
+                    src={selected.logoUrl}
+                    alt={`${selected.name} logo`}
+                    className="h-14 w-14 rounded-2xl object-cover bg-white shadow-card shrink-0"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      const fallback = `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(selected.name)}`;
+                      if (img.src !== fallback) img.src = fallback;
+                    }}
+                  />
+                )}
+                <div className="min-w-0">
+                  <div className="font-display text-lg text-plum leading-tight">{selected.name}</div>
+                  <div className="text-xs text-plum/50">{selected.category} · Booth {selected.boothNumber}</div>
+                </div>
+              </div>
+
               <p className="text-sm text-plum/75">{selected.description || 'Visit this booth at the event!'}</p>
-              {(selected.email || selected.contact) && (
-                <div className="text-xs text-plum/60 space-y-1">
+              {(selected.email || selected.contact || selected.socialMedia) && (
+                <div className="text-xs text-plum/60 space-y-1.5">
                   {selected.email && <div>✉ {selected.email}</div>}
                   {selected.contact && <div>📞 {selected.contact}</div>}
+                  {selected.socialMedia && (
+                    <a
+                      href={selected.socialMedia}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-coral font-medium hover:underline"
+                    >
+                      <ExternalLink size={13} /> Visit on Facebook
+                    </a>
+                  )}
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2">
