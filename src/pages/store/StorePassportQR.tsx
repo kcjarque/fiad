@@ -18,7 +18,7 @@ export function StorePassportQR() {
         <div className="font-display text-2xl text-plum">{store.name}</div>
         <div className="text-plum/60 text-sm">Booth {store.boothNumber} · {store.category}</div>
         <div className="my-5 flex justify-center">
-          <QRDisplay value={store.qrToken} size={260} />
+          <QRDisplay value={`${window.location.origin}/s/${store.qrToken}`} size={260} />
         </div>
         <div className="text-xs text-plum/60">Print this QR and display it at your booth.</div>
       </Card>

@@ -23,7 +23,11 @@ export function GuestLogin() {
       }
       setGuest(guest.id);
       toast.success(`Welcome back, ${guest.name.split(' ')[0]}!`);
-      navigate('/app/ticket');
+      // If the user landed here because they scanned a booth QR before
+      // signing in, resume that stamp now.
+      let pending: string | null = null;
+      try { pending = sessionStorage.getItem('fiad.pendingStampToken'); } catch { /* ignore */ }
+      navigate(pending ? `/s/${pending}` : '/app/ticket');
     } catch (err) {
       toast.error((err as Error).message || 'Sign-in failed.');
     } finally {

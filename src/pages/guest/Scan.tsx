@@ -18,8 +18,14 @@ export function Scan() {
   const [scanning, setScanning] = useState(true);
 
   const handleResult = async (text: string) => {
+    // Booth QRs now encode `${origin}/s/${qrToken}`. Accept either the URL
+    // form (when the user scans a printed sticker via the in-app camera)
+    // or a bare token (for any older stickers still in circulation).
+    let token = text.trim();
+    const m = token.match(/\/s\/([^?#/]+)/);
+    if (m) token = decodeURIComponent(m[1]);
     try {
-      const store = await getStoreByQr(text);
+      const store = await getStoreByQr(token);
       if (!store) {
         toast.error('Not a valid booth QR.');
         setScanning(false);

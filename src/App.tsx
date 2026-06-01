@@ -9,6 +9,7 @@ import { Challenges } from './pages/guest/Challenges';
 import { Walkthrough } from './pages/guest/Walkthrough';
 import { Scan } from './pages/guest/Scan';
 import { QrSignIn } from './pages/guest/QrSignIn';
+import { StampLink } from './pages/guest/StampLink';
 import { GuestNav } from './components/guest/GuestNav';
 import { StoreLogin } from './pages/store/StoreLogin';
 import { StoreScan } from './pages/store/StoreScan';
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/app/register" element={<div className="max-w-md mx-auto bg-cream min-h-screen"><Register /></div>} />
         <Route path="/app/login" element={<div className="max-w-md mx-auto bg-cream min-h-screen"><GuestLogin /></div>} />
         <Route path="/app/qr/:token" element={<QrSignIn />} />
+        <Route path="/s/:token" element={<StampLink />} />
         <Route element={<GuestLayout />}>
           <Route path="/app/ticket" element={<RequireGuest><Ticket /></RequireGuest>} />
           <Route path="/app/raffle" element={<RequireGuest><Raffle /></RequireGuest>} />
