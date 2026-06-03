@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import {
-  Cake, Shirt, MapPin, Camera, UtensilsCrossed, ClipboardCheck, Mail,
-  Flower2, Mic2, Film, Gem as GemIcon, Plane, Store as StoreIcon,
-  DoorOpen, Heart, Calendar, Music, Gift, Wine, Coffee, Zap, Sparkles,
+  Cake, Shirt, MapPin, Camera, UtensilsCrossed, ClipboardCheck,
+  Flower2, Mic2, Gem as GemIcon, Store as StoreIcon,
+  DoorOpen, Heart, Calendar, Music, Gift,
   ExternalLink, Trophy,
   type LucideIcon,
 } from 'lucide-react';
