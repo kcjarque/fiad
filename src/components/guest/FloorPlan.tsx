@@ -175,13 +175,13 @@ function BazaarMap({
               key={rect.booth}
               onClick={() => store ? onSelect(isSelected ? null : store) : undefined}
               style={{ cursor: store ? 'pointer' : 'default' }}
-              opacity={dimmed ? 0.2 : 1}
+              opacity={dimmed ? 0.12 : 1}
             >
               <rect
                 x={rect.x} y={rect.y} width={rect.w} height={rect.h}
                 fill={store ? meta.fill : '#e5e7eb'}
-                stroke={isSelected ? '#7c3aed' : '#fff'}
-                strokeWidth={isSelected ? 2.5 : 1.5}
+                stroke={isSelected ? '#7c3aed' : (activeCategory && store && store.category === activeCategory ? '#E63F75' : '#fff')}
+                strokeWidth={isSelected ? 2.5 : (activeCategory && store && store.category === activeCategory ? 2.5 : 1.5)}
                 rx={2}
               />
               {/* Booth number */}
@@ -306,7 +306,8 @@ export function FloorPlan({ stores, initialSelectedId, onSelect }: Props) {
                 <div className={`h-12 w-12 rounded-full flex items-center justify-center ${meta.color} ${active ? `ring-2 ${meta.ring}` : ''}`}>
                   <Icon size={18} />
                 </div>
-                <div className="text-[11px] text-plum font-medium whitespace-nowrap">{meta.label}</div>
+                {/* Show the full category name from the DB so it matches the booth cards */}
+                <div className="text-[11px] text-plum font-medium text-center leading-tight max-w-[88px]">{c}</div>
               </button>
             );
           })}
