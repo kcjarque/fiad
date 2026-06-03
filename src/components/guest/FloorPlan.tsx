@@ -46,60 +46,60 @@ const BAZAAR_BOOTHS: BoothRect[] = [
   { booth: 'BA37',    x:   0, y:  80, w:  80, h:  82 },
   { booth: 'BA38',    x:   0, y: 162, w:  80, h:  82 },
   { booth: 'BA39',    x:   0, y: 244, w:  80, h:  82 },
-  { booth: 'BA40',    x:   0, y: 326, w:  80, h: 130 }, // larger SAB HMUA cell, ends y=456
+  { booth: 'BA40',    x:   0, y: 326, w:  80, h: 130 },
 
-  // ── Top wall, left to right (along y=0) ──────────────────────────────────
-  { booth: 'BA35-36', x:  80, y:   0, w: 130, h:  80 }, // Arlene's, wider corner
-  { booth: 'BA34',    x: 210, y:   0, w:  60, h:  80 }, // Fenrir's
-  // gap x=270-322 — BA33 (Luka's) sits in this notch BELOW the top edge
-  { booth: 'BA32',    x: 322, y:   0, w:  62, h:  70 },
-  { booth: 'BA31',    x: 384, y:   0, w:  62, h:  70 },
-  { booth: 'BA30',    x: 446, y:   0, w:  62, h:  70 },
-  // gap x=508-556 — BA29 (Tiger Shoes) notch below
-  { booth: 'BA28',    x: 556, y:   0, w:  54, h:  70 },
-  { booth: 'BA27',    x: 610, y:   0, w:  54, h:  70 },
-  { booth: 'BA26',    x: 664, y:   0, w:  54, h:  70 },
-  // gap x=718-766 — BA25 (Romierre) notch below
-  { booth: 'BA24',    x: 766, y:   0, w:  44, h:  70 },
-  { booth: 'BA23',    x: 810, y:   0, w:  44, h:  70 },
-  { booth: 'BA22',    x: 854, y:   0, w:  44, h:  70 },
-  { booth: 'BA21',    x: 898, y:   0, w:  62, h: 175 }, // tall corner — extends past BA22
+  // ── Top wall, left to right — math chosen so notch booths fit cleanly
+  // between the gaps without overlapping their neighbours.
+  { booth: 'BA35-36', x:  80, y:   0, w: 128, h:  80 }, // Arlene's, wider corner
+  { booth: 'BA34',    x: 208, y:   0, w:  58, h:  80 }, // Fenrir's
+  // gap x=266-322 (56 wide) — BA33 (Luka's) notch hangs below
+  { booth: 'BA32',    x: 322, y:   0, w:  58, h:  70 },
+  { booth: 'BA31',    x: 380, y:   0, w:  58, h:  70 },
+  { booth: 'BA30',    x: 438, y:   0, w:  58, h:  70 },
+  // gap x=496-552 (56 wide) — BA29 (Tiger Shoes) notch
+  { booth: 'BA28',    x: 552, y:   0, w:  52, h:  70 },
+  { booth: 'BA27',    x: 604, y:   0, w:  52, h:  70 },
+  { booth: 'BA26',    x: 656, y:   0, w:  52, h:  70 },
+  // gap x=708-764 (56 wide) — BA25 (Romierre) notch
+  { booth: 'BA24',    x: 764, y:   0, w:  42, h:  70 },
+  { booth: 'BA23',    x: 806, y:   0, w:  42, h:  70 },
+  { booth: 'BA22',    x: 848, y:   0, w:  42, h:  70 },
+  { booth: 'BA21',    x: 890, y:   0, w:  70, h: 175 }, // tall corner
 
-  // ── Notch booths (sit in the gaps, below the wall line) ─────────────────
-  { booth: 'BA33',    x: 254, y:  80, w:  84, h:  84 }, // Luka's Steak in the BA34/BA32 gap
-  { booth: 'BA29',    x: 484, y:  70, w:  80, h:  82 }, // Tiger Shoes in BA30/BA28 gap
-  { booth: 'BA25',    x: 696, y:  70, w:  80, h:  82 }, // Romierre in BA26/BA24 gap
+  // ── Notch booths — sit IN the gaps, hanging just below the top wall ─────
+  { booth: 'BA33',    x: 270, y:  82, w:  48, h:  78 }, // fits inside 266-322 gap
+  { booth: 'BA29',    x: 500, y:  72, w:  48, h:  78 }, // fits inside 496-552 gap
+  { booth: 'BA25',    x: 712, y:  72, w:  48, h:  78 }, // fits inside 708-764 gap
 
   // ── Right wall, top to bottom (below BA21 which ends at y=175) ──────────
-  { booth: 'BA18-20', x: 880, y: 175, w:  80, h: 170 }, // 3-booth combined, tall
-  { booth: 'BA17',    x: 880, y: 345, w:  80, h:  60 },
-  { booth: 'BA16',    x: 880, y: 405, w:  80, h:  60 },
-  { booth: 'BA15',    x: 880, y: 465, w:  80, h:  60 },
+  { booth: 'BA18-20', x: 890, y: 175, w:  70, h: 170 },
+  { booth: 'BA17',    x: 890, y: 345, w:  70, h:  60 },
+  { booth: 'BA16',    x: 890, y: 405, w:  70, h:  60 },
+  { booth: 'BA15',    x: 890, y: 465, w:  70, h:  60 },
 
   // ── Bottom row, left to right ────────────────────────────────────────────
-  { booth: 'BA1',     x: 188, y: 472, w:  68, h:  86 }, // Brittany Mella — small
-  { booth: 'BA2-3',   x: 256, y: 472, w: 108, h:  86 }, // Jhossa — wider
-  // gap (above is Gown Fitting + Cake Tasting service zones)
+  { booth: 'BA1',     x: 188, y: 472, w:  68, h:  86 }, // Brittany Hotel BGC
+  { booth: 'BA2-3',   x: 256, y: 472, w: 108, h:  86 }, // Jhossa Events Mgt
+  // gap with Gown Fitting + Cake Tasting service zones above
   { booth: 'BA4',     x: 388, y: 490, w:  58, h:  68 },
   { booth: 'BA5',     x: 446, y: 490, w:  58, h:  68 },
   { booth: 'BA6',     x: 504, y: 490, w:  58, h:  68 },
   { booth: 'BA7',     x: 562, y: 490, w:  58, h:  68 },
-  { booth: 'BA8',     x: 624, y: 460, w:  92, h: 100 }, // medium (Bloom in Pink)
-  { booth: 'BA9',     x: 716, y: 460, w:  66, h:  50 }, // stacked top
-  { booth: 'BA10',    x: 716, y: 510, w:  66, h:  50 }, // stacked bottom
-  { booth: 'BA11',    x: 782, y: 458, w:  96, h: 122 }, // bottom-right corner — now W@W
+  { booth: 'BA8',     x: 624, y: 460, w:  90, h: 100 }, // Bloom in Pink — medium
+  { booth: 'BA9',     x: 714, y: 460, w:  66, h:  50 }, // stacked top
+  { booth: 'BA10',    x: 714, y: 510, w:  66, h:  50 }, // stacked bottom
+  { booth: 'BA11',    x: 780, y: 458, w: 110, h: 122 }, // bottom-right corner — W@W
 ];
 
 // Interior service / circulation zones (informational, not booths).
-// Positions traced from the architectural plan.
 const SERVICE_AREAS = [
   { label: 'Elevator',                  x:   0, y: 460, w:  80, h: 110 },
   { label: 'Concierge /\nRegistration', x:  80, y: 326, w: 108, h: 145 },
-  { label: 'MCatering\nService Area',   x: 188, y: 162, w: 234, h: 188 },
-  { label: 'MCatering\nService Area',   x: 510, y: 162, w: 210, h: 175 },
+  { label: 'MCatering\nService Area',   x: 188, y: 162, w: 222, h: 188 },
+  { label: 'MCatering\nService Area',   x: 500, y: 162, w: 220, h: 175 },
   { label: 'Gown\nFitting Room',        x: 188, y: 350, w: 200, h: 120 },
-  { label: 'Cake Tasting\nw/ Coffee & Tea', x: 388, y: 420, w: 122, h:  68 },
-  { label: 'Photo & Video\nFilm Showing Room', x: 410, y: 350, w: 290, h: 110 },
+  { label: 'Cake Tasting\nw/ Coffee & Tea', x: 388, y: 420, w: 120, h:  68 },
+  { label: 'Photo & Video\nFilm Showing Room', x: 410, y: 350, w: 212, h: 110 },
 ];
 
 // Wrap long store names to fit inside a booth rect
