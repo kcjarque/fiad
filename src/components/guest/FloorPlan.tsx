@@ -61,26 +61,26 @@ const BAZAAR_BOOTHS: BoothRect[] = [
   { booth: 'BA28',    x: 552, y:   0, w:  52, h:  70 }, // Stageability
   { booth: 'BA27',    x: 604, y:   0, w:  52, h:  70 }, // Shutterloop
   { booth: 'BA26',    x: 656, y:   0, w:  52, h:  70 }, // AJT Events
-  // gap x=708-764 (56 wide) — BA25 (Romierre) notch
-  { booth: 'BA24',    x: 764, y:   0, w:  42, h:  70 }, // Manila Yacht / Legworks
-  { booth: 'BA23',    x: 806, y:   0, w:  42, h:  70 }, // Graciabelle's
-  { booth: 'BA22',    x: 848, y:   0, w:  42, h:  70 }, // 8 Point Studios
-  { booth: 'BA21',    x: 890, y:   0, w:  70, h: 175 }, // Belle Fête (tall corner)
+  // gap x=708-756 (48 wide) — BA25 (Romierre) notch
+  { booth: 'BA24',    x: 756, y:   0, w:  46, h:  70 }, // Manila Yacht / Legworks
+  { booth: 'BA23',    x: 802, y:   0, w:  46, h:  70 }, // Graciabelle's
+  { booth: 'BA22',    x: 848, y:   0, w:  46, h:  70 }, // 8 Point Studios
+  { booth: 'BA21',    x: 894, y:   0, w:  66, h: 175 }, // Belle Fête (tall corner)
 
   // Notch booths — sit IN the gaps, hanging just below the top wall
   { booth: 'BA33',    x: 270, y:  82, w:  48, h:  78 }, // Luka's Steak
   { booth: 'BA29',    x: 500, y:  72, w:  48, h:  78 }, // Tiger Shoes
-  { booth: 'BA25',    x: 712, y:  72, w:  48, h:  78 }, // Romierre Jewelry
+  { booth: 'BA25',    x: 710, y:  72, w:  44, h:  78 }, // Romierre Jewelry (fits in 708-756 gap)
 
   // Right wall (upper half) — BA18-20 below BA21
-  { booth: 'BA18-20', x: 890, y: 175, w:  70, h: 185 }, // Permala Photo & Video
+  { booth: 'BA18-20', x: 894, y: 175, w:  66, h: 185 }, // Permala Photo & Video
 
   // ═══════ LOWER SECTION (y=360 to y=720): Service zone + bottom booths ═══════
 
   // Right wall (lower half) — BA17/BA16/BA15 stacked
-  { booth: 'BA17',    x: 890, y: 365, w:  70, h:  78 }, // Vaella Jewelry
-  { booth: 'BA16',    x: 890, y: 443, w:  70, h:  78 }, // 7th Trumpet
-  { booth: 'BA15',    x: 890, y: 521, w:  70, h:  78 }, // Sharon's Delights
+  { booth: 'BA17',    x: 894, y: 365, w:  66, h:  78 }, // Vaella Jewelry
+  { booth: 'BA16',    x: 894, y: 443, w:  66, h:  78 }, // 7th Trumpet
+  { booth: 'BA15',    x: 894, y: 521, w:  66, h:  78 }, // Sharon's Delights
 
   // Booths along the top of the lower section (just below the dividing wall)
   { booth: 'BA1',     x: 220, y: 370, w:  74, h:  72 }, // Brittany Hotel BGC
@@ -114,19 +114,44 @@ const SERVICE_AREAS = [
   { label: 'Photo & Video\nFilm Showing Rm', x: 478, y: 580, w: 210, h:  75 },
 ];
 
-// Wrap long store names to fit inside a booth rect
-function wrapName(name: string, maxW: number): string[] {
-  const charsPerLine = Math.max(6, Math.floor(maxW / 6.5));
+// Wrap store names to fit inside a booth rect. Greedy line packing, then
+// truncate each line with an ellipsis if it still exceeds the cell width.
+// If we run out of lines but there's still text left, the last visible line
+// also gets an ellipsis so nothing reads as "complete" when it isn't.
+function wrapName(name: string, maxW: number, maxLines = 2): string[] {
+  const charsPerLine = Math.max(5, Math.floor(maxW / 5.2));
   const words = name.split(' ');
-  const lines: string[] = [];
+  const out: string[] = [];
   let current = '';
+  let dropped = false;
+
+  const truncate = (s: string) =>
+    s.length <= charsPerLine ? s : s.slice(0, Math.max(1, charsPerLine - 1)) + '…';
+
   for (const w of words) {
     const candidate = current ? `${current} ${w}` : w;
-    if (candidate.length <= charsPerLine) { current = candidate; }
-    else { if (current) lines.push(current); current = w; }
-    if (lines.length >= 2) break;
+    if (candidate.length <= charsPerLine) {
+      current = candidate;
+      continue;
+    }
+    if (current) {
+      out.push(current);
+      if (out.length >= maxLines) { dropped = true; break; }
+    }
+    current = w;
   }
-  if (current && lines.length < 3) lines.push(current);
+  if (current) {
+    if (out.length < maxLines) out.push(current);
+    else dropped = true;
+  }
+
+  const lines = out.slice(0, maxLines).map(truncate);
+  if (dropped && lines.length > 0) {
+    const last = lines[lines.length - 1];
+    lines[lines.length - 1] = last.endsWith('…')
+      ? last
+      : (last.length >= charsPerLine ? last.slice(0, Math.max(1, charsPerLine - 1)) + '…' : last + '…');
+  }
   return lines;
 }
 
