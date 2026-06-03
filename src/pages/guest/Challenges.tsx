@@ -75,6 +75,7 @@ export function Challenges() {
             status={statusFor(boss)}
             stampedCount={stampedIds.size}
             totalStores={stores.length}
+            storesById={storesById}
           />
         </div>
       )}
@@ -173,15 +174,18 @@ function RewardBadge({ quest }: { quest: Challenge }) {
 
 function QuestCard({ quest, status, storesById }: { quest: Challenge; status: QuestStatus; storesById: Map<string, Store> }) {
   const store = quest.storeId ? storesById.get(quest.storeId) : undefined;
-  const img = quest.imageUrl ?? store?.imageUrl;
+  const img = quest.imageUrl ?? store?.imageUrl ?? store?.logoUrl;
+  // When falling back to the brand logo (square PNG, not a hero photo) contain
+  // it on a soft cream tile so the mark isn't cropped or stretched.
+  const isLogoFallback = !quest.imageUrl && !store?.imageUrl && !!store?.logoUrl;
   return (
     <div className="rounded-2xl bg-white shadow-card overflow-hidden">
       {img && (
-        <div className="relative aspect-[16/9] overflow-hidden">
+        <div className={`relative aspect-[16/9] overflow-hidden ${isLogoFallback ? 'bg-cream' : ''}`}>
           <img
             src={img}
             alt={quest.name}
-            className={`w-full h-full object-cover ${status === 'completed' ? '' : ''}`}
+            className={`w-full h-full ${isLogoFallback ? 'object-contain p-6' : 'object-cover'}`}
           />
           <div className="absolute top-3 left-3">
             <div className="chip !bg-black/40 !text-white backdrop-blur-sm">{typeLabel[quest.type]}</div>
@@ -224,16 +228,20 @@ function BossQuest({
   status,
   stampedCount,
   totalStores,
+  storesById,
 }: {
   quest: Challenge;
   status: QuestStatus;
   stampedCount: number;
   totalStores: number;
+  storesById: Map<string, Store>;
 }) {
   const progress = totalStores === 0 ? 0 : Math.round((stampedCount / totalStores) * 100);
+  const store = quest.storeId ? storesById.get(quest.storeId) : undefined;
+  const bgImg = quest.imageUrl ?? store?.imageUrl ?? store?.logoUrl;
   return (
     <div className="relative rounded-3xl overflow-hidden shadow-soft">
-      {quest.imageUrl && <img src={quest.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+      {bgImg && <img src={bgImg} alt="" className="absolute inset-0 w-full h-full object-cover" />}
       <div className="absolute inset-0 bg-gradient-to-br from-coral/90 via-[#8B2348]/80 to-coral/90" />
       <div className="relative p-5 text-cream">
         <div className="flex items-center justify-between">
