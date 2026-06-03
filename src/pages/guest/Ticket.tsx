@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Trophy, Info, Sparkles, Timer } from 'lucide-react';
+import { Trophy, Info, Sparkles, Timer, Coffee } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../stores/authStore';
 import { getGuest } from '../../services/guestService';
@@ -101,6 +101,29 @@ export function Ticket() {
             >
               <Info size={13} /> How it works
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Bundled perk: 2 free drinks at Fenrir's Forest */}
+      <div className="px-5 mt-5">
+        <div className="rounded-2xl bg-white shadow-card overflow-hidden flex">
+          <img
+            src="https://graph.facebook.com/fenrirsforest/picture?width=720&height=720"
+            alt="Fenrir's Forest"
+            className="w-28 h-28 object-cover shrink-0"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          />
+          <div className="flex-1 p-4">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.25em] text-coral">
+              <Coffee size={12} /> Your Ticket Includes
+            </div>
+            <div className="font-display text-plum text-lg leading-tight mt-1">
+              2 Drinks at Fenrir's Forest
+            </div>
+            <div className="text-xs text-plum/65 mt-1">
+              Show this ticket at Booth BA34 to claim 2 full-size drinks of your choice.
+            </div>
           </div>
         </div>
       </div>

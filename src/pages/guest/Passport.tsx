@@ -52,7 +52,9 @@ export function Passport() {
       {/* Stamp grid */}
       <div className="px-5 pt-6">
         <div className="grid grid-cols-2 gap-3">
-          {stores.map((s) => {
+          {[...stores]
+            .sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.boothNumber, b.boothNumber))
+            .map((s) => {
             const stamp = stampMap.get(s.id);
             const stamped = !!stamp;
             return (
@@ -116,7 +118,7 @@ export function Passport() {
                 Full Passport Reward
               </div>
               <div className={`font-display text-lg mt-0.5 ${completed ? 'text-white' : 'text-plum'}`}>
-                {completed ? 'Claim your keepsake gift' : 'Complete all 12 booths'}
+                {completed ? 'Claim your keepsake gift' : 'Complete ALL BOOTHS'}
               </div>
               <div className={`text-xs mt-1 ${completed ? 'text-cream/80' : 'text-plum/60'}`}>
                 {completed
