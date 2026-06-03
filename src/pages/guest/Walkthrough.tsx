@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Clock, Tag, MapPin, Calendar, Heart, ChevronRight, Sparkles } from 'lucide-react';
+import { Clock, Tag, MapPin, Calendar, Heart, ChevronRight, Sparkles, Trophy } from 'lucide-react';
+import { listChallenges } from '../../services/challengeService';
 import { useQuery } from '@tanstack/react-query';
 import { listWalkthrough } from '../../services/walkthroughService';
 import { listStores } from '../../services/storeService';
@@ -204,6 +205,8 @@ function BoothsTab({
 function BoothDetail({ store, onLocate }: { store: Store; onLocate: () => void }) {
   const meta = getCategoryMeta(store.category);
   const Icon = meta.icon;
+  const { data: challenges = [] } = useQuery({ queryKey: ['challenges'], queryFn: listChallenges });
+  const quest = challenges.find((c) => c.storeId === store.id);
   return (
     <div className="space-y-4">
       <div className="relative -mx-6 -mt-5 aspect-[16/10] overflow-hidden">
@@ -221,6 +224,16 @@ function BoothDetail({ store, onLocate }: { store: Store; onLocate: () => void }
       </div>
 
       <p className="text-sm text-plum/75">{store.description}</p>
+
+      {quest && (
+        <div className="rounded-2xl bg-coral/8 border border-coral/30 px-4 py-3">
+          <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-coral font-semibold mb-1">
+            <Trophy size={12} /> Quest · +{quest.rewardValue ?? 1} raffle entry
+          </div>
+          <div className="font-display text-base text-plum leading-tight">{quest.name}</div>
+          <div className="text-xs text-plum/65 mt-1">{quest.description}</div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         <button onClick={onLocate} className="btn-ghost border border-plum/15">

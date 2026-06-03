@@ -3,12 +3,14 @@ import {
   Cake, Shirt, MapPin, Camera, UtensilsCrossed, ClipboardCheck, Mail,
   Flower2, Mic2, Film, Gem as GemIcon, Plane, Store as StoreIcon,
   DoorOpen, Heart, Calendar, Music, Gift, Wine, Coffee, Zap, Sparkles,
-  ExternalLink,
+  ExternalLink, Trophy,
   type LucideIcon,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import type { Store } from '../../types';
 import { Modal } from '../shared/Modal';
 import { QRDisplay } from '../shared/QRDisplay';
+import { listChallenges } from '../../services/challengeService';
 
 type CatMeta = { label: string; icon: LucideIcon; color: string; ring: string; fill: string };
 
@@ -251,6 +253,15 @@ export function FloorPlan({ stores, initialSelectedId, onSelect }: Props) {
 
   const handleSelect = (s: Store | null) => { setSelected(s); onSelect?.(s); };
 
+  // Quests linked to a booth — shown on that booth's profile card.
+  const { data: challenges = [] } = useQuery({ queryKey: ['challenges'], queryFn: listChallenges });
+  const questByStore = useMemo(() => {
+    const m = new Map<string, typeof challenges[number]>();
+    for (const c of challenges) if (c.storeId) m.set(c.storeId, c);
+    return m;
+  }, [challenges]);
+  const selectedQuest = selected ? questByStore.get(selected.id) : undefined;
+
   const categories = useMemo(() => [...new Set(stores.map((s) => s.category))].sort(), [stores]);
 
   const hall1 = useMemo(() =>
@@ -388,6 +399,17 @@ export function FloorPlan({ stores, initialSelectedId, onSelect }: Props) {
               </div>
 
               <p className="text-sm text-plum/75">{selected.description || 'Visit this booth at the event!'}</p>
+
+              {/* Linked quest — shown on the booth's profile card */}
+              {selectedQuest && (
+                <div className="rounded-2xl bg-coral/8 border border-coral/30 px-4 py-3">
+                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-coral font-semibold mb-1">
+                    <Trophy size={12} /> Quest · +{selectedQuest.rewardValue ?? 1} raffle entry
+                  </div>
+                  <div className="font-display text-base text-plum leading-tight">{selectedQuest.name}</div>
+                  <div className="text-xs text-plum/65 mt-1">{selectedQuest.description}</div>
+                </div>
+              )}
               {(selected.email || selected.contact || selected.socialMedia) && (
                 <div className="text-xs text-plum/60 space-y-1.5">
                   {selected.email && <div>✉ {selected.email}</div>}
