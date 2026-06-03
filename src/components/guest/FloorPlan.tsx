@@ -28,6 +28,7 @@ const CATEGORY_META: Record<string, CatMeta> = {
   'Souvenirs':                    { label: 'Souvenirs', icon: Gift,            color: 'bg-teal-100 text-teal-800',       ring: 'ring-teal-400',    fill: '#99f6e4' },
   'Events Management':            { label: 'Planners',  icon: ClipboardCheck,  color: 'bg-sky-100 text-sky-800',         ring: 'ring-sky-400',     fill: '#bae6fd' },
   'Food Carts':                   { label: 'Food',      icon: UtensilsCrossed, color: 'bg-rose-100 text-rose-800',       ring: 'ring-rose-400',    fill: '#fecdd3' },
+  'Grazing Tables':               { label: 'Grazing',   icon: Cake,            color: 'bg-amber-100 text-amber-800',     ring: 'ring-amber-400',   fill: '#fef3c7' },
   'Others':                       { label: 'Others',    icon: StoreIcon,       color: 'bg-slate-100 text-slate-700',     ring: 'ring-slate-400',   fill: '#e2e8f0' },
 };
 
