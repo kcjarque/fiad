@@ -42,64 +42,75 @@ export const getCategoryMeta = (category: string): CatMeta => CATEGORY_META[cate
 type BoothRect = { booth: string; x: number; y: number; w: number; h: number };
 
 const BAZAAR_BOOTHS: BoothRect[] = [
-  // ── Left wall, top to bottom ─────────────────────────────────────────────
-  { booth: 'BA37',    x:   0, y:  80, w:  80, h:  82 },
-  { booth: 'BA38',    x:   0, y: 162, w:  80, h:  82 },
-  { booth: 'BA39',    x:   0, y: 244, w:  80, h:  82 },
-  { booth: 'BA40',    x:   0, y: 326, w:  80, h: 130 },
+  // ═══════ UPPER SECTION (y=0 to y=360): Bamboo Hall + perimeter booths ═══════
 
-  // ── Top wall, left to right — math chosen so notch booths fit cleanly
-  // between the gaps without overlapping their neighbours.
-  { booth: 'BA35-36', x:  80, y:   0, w: 128, h:  80 }, // Arlene's, wider corner
-  { booth: 'BA34',    x: 208, y:   0, w:  58, h:  80 }, // Fenrir's
+  // Left wall — BA37/BA38/BA39/BA40 stacked top to bottom
+  { booth: 'BA37',    x:   0, y:  80, w:  80, h:  70 }, // Heinoah
+  { booth: 'BA38',    x:   0, y: 150, w:  80, h:  70 }, // Jazper Tiongson
+  { booth: 'BA39',    x:   0, y: 220, w:  80, h:  70 }, // Perfect Cellar
+  { booth: 'BA40',    x:   0, y: 290, w:  80, h:  70 }, // SAB HMUA
+
+  // Top wall — wider corner left, three groups of 3 with notch gaps between
+  { booth: 'BA35-36', x:  80, y:   0, w: 128, h:  80 }, // Arlene's Catering
+  { booth: 'BA34',    x: 208, y:   0, w:  58, h:  80 }, // Fenrir's Forest
   // gap x=266-322 (56 wide) — BA33 (Luka's) notch hangs below
-  { booth: 'BA32',    x: 322, y:   0, w:  58, h:  70 },
-  { booth: 'BA31',    x: 380, y:   0, w:  58, h:  70 },
-  { booth: 'BA30',    x: 438, y:   0, w:  58, h:  70 },
+  { booth: 'BA32',    x: 322, y:   0, w:  58, h:  70 }, // Kate's Confections
+  { booth: 'BA31',    x: 380, y:   0, w:  58, h:  70 }, // From Paulyn
+  { booth: 'BA30',    x: 438, y:   0, w:  58, h:  70 }, // Emil Ocampo
   // gap x=496-552 (56 wide) — BA29 (Tiger Shoes) notch
-  { booth: 'BA28',    x: 552, y:   0, w:  52, h:  70 },
-  { booth: 'BA27',    x: 604, y:   0, w:  52, h:  70 },
-  { booth: 'BA26',    x: 656, y:   0, w:  52, h:  70 },
+  { booth: 'BA28',    x: 552, y:   0, w:  52, h:  70 }, // Stageability
+  { booth: 'BA27',    x: 604, y:   0, w:  52, h:  70 }, // Shutterloop
+  { booth: 'BA26',    x: 656, y:   0, w:  52, h:  70 }, // AJT Events
   // gap x=708-764 (56 wide) — BA25 (Romierre) notch
-  { booth: 'BA24',    x: 764, y:   0, w:  42, h:  70 },
-  { booth: 'BA23',    x: 806, y:   0, w:  42, h:  70 },
-  { booth: 'BA22',    x: 848, y:   0, w:  42, h:  70 },
-  { booth: 'BA21',    x: 890, y:   0, w:  70, h: 175 }, // tall corner
+  { booth: 'BA24',    x: 764, y:   0, w:  42, h:  70 }, // Manila Yacht / Legworks
+  { booth: 'BA23',    x: 806, y:   0, w:  42, h:  70 }, // Graciabelle's
+  { booth: 'BA22',    x: 848, y:   0, w:  42, h:  70 }, // 8 Point Studios
+  { booth: 'BA21',    x: 890, y:   0, w:  70, h: 175 }, // Belle Fête (tall corner)
 
-  // ── Notch booths — sit IN the gaps, hanging just below the top wall ─────
-  { booth: 'BA33',    x: 270, y:  82, w:  48, h:  78 }, // fits inside 266-322 gap
-  { booth: 'BA29',    x: 500, y:  72, w:  48, h:  78 }, // fits inside 496-552 gap
-  { booth: 'BA25',    x: 712, y:  72, w:  48, h:  78 }, // fits inside 708-764 gap
+  // Notch booths — sit IN the gaps, hanging just below the top wall
+  { booth: 'BA33',    x: 270, y:  82, w:  48, h:  78 }, // Luka's Steak
+  { booth: 'BA29',    x: 500, y:  72, w:  48, h:  78 }, // Tiger Shoes
+  { booth: 'BA25',    x: 712, y:  72, w:  48, h:  78 }, // Romierre Jewelry
 
-  // ── Right wall, top to bottom (below BA21 which ends at y=175) ──────────
-  { booth: 'BA18-20', x: 890, y: 175, w:  70, h: 170 },
-  { booth: 'BA17',    x: 890, y: 345, w:  70, h:  60 },
-  { booth: 'BA16',    x: 890, y: 405, w:  70, h:  60 },
-  { booth: 'BA15',    x: 890, y: 465, w:  70, h:  60 },
+  // Right wall (upper half) — BA18-20 below BA21
+  { booth: 'BA18-20', x: 890, y: 175, w:  70, h: 185 }, // Permala Photo & Video
 
-  // ── Bottom row, left to right ────────────────────────────────────────────
-  { booth: 'BA1',     x: 188, y: 472, w:  68, h:  86 }, // Brittany Hotel BGC
-  { booth: 'BA2-3',   x: 256, y: 472, w: 108, h:  86 }, // Jhossa Events Mgt
-  // gap with Gown Fitting + Cake Tasting service zones above
-  { booth: 'BA4',     x: 388, y: 490, w:  58, h:  68 },
-  { booth: 'BA5',     x: 446, y: 490, w:  58, h:  68 },
-  { booth: 'BA6',     x: 504, y: 490, w:  58, h:  68 },
-  { booth: 'BA7',     x: 562, y: 490, w:  58, h:  68 },
-  { booth: 'BA8',     x: 624, y: 460, w:  90, h: 100 }, // Bloom in Pink — medium
-  { booth: 'BA9',     x: 714, y: 460, w:  66, h:  50 }, // stacked top
-  { booth: 'BA10',    x: 714, y: 510, w:  66, h:  50 }, // stacked bottom
-  { booth: 'BA11',    x: 780, y: 458, w: 110, h: 122 }, // bottom-right corner — W@W
+  // ═══════ LOWER SECTION (y=360 to y=720): Service zone + bottom booths ═══════
+
+  // Right wall (lower half) — BA17/BA16/BA15 stacked
+  { booth: 'BA17',    x: 890, y: 365, w:  70, h:  78 }, // Vaella Jewelry
+  { booth: 'BA16',    x: 890, y: 443, w:  70, h:  78 }, // 7th Trumpet
+  { booth: 'BA15',    x: 890, y: 521, w:  70, h:  78 }, // Sharon's Delights
+
+  // Booths along the top of the lower section (just below the dividing wall)
+  { booth: 'BA1',     x: 220, y: 370, w:  74, h:  72 }, // Brittany Hotel BGC
+  { booth: 'BA2-3',   x: 294, y: 370, w: 110, h:  72 }, // Jhossa Events Mgt
+  { booth: 'BA8',     x: 686, y: 370, w:  98, h:  72 }, // Bloom in Pink
+
+  // Stacked BA9/BA10 in the middle-right of the lower section
+  { booth: 'BA9',     x: 784, y: 370, w:  66, h:  72 }, // ABCD Toteful
+  { booth: 'BA10',    x: 784, y: 442, w:  66, h:  72 }, // Invitations by Ten
+
+  // Bottom row booths — BA4-BA7 small in a strip at the very bottom
+  { booth: 'BA4',     x: 410, y: 626, w:  60, h:  78 }, // RJ Ledesma
+  { booth: 'BA5',     x: 470, y: 626, w:  60, h:  78 }, // Craftman's Sheep
+  { booth: 'BA6',     x: 530, y: 626, w:  60, h:  78 }, // Love Hues
+  { booth: 'BA7',     x: 590, y: 626, w:  60, h:  78 }, // Ellen Drilon
+
+  // Bottom-right corner — large BA11 cell (W@W)
+  { booth: 'BA11',    x: 784, y: 514, w: 106, h: 190 }, // Weddings at Work
 ];
 
-// Interior service / circulation zones (informational, not booths).
+// Interior service / circulation zones — all live inside the LOWER section,
+// laid out left-to-right under the dividing wall.
 const SERVICE_AREAS = [
-  { label: 'Elevator',                  x:   0, y: 460, w:  80, h: 110 },
-  { label: 'Concierge /\nRegistration', x:  80, y: 326, w: 108, h: 145 },
-  { label: 'MCatering\nService Area',   x: 188, y: 162, w: 222, h: 188 },
-  { label: 'MCatering\nService Area',   x: 500, y: 162, w: 220, h: 175 },
-  { label: 'Gown\nFitting Room',        x: 188, y: 350, w: 200, h: 120 },
-  { label: 'Cake Tasting\nw/ Coffee & Tea', x: 388, y: 420, w: 120, h:  68 },
-  { label: 'Photo & Video\nFilm Showing Room', x: 410, y: 350, w: 212, h: 110 },
+  { label: 'Elevator',                  x:   0, y: 480, w:  80, h: 220 },
+  { label: 'Concierge /\nRegistration', x:  80, y: 370, w: 140, h: 330 },
+  { label: 'MCatering\nService Area',   x: 220, y: 445, w: 184, h: 175 },
+  { label: 'MCatering\nService Area',   x: 470, y: 445, w: 214, h: 130 },
+  { label: 'Gown\nFitting Room',        x: 220, y: 620, w: 184, h:  85 },
+  { label: 'Cake Tasting\nw/ Coffee & Tea', x: 410, y: 575, w: 120, h:  50 },
+  { label: 'Photo & Video\nFilm Showing Room', x: 470, y: 575, w: 214, h: 130 },
 ];
 
 // Wrap long store names to fit inside a booth rect
@@ -132,20 +143,27 @@ function BazaarMap({
   const byBooth = useMemo(() => new Map(stores.map((s) => [s.boothNumber, s])), [stores]);
 
   return (
-    <div className="overflow-auto rounded-2xl border border-plum/10 bg-white shadow-card">
+    <div className="overflow-hidden rounded-2xl border border-plum/10 bg-white shadow-card">
       <div className="text-[10px] uppercase tracking-widest text-plum/50 px-3 pt-3 pb-1">
         Bazaar Area · Bamboo Hall
       </div>
       <svg
-        viewBox="0 0 960 580"
-        style={{ minWidth: 640, width: '100%', display: 'block' }}
+        viewBox="0 0 960 720"
+        preserveAspectRatio="xMidYMid meet"
+        style={{ width: '100%', height: 'auto', display: 'block' }}
         fontFamily="system-ui, sans-serif"
       >
         {/* Room background */}
-        <rect x={0} y={0} width={960} height={580} fill="#faf8f5" stroke="#c9b99a" strokeWidth={2} />
+        <rect x={0} y={0} width={960} height={720} fill="#faf8f5" stroke="#c9b99a" strokeWidth={2} />
 
-        {/* Interior open space */}
-        <rect x={78} y={158} width={800} height={292} fill="#f2ece4" />
+        {/* Upper open hall (Bamboo) */}
+        <rect x={80} y={80} width={810} height={280} fill="#f2ece4" />
+
+        {/* Lower service zone background */}
+        <rect x={0} y={360} width={960} height={360} fill="#ece5d8" stroke="#c9b99a" strokeWidth={1} />
+
+        {/* Internal dividing wall between upper hall and lower service zone */}
+        <line x1={80} y1={360} x2={890} y2={360} stroke="#a89272" strokeWidth={3} />
 
         {/* Service / circulation zones */}
         {SERVICE_AREAS.map((sa, i) => (
@@ -161,9 +179,9 @@ function BazaarMap({
           </g>
         ))}
 
-        {/* Center hall label */}
-        <text x={478} y={260} textAnchor="middle" fontSize={13} fill="#b0956e"
-          fontWeight="600" letterSpacing={1}>
+        {/* Center hall label — sits inside the upper open hall */}
+        <text x={485} y={220} textAnchor="middle" fontSize={14} fill="#b0956e"
+          fontWeight="600" letterSpacing={1.2}>
           Bamboo Hall · 369 sqm
         </text>
 
