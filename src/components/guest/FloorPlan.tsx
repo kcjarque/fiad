@@ -283,34 +283,29 @@ export function FloorPlan({ stores, initialSelectedId, onSelect }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Category filter strip */}
+      {/* Category filter strip — pill style, matches the Booths tab */}
       <div>
         <div className="text-[10px] uppercase tracking-[0.25em] text-plum/50 mb-2 px-1">Filter by category</div>
-        <div className="flex gap-3 overflow-x-auto -mx-5 px-5 pb-2">
+        <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-2">
           <button
             onClick={() => setActiveCategory(null)}
-            className={`shrink-0 flex flex-col items-center gap-1.5 ${activeCategory === null ? 'opacity-100' : 'opacity-60'}`}
+            className={`shrink-0 px-3 py-1.5 rounded-full text-xs ${
+              activeCategory === null ? 'bg-plum text-cream' : 'bg-white text-plum/70 border border-plum/10'
+            }`}
           >
-            <div className={`h-12 w-12 rounded-full flex items-center justify-center bg-plum/5 text-plum ${activeCategory === null ? 'ring-2 ring-coral' : ''}`}>
-              <StoreIcon size={18} />
-            </div>
-            <div className="text-[11px] text-plum font-medium">All</div>
+            All
           </button>
-          {categories.map((c) => {
-            const meta = getCategoryMeta(c);
-            const Icon = meta.icon;
-            const active = activeCategory === c;
-            return (
-              <button key={c} onClick={() => setActiveCategory(active ? null : c)}
-                className={`shrink-0 flex flex-col items-center gap-1.5 ${active ? 'opacity-100' : 'opacity-70'}`}>
-                <div className={`h-12 w-12 rounded-full flex items-center justify-center ${meta.color} ${active ? `ring-2 ${meta.ring}` : ''}`}>
-                  <Icon size={18} />
-                </div>
-                {/* Show the full category name from the DB so it matches the booth cards */}
-                <div className="text-[11px] text-plum font-medium text-center leading-tight max-w-[88px]">{c}</div>
-              </button>
-            );
-          })}
+          {categories.map((c) => (
+            <button
+              key={c}
+              onClick={() => setActiveCategory(c === activeCategory ? null : c)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs whitespace-nowrap ${
+                c === activeCategory ? 'bg-plum text-cream' : 'bg-white text-plum/70 border border-plum/10'
+              }`}
+            >
+              {c}
+            </button>
+          ))}
         </div>
       </div>
 
