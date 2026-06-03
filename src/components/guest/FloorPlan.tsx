@@ -91,26 +91,27 @@ const BAZAAR_BOOTHS: BoothRect[] = [
   { booth: 'BA9',     x: 784, y: 370, w:  66, h:  72 }, // ABCD Toteful
   { booth: 'BA10',    x: 784, y: 442, w:  66, h:  72 }, // Invitations by Ten
 
-  // Bottom row booths — BA4-BA7 small in a strip at the very bottom
-  { booth: 'BA4',     x: 410, y: 626, w:  60, h:  78 }, // RJ Ledesma
-  { booth: 'BA5',     x: 470, y: 626, w:  60, h:  78 }, // Craftman's Sheep
-  { booth: 'BA6',     x: 530, y: 626, w:  60, h:  78 }, // Love Hues
-  { booth: 'BA7',     x: 590, y: 626, w:  60, h:  78 }, // Ellen Drilon
+  // Bottom row booths — BA4-BA7 at the very bottom edge
+  { booth: 'BA4',     x: 410, y: 660, w:  62, h:  60 }, // RJ Ledesma
+  { booth: 'BA5',     x: 472, y: 660, w:  62, h:  60 }, // Craftman's Sheep
+  { booth: 'BA6',     x: 534, y: 660, w:  62, h:  60 }, // Love Hues
+  { booth: 'BA7',     x: 596, y: 660, w:  62, h:  60 }, // Ellen Drilon
 
   // Bottom-right corner — large BA11 cell (W@W)
   { booth: 'BA11',    x: 784, y: 514, w: 106, h: 190 }, // Weddings at Work
 ];
 
-// Interior service / circulation zones — all live inside the LOWER section,
-// laid out left-to-right under the dividing wall.
+// Interior service / circulation zones — non-overlapping layout
+// inside the LOWER section. Positions chosen so each label has room
+// to render without bleeding into a neighbouring zone.
 const SERVICE_AREAS = [
-  { label: 'Elevator',                  x:   0, y: 480, w:  80, h: 220 },
-  { label: 'Concierge /\nRegistration', x:  80, y: 370, w: 140, h: 330 },
-  { label: 'MCatering\nService Area',   x: 220, y: 445, w: 184, h: 175 },
-  { label: 'MCatering\nService Area',   x: 470, y: 445, w: 214, h: 130 },
-  { label: 'Gown\nFitting Room',        x: 220, y: 620, w: 184, h:  85 },
-  { label: 'Cake Tasting\nw/ Coffee & Tea', x: 410, y: 575, w: 120, h:  50 },
-  { label: 'Photo & Video\nFilm Showing Room', x: 470, y: 575, w: 214, h: 130 },
+  { label: 'Elevator',                       x:   0, y: 440, w:  80, h: 260 },
+  { label: 'Concierge /\nRegistration',      x:  80, y: 370, w: 140, h: 330 },
+  { label: 'MCatering\nService Area',        x: 220, y: 445, w: 200, h: 130 },
+  { label: 'MCatering\nService Area',        x: 475, y: 445, w: 210, h: 130 },
+  { label: 'Gown\nFitting Room',             x: 220, y: 580, w: 170, h:  75 },
+  { label: 'Cake Tasting\nw/ Coffee & Tea',  x: 395, y: 580, w:  80, h:  75 },
+  { label: 'Photo & Video\nFilm Showing Rm', x: 478, y: 580, w: 210, h:  75 },
 ];
 
 // Wrap long store names to fit inside a booth rect
@@ -171,8 +172,8 @@ function BazaarMap({
             <rect x={sa.x} y={sa.y} width={sa.w} height={sa.h}
               fill="#e8e0d5" stroke="#c9b99a" strokeWidth={1} strokeDasharray="4 3" />
             {sa.label.split('\n').map((line, li) => (
-              <text key={li} x={sa.x + sa.w / 2} y={sa.y + sa.h / 2 + (li - 0.5) * 13}
-                textAnchor="middle" fontSize={9} fill="#8a7560" fontStyle="italic">
+              <text key={li} x={sa.x + sa.w / 2} y={sa.y + sa.h / 2 + (li - 0.5) * 14}
+                textAnchor="middle" fontSize={11} fill="#7a6450" fontStyle="italic" fontWeight="500">
                 {line}
               </text>
             ))}
@@ -180,8 +181,8 @@ function BazaarMap({
         ))}
 
         {/* Center hall label — sits inside the upper open hall */}
-        <text x={485} y={220} textAnchor="middle" fontSize={14} fill="#b0956e"
-          fontWeight="600" letterSpacing={1.2}>
+        <text x={485} y={220} textAnchor="middle" fontSize={18} fill="#b0956e"
+          fontWeight="700" letterSpacing={1.4}>
           Bamboo Hall · 369 sqm
         </text>
 
@@ -210,8 +211,8 @@ function BazaarMap({
               />
               {/* Booth number */}
               <text
-                x={cx} y={rect.y + 12}
-                textAnchor="middle" fontSize={8.5} fill="#555" fontWeight="700"
+                x={cx} y={rect.y + 14}
+                textAnchor="middle" fontSize={10.5} fill="#333" fontWeight="700"
               >
                 {rect.booth}
               </text>
@@ -220,9 +221,9 @@ function BazaarMap({
                 <text
                   key={li}
                   x={cx}
-                  y={rect.y + 23 + li * 10}
+                  y={rect.y + 28 + li * 11}
                   textAnchor="middle"
-                  fontSize={7.5}
+                  fontSize={9}
                   fill="#222"
                 >
                   {line}
@@ -231,7 +232,7 @@ function BazaarMap({
               {/* No store: faint placeholder */}
               {!store && (
                 <text x={cx} y={rect.y + rect.h / 2 + 4}
-                  textAnchor="middle" fontSize={8} fill="#aaa" fontStyle="italic">
+                  textAnchor="middle" fontSize={10} fill="#aaa" fontStyle="italic">
                   TBC
                 </text>
               )}
