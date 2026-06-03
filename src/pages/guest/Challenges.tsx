@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { CheckCircle2, Clock, MapPin, Award, Sparkles, Trophy } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -174,18 +174,22 @@ function RewardBadge({ quest }: { quest: Challenge }) {
 
 function QuestCard({ quest, status, storesById }: { quest: Challenge; status: QuestStatus; storesById: Map<string, Store> }) {
   const store = quest.storeId ? storesById.get(quest.storeId) : undefined;
-  const img = quest.imageUrl ?? store?.imageUrl ?? store?.logoUrl;
-  // When falling back to the brand logo (square PNG, not a hero photo) contain
-  // it on a soft cream tile so the mark isn't cropped or stretched.
-  const isLogoFallback = !quest.imageUrl && !store?.imageUrl && !!store?.logoUrl;
+  // Resolved at render time so a runtime image load failure (broken URL,
+  // 4xx, etc.) can demote one step down the chain and re-render.
+  const [imgFailed, setImgFailed] = useState(false);
+  const candidate = (!imgFailed && quest.imageUrl) || store?.imageUrl || store?.logoUrl;
+  // The brand logo is a square PNG, not a hero photo — contain it on a soft
+  // cream tile so the mark isn't cropped or stretched into the 16:9 frame.
+  const isLogoFallback = candidate === store?.logoUrl && !!store?.logoUrl;
   return (
     <div className="rounded-2xl bg-white shadow-card overflow-hidden">
-      {img && (
+      {candidate && (
         <div className={`relative aspect-[16/9] overflow-hidden ${isLogoFallback ? 'bg-cream' : ''}`}>
           <img
-            src={img}
+            src={candidate}
             alt={quest.name}
             className={`w-full h-full ${isLogoFallback ? 'object-contain p-6' : 'object-cover'}`}
+            onError={() => setImgFailed(true)}
           />
           <div className="absolute top-3 left-3">
             <div className="chip !bg-black/40 !text-white backdrop-blur-sm">{typeLabel[quest.type]}</div>

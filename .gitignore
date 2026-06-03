@@ -1,3 +1,14 @@
+# Generated event artifacts — contain plaintext supplier passcodes
+# and/or screenshots of guest data. Never commit these.
+FIAD_Booth_QR_Codes.zip
+FIAD_Booth_QR_Codes_PRINT.pdf
+FIAD_Supplier_Codes.xlsx
+FIAD_Supplier_Quick_Start.pdf
+booth_qr_codes/
+screenshots/
+screenshots_guide/
+supabase/.temp/
+
 # Logs
 logs
 *.log
