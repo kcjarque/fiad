@@ -41,59 +41,64 @@ export const getCategoryMeta = (category: string): CatMeta => CATEGORY_META[cate
 type BoothRect = { booth: string; x: number; y: number; w: number; h: number };
 
 const BAZAAR_BOOTHS: BoothRect[] = [
-  // ── Top wall, left to right ──────────────────────────────────────────────
-  { booth: 'BA35-36', x:   0, y:   0, w: 132, h: 78 },
-  { booth: 'BA34',    x: 132, y:   0, w:  65, h: 78 },
-  // gap x=197-263 (BA33 sits in notch below)
-  { booth: 'BA32',    x: 263, y:   0, w:  65, h: 70 },
-  { booth: 'BA31',    x: 328, y:   0, w:  65, h: 70 },
-  { booth: 'BA30',    x: 393, y:   0, w:  65, h: 70 },
-  // gap x=458-480
-  { booth: 'BA28',    x: 480, y:   0, w:  58, h: 70 },
-  { booth: 'BA27',    x: 538, y:   0, w:  58, h: 70 },
-  { booth: 'BA26',    x: 596, y:   0, w:  57, h: 70 },
-  // gap x=653-678 (BA25 sits in notch below)
-  { booth: 'BA24',    x: 678, y:   0, w:  55, h: 70 },
-  { booth: 'BA23',    x: 733, y:   0, w:  55, h: 70 },
-  { booth: 'BA22',    x: 788, y:   0, w:  55, h: 70 },
-  { booth: 'BA21',    x: 843, y:   0, w: 117, h: 165 }, // tall corner, top-right
-
-  // ── Notch booths (in the wall gaps) ─────────────────────────────────────
-  { booth: 'BA33',    x: 197, y:  78, w:  75, h: 80 },
-  { booth: 'BA25',    x: 653, y:  70, w:  78, h: 88 },
-
   // ── Left wall, top to bottom ─────────────────────────────────────────────
-  { booth: 'BA37',    x:   0, y:  78, w:  78, h: 86 },
-  { booth: 'BA38',    x:   0, y: 164, w:  78, h: 86 },
-  { booth: 'BA39',    x:   0, y: 250, w:  78, h: 86 },
-  { booth: 'BA40',    x:   0, y: 336, w:  78, h: 110 }, // BA40 ends at y=446
+  { booth: 'BA37',    x:   0, y:  80, w:  80, h:  82 },
+  { booth: 'BA38',    x:   0, y: 162, w:  80, h:  82 },
+  { booth: 'BA39',    x:   0, y: 244, w:  80, h:  82 },
+  { booth: 'BA40',    x:   0, y: 326, w:  80, h: 130 }, // larger SAB HMUA cell, ends y=456
 
-  // ── Right wall, top to bottom (below BA21 which ends at y=165) ──────────
-  { booth: 'BA18-20', x: 878, y: 165, w:  82, h: 172 }, // 3 booths combined
-  { booth: 'BA17',    x: 878, y: 337, w:  82, h:  63 },
-  { booth: 'BA16',    x: 878, y: 400, w:  82, h:  63 },
-  { booth: 'BA15',    x: 878, y: 463, w:  82, h:  63 },
+  // ── Top wall, left to right (along y=0) ──────────────────────────────────
+  { booth: 'BA35-36', x:  80, y:   0, w: 130, h:  80 }, // Arlene's, wider corner
+  { booth: 'BA34',    x: 210, y:   0, w:  60, h:  80 }, // Fenrir's
+  // gap x=270-322 — BA33 (Luka's) sits in this notch BELOW the top edge
+  { booth: 'BA32',    x: 322, y:   0, w:  62, h:  70 },
+  { booth: 'BA31',    x: 384, y:   0, w:  62, h:  70 },
+  { booth: 'BA30',    x: 446, y:   0, w:  62, h:  70 },
+  // gap x=508-556 — BA29 (Tiger Shoes) notch below
+  { booth: 'BA28',    x: 556, y:   0, w:  54, h:  70 },
+  { booth: 'BA27',    x: 610, y:   0, w:  54, h:  70 },
+  { booth: 'BA26',    x: 664, y:   0, w:  54, h:  70 },
+  // gap x=718-766 — BA25 (Romierre) notch below
+  { booth: 'BA24',    x: 766, y:   0, w:  44, h:  70 },
+  { booth: 'BA23',    x: 810, y:   0, w:  44, h:  70 },
+  { booth: 'BA22',    x: 854, y:   0, w:  44, h:  70 },
+  { booth: 'BA21',    x: 898, y:   0, w:  62, h: 175 }, // tall corner — extends past BA22
 
-  // ── Bottom area, left to right ───────────────────────────────────────────
-  { booth: 'BA1',     x:  78, y: 455, w:  76, h:  93 },
-  { booth: 'BA2-3',   x: 154, y: 455, w: 116, h:  93 },
-  { booth: 'BA4',     x: 295, y: 490, w:  68, h:  80 },
-  { booth: 'BA5',     x: 363, y: 490, w:  68, h:  80 },
-  { booth: 'BA6',     x: 431, y: 490, w:  68, h:  80 },
-  { booth: 'BA7',     x: 499, y: 490, w:  68, h:  80 },
-  { booth: 'BA8',     x: 567, y: 453, w: 113, h: 115 }, // large
-  { booth: 'BA9',     x: 680, y: 453, w:  70, h:  63 },
-  { booth: 'BA10',    x: 680, y: 516, w:  70, h:  62 },
-  { booth: 'BA11-14', x: 750, y: 453, w: 128, h: 127 }, // large, ends at x=878, y=580
+  // ── Notch booths (sit in the gaps, below the wall line) ─────────────────
+  { booth: 'BA33',    x: 254, y:  80, w:  84, h:  84 }, // Luka's Steak in the BA34/BA32 gap
+  { booth: 'BA29',    x: 484, y:  70, w:  80, h:  82 }, // Tiger Shoes in BA30/BA28 gap
+  { booth: 'BA25',    x: 696, y:  70, w:  80, h:  82 }, // Romierre in BA26/BA24 gap
+
+  // ── Right wall, top to bottom (below BA21 which ends at y=175) ──────────
+  { booth: 'BA18-20', x: 880, y: 175, w:  80, h: 170 }, // 3-booth combined, tall
+  { booth: 'BA17',    x: 880, y: 345, w:  80, h:  60 },
+  { booth: 'BA16',    x: 880, y: 405, w:  80, h:  60 },
+  { booth: 'BA15',    x: 880, y: 465, w:  80, h:  60 },
+
+  // ── Bottom row, left to right ────────────────────────────────────────────
+  { booth: 'BA1',     x: 188, y: 472, w:  68, h:  86 }, // Brittany Mella — small
+  { booth: 'BA2-3',   x: 256, y: 472, w: 108, h:  86 }, // Jhossa — wider
+  // gap (above is Gown Fitting + Cake Tasting service zones)
+  { booth: 'BA4',     x: 388, y: 490, w:  58, h:  68 },
+  { booth: 'BA5',     x: 446, y: 490, w:  58, h:  68 },
+  { booth: 'BA6',     x: 504, y: 490, w:  58, h:  68 },
+  { booth: 'BA7',     x: 562, y: 490, w:  58, h:  68 },
+  { booth: 'BA8',     x: 624, y: 460, w:  92, h: 100 }, // medium (Bloom in Pink)
+  { booth: 'BA9',     x: 716, y: 460, w:  66, h:  50 }, // stacked top
+  { booth: 'BA10',    x: 716, y: 510, w:  66, h:  50 }, // stacked bottom
+  { booth: 'BA11',    x: 782, y: 458, w:  96, h: 122 }, // bottom-right corner — now W@W
 ];
 
-// Interior service / circulation areas (not booths, just labeled zones)
+// Interior service / circulation zones (informational, not booths).
+// Positions traced from the architectural plan.
 const SERVICE_AREAS = [
-  { label: 'MCatering\nService', x: 197, y: 163, w: 210, h: 155 },
-  { label: 'MCatering\nService', x: 492, y: 163, w: 210, h: 155 },
-  { label: 'Gown\nFitting Room',  x: 197, y: 323, w: 155, h: 128 },
-  { label: 'Photo & Video\nFilm Room', x: 412, y: 323, w: 165, h: 128 },
-  { label: 'Cake\nTasting',       x: 310, y: 435, w: 105, h:  68 },
+  { label: 'Elevator',                  x:   0, y: 460, w:  80, h: 110 },
+  { label: 'Concierge /\nRegistration', x:  80, y: 326, w: 108, h: 145 },
+  { label: 'MCatering\nService Area',   x: 188, y: 162, w: 234, h: 188 },
+  { label: 'MCatering\nService Area',   x: 510, y: 162, w: 210, h: 175 },
+  { label: 'Gown\nFitting Room',        x: 188, y: 350, w: 200, h: 120 },
+  { label: 'Cake Tasting\nw/ Coffee & Tea', x: 388, y: 420, w: 122, h:  68 },
+  { label: 'Photo & Video\nFilm Showing Room', x: 410, y: 350, w: 290, h: 110 },
 ];
 
 // Wrap long store names to fit inside a booth rect
