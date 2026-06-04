@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Clock, Tag, MapPin, Calendar, Heart, ChevronRight, Trophy } from 'lucide-react';
+import { Clock, Tag, MapPin, Heart, ChevronRight, Trophy } from 'lucide-react';
 import { listChallenges } from '../../services/challengeService';
 import { useQuery } from '@tanstack/react-query';
 import { listWalkthrough } from '../../services/walkthroughService';
@@ -312,16 +312,6 @@ function PromosTab({
 
 /* ---------- Schedule tab ---------- */
 function ScheduleTab({ schedule }: { schedule: WalkthroughItem[] }) {
-  const [saved, setSaved] = useState<Set<string>>(new Set());
-  const toggle = (id: string) => {
-    setSaved((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
   if (schedule.length === 0) {
     return (
       <div className="rounded-2xl bg-white shadow-card p-6 text-center text-plum/60 text-sm">
@@ -336,49 +326,37 @@ function ScheduleTab({ schedule }: { schedule: WalkthroughItem[] }) {
       <div className="absolute left-12 top-2 bottom-2 w-px bg-plum/15" />
 
       <div className="space-y-4">
-        {schedule.map((s) => {
-          const isSaved = saved.has(s.id);
-          return (
-            <div key={s.id} className="relative">
-              {/* Time marker */}
-              <div className="absolute -left-16 top-3 w-14 text-right pr-2">
-                <div className="font-mono text-[11px] text-plum/60 font-semibold">{s.time ?? '—'}</div>
-              </div>
+        {schedule.map((s) => (
+          <div key={s.id} className="relative">
+            {/* Time marker */}
+            <div className="absolute -left-16 top-3 w-14 text-right pr-2">
+              <div className="font-mono text-[11px] text-plum/60 font-semibold">{s.time ?? '—'}</div>
+            </div>
 
-              {/* Dot */}
-              <div className="absolute -left-[14px] top-4 h-3 w-3 rounded-full bg-coral ring-4 ring-cream" />
+            {/* Dot */}
+            <div className="absolute -left-[14px] top-4 h-3 w-3 rounded-full bg-coral ring-4 ring-cream" />
 
-              {/* Card */}
-              <div className="rounded-2xl bg-white shadow-card overflow-hidden">
-                <div className="flex gap-3 p-3">
-                  <img
-                    src={s.imageUrl ?? 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&auto=format&fit=crop&q=70'}
-                    alt=""
-                    className="w-16 h-16 rounded-xl object-cover shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-display text-plum text-base leading-tight">{s.title}</div>
-                    <div className="text-xs text-plum/60 mt-1 line-clamp-2">{s.content}</div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className="chip !bg-champagne/20">
-                        <Clock size={11} /> {s.time ?? 'TBA'}
-                      </div>
-                      <button
-                        onClick={() => toggle(s.id)}
-                        className={`rounded-full px-2 py-1 text-[11px] font-medium inline-flex items-center gap-1 transition ${
-                          isSaved ? 'bg-coral text-white' : 'bg-plum/5 text-plum/70 hover:bg-plum/10'
-                        }`}
-                      >
-                        <Calendar size={11} />
-                        {isSaved ? 'Saved' : 'Add to my schedule'}
-                      </button>
+            {/* Card */}
+            <div className="rounded-2xl bg-white shadow-card overflow-hidden">
+              <div className="flex gap-3 p-3">
+                <img
+                  src={s.imageUrl ?? 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&auto=format&fit=crop&q=70'}
+                  alt=""
+                  className="w-16 h-16 rounded-xl object-cover shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-display text-plum text-base leading-tight">{s.title}</div>
+                  <div className="text-xs text-plum/60 mt-1 line-clamp-2">{s.content}</div>
+                  <div className="mt-2">
+                    <div className="chip !bg-champagne/20">
+                      <Clock size={11} /> {s.time ?? 'TBA'}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );
