@@ -12,6 +12,7 @@ import { getActiveEvent } from '../../services/eventService';
 import { Hero } from '../../components/shared/Hero';
 import { Confetti } from '../../components/shared/Confetti';
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown';
+import { scheduledDrawTime, drawSortKey } from '../../utils/drawSchedule';
 
 export function Raffle() {
   const session = useAuth((s) => s.session);
@@ -44,16 +45,20 @@ export function Raffle() {
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const txById = useMemo(() => new Map(transactions.map((t) => [t.id, t])), [transactions]);
 
-  const wins = prizes.filter((p) => p.winnerGuestId === guestId);
-  const drawn = prizes.filter((p) => p.winnerGuestId);
-  const nextPrize = prizes.find((p) => !p.winnerGuestId);
+  // Sort by scheduled draw time so the UI lists prizes in the order they
+  // will be drawn (11am Day 1 → 5pm Day 1, 11am Day 2 → 6pm Day 2, then 9:30pm
+  // Day 2 grand finale). Falls back to id order for unrecognised IDs.
+  const sortedPrizes = useMemo(() => {
+    if (!event?.date) return prizes;
+    return [...prizes].sort((a, b) => drawSortKey(a.id, event.date) - drawSortKey(b.id, event.date));
+  }, [prizes, event?.date]);
+
+  const wins = sortedPrizes.filter((p) => p.winnerGuestId === guestId);
+  const drawn = sortedPrizes.filter((p) => p.winnerGuestId);
+  const nextPrize = sortedPrizes.find((p) => !p.winnerGuestId);
 
   const drawTarget = nextPrize && event?.date
-    ? (() => {
-        const base = new Date(`${event.date}T19:30:00`);
-        const idx = prizes.findIndex((p) => p.id === nextPrize.id);
-        return new Date(base.getTime() + idx * 10 * 60_000).toISOString();
-      })()
+    ? scheduledDrawTime(nextPrize.id, event.date)
     : null;
   const cd = useCountdown(drawTarget);
 

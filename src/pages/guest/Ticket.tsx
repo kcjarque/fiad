@@ -10,6 +10,7 @@ import { getActiveEvent } from '../../services/eventService';
 import { QRDisplay } from '../../components/shared/QRDisplay';
 import { Modal } from '../../components/shared/Modal';
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown';
+import { scheduledDrawTime, drawSortKey } from '../../utils/drawSchedule';
 
 export function Ticket() {
   const session = useAuth((s) => s.session);
@@ -27,13 +28,12 @@ export function Ticket() {
   const { data: prizes = [] } = useQuery({ queryKey: ['prizes'], queryFn: listPrizes });
   const [howOpen, setHowOpen] = useState(false);
 
-  const nextPrize = prizes.find((p) => !p.winnerGuestId);
+  const sortedPrizes = event?.date
+    ? [...prizes].sort((a, b) => drawSortKey(a.id, event.date) - drawSortKey(b.id, event.date))
+    : prizes;
+  const nextPrize = sortedPrizes.find((p) => !p.winnerGuestId);
   const drawTarget = nextPrize && event?.date
-    ? (() => {
-        const base = new Date(`${event.date}T19:30:00`);
-        const remainingBefore = prizes.findIndex((p) => p.id === nextPrize.id);
-        return new Date(base.getTime() + remainingBefore * 10 * 60_000).toISOString();
-      })()
+    ? scheduledDrawTime(nextPrize.id, event.date)
     : null;
   const cd = useCountdown(drawTarget);
 
