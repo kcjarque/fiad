@@ -6,6 +6,7 @@ import {
   BookHeart,
   Trophy,
   Map,
+  CalendarClock,
   MoreHorizontal,
   LogOut,
   ScanLine,
@@ -19,6 +20,7 @@ const items: { to: string; label: string; Icon: LucideIcon }[] = [
   { to: '/app/raffle', label: 'Raffle', Icon: Dices },
   { to: '/app/passport', label: 'Passport', Icon: BookHeart },
   { to: '/app/challenges', label: 'Quests', Icon: Trophy },
+  { to: '/app/schedule', label: 'Schedule', Icon: CalendarClock },
   { to: '/app/walkthrough', label: 'Event', Icon: Map },
 ];
 

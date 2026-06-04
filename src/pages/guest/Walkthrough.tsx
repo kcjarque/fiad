@@ -20,8 +20,8 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number]['key'];
 
-export function Walkthrough() {
-  const [tab, setTab] = useState<TabKey>('map');
+export function Walkthrough({ initialTab = 'map' }: { initialTab?: TabKey } = {}) {
+  const [tab, setTab] = useState<TabKey>(initialTab);
   const [boothDetail, setBoothDetail] = useState<Store | null>(null);
   const [mapPreselect, setMapPreselect] = useState<string | null>(null);
 

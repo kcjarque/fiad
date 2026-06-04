@@ -85,6 +85,7 @@ export default function App() {
           <Route path="/app/passport" element={<RequireGuest><Passport /></RequireGuest>} />
           <Route path="/app/challenges" element={<RequireGuest><Challenges /></RequireGuest>} />
           <Route path="/app/walkthrough" element={<RequireGuest><Walkthrough /></RequireGuest>} />
+          <Route path="/app/schedule" element={<RequireGuest><Walkthrough initialTab="schedule_item" /></RequireGuest>} />
           <Route path="/app/scan" element={<RequireGuest><Scan /></RequireGuest>} />
         </Route>
 
