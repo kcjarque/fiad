@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   Cake, Shirt, MapPin, Camera, UtensilsCrossed, ClipboardCheck,
   Flower2, Mic2, Gem as GemIcon, Store as StoreIcon,
-  DoorOpen, Heart, Calendar, Music, Gift,
+  DoorOpen, Heart, Calendar, Music, Gift, BookHeart,
   ExternalLink, Trophy,
   type LucideIcon,
 } from 'lucide-react';
@@ -26,6 +26,7 @@ const CATEGORY_META: Record<string, CatMeta> = {
   'Hotels & Venues':              { label: 'Venues',    icon: MapPin,          color: 'bg-emerald-100 text-emerald-800', ring: 'ring-emerald-400', fill: '#a7f3d0' },
   'Catering & Cakes':             { label: 'Catering',  icon: Cake,            color: 'bg-orange-100 text-orange-800',   ring: 'ring-orange-400',  fill: '#fed7aa' },
   'Souvenirs':                    { label: 'Souvenirs', icon: Gift,            color: 'bg-teal-100 text-teal-800',       ring: 'ring-teal-400',    fill: '#99f6e4' },
+  'Photo Souvenirs & Guestbooks': { label: 'Photo + Guestbooks', icon: BookHeart, color: 'bg-cyan-100 text-cyan-800',     ring: 'ring-cyan-400',    fill: '#a5f3fc' },
   'Events Management':            { label: 'Planners',  icon: ClipboardCheck,  color: 'bg-sky-100 text-sky-800',         ring: 'ring-sky-400',     fill: '#bae6fd' },
   'Food Carts':                   { label: 'Food',      icon: UtensilsCrossed, color: 'bg-rose-100 text-rose-800',       ring: 'ring-rose-400',    fill: '#fecdd3' },
   'Grazing Tables':               { label: 'Grazing',   icon: Cake,            color: 'bg-amber-100 text-amber-800',     ring: 'ring-amber-400',   fill: '#fef3c7' },
