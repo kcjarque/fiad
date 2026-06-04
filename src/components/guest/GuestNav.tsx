@@ -38,28 +38,34 @@ export function GuestNav() {
   return (
     <>
       <nav className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-plum/10 z-40">
-        <div className="max-w-md mx-auto flex justify-between px-2 py-2">
+        <div className="max-w-md mx-auto flex justify-between px-1 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
           {items.map((i) => (
             <NavLink
               key={i.to}
               to={i.to}
               className={({ isActive }) =>
-                `flex-1 flex flex-col items-center justify-center py-1 rounded-xl text-xs ${
-                  isActive ? 'text-coral font-semibold' : 'text-plum/60'
+                `flex-1 flex flex-col items-center justify-center min-h-[3rem] gap-0.5 rounded-xl transition-colors ${
+                  isActive ? 'text-coral' : 'text-plum/55 hover:text-plum/80'
                 }`
               }
             >
-              <i.Icon size={20} className="mb-0.5" />
-              <span>{i.label}</span>
+              {({ isActive }) => (
+                <>
+                  <i.Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                  <span className={`text-[10px] whitespace-nowrap leading-none ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                    {i.label}
+                  </span>
+                </>
+              )}
             </NavLink>
           ))}
           <button
             onClick={() => setMenuOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center py-1 rounded-xl text-xs text-plum/60"
+            className="flex-1 flex flex-col items-center justify-center min-h-[3rem] gap-0.5 rounded-xl text-plum/55 hover:text-plum/80 transition-colors"
             aria-label="More"
           >
-            <MoreHorizontal size={20} className="mb-0.5" />
-            <span>More</span>
+            <MoreHorizontal size={20} />
+            <span className="text-[10px] whitespace-nowrap leading-none font-medium">More</span>
           </button>
         </div>
       </nav>

@@ -11,17 +11,22 @@ import { Modal } from '../../components/shared/Modal';
 import { FloorPlan, getCategoryMeta } from '../../components/guest/FloorPlan';
 import type { Store } from '../../types';
 
-const tabs = [
+const eventTabs = [
   { key: 'map', label: 'Map' },
   { key: 'booth_info', label: 'Booths' },
   { key: 'promo', label: 'Promos' },
-  { key: 'schedule_item', label: 'Schedule' },
 ] as const;
 
-type TabKey = (typeof tabs)[number]['key'];
+type EventTabKey = (typeof eventTabs)[number]['key'];
 
-export function Walkthrough({ initialTab = 'map' }: { initialTab?: TabKey } = {}) {
-  const [tab, setTab] = useState<TabKey>(initialTab);
+export function Walkthrough({
+  initialTab = 'map',
+}: { initialTab?: EventTabKey | 'schedule_item' } = {}) {
+  // `/app/schedule` routes here with initialTab='schedule_item' — we render
+  // the schedule directly (no tab bar) since Schedule is its own bottom-nav
+  // destination now.
+  const scheduleOnly = initialTab === 'schedule_item';
+  const [tab, setTab] = useState<EventTabKey>(scheduleOnly ? 'map' : initialTab);
   const [boothDetail, setBoothDetail] = useState<Store | null>(null);
   const [mapPreselect, setMapPreselect] = useState<string | null>(null);
 
@@ -34,7 +39,7 @@ export function Walkthrough({ initialTab = 'map' }: { initialTab?: TabKey } = {}
     <div className="min-h-full pb-28 bg-cream">
       <Hero
         imageUrl="https://images.unsplash.com/photo-1519741497674-611481863552?w=1400&auto=format&fit=crop&q=75"
-        kicker="Event Walkthrough"
+        kicker={scheduleOnly ? 'Day-by-Day Schedule' : 'Event Walkthrough'}
         title={event?.name?.split('—')[0]?.trim() ?? 'Forever in a Day'}
         subtitle={
           event
@@ -44,50 +49,65 @@ export function Walkthrough({ initialTab = 'map' }: { initialTab?: TabKey } = {}
         height="lg"
       />
 
-      {/* Tab bar */}
-      <div className="sticky top-0 z-20 bg-cream/95 backdrop-blur border-b border-plum/5 -mt-px">
-        <div className="flex gap-2 overflow-x-auto px-5 py-3">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`shrink-0 px-4 py-2 rounded-full text-sm transition ${
-                tab === t.key
-                  ? 'bg-plum text-cream shadow-sm'
-                  : 'bg-white text-plum/70 border border-plum/10 hover:border-plum/25'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+      {/* Tab bar — flush full-width, coral underline on active. Hidden in
+          schedule-only mode. */}
+      {!scheduleOnly && (
+        <div className="sticky top-0 z-20 bg-cream/95 backdrop-blur border-b border-plum/10">
+          <div className="grid grid-cols-3" role="tablist">
+            {eventTabs.map((t) => {
+              const active = tab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setTab(t.key)}
+                  className={`relative py-3.5 text-sm font-medium transition-colors ${
+                    active ? 'text-plum' : 'text-plum/55 hover:text-plum/80'
+                  }`}
+                >
+                  {t.label}
+                  <span
+                    className={`absolute inset-x-6 -bottom-px h-[2px] rounded-full transition-opacity ${
+                      active ? 'bg-coral opacity-100' : 'opacity-0'
+                    }`}
+                  />
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="px-5 pt-4">
-        {tab === 'map' && (
-          <FloorPlan
-            stores={stores}
-            initialSelectedId={mapPreselect}
-            onSelect={(s) => !s && setMapPreselect(null)}
-          />
-        )}
+        {scheduleOnly ? (
+          <ScheduleTab schedule={schedule} />
+        ) : (
+          <>
+            {tab === 'map' && (
+              <FloorPlan
+                stores={stores}
+                initialSelectedId={mapPreselect}
+                onSelect={(s) => !s && setMapPreselect(null)}
+              />
+            )}
 
-        {tab === 'booth_info' && (
-          <BoothsTab stores={stores} onOpen={(s) => setBoothDetail(s)} onLocate={(s) => {
-            setMapPreselect(s.id);
-            setTab('map');
-          }} />
-        )}
+            {tab === 'booth_info' && (
+              <BoothsTab stores={stores} onOpen={(s) => setBoothDetail(s)} onLocate={(s) => {
+                setMapPreselect(s.id);
+                setTab('map');
+              }} />
+            )}
 
-        {tab === 'promo' && (
-          <PromosTab
-            promos={promos}
-            stores={stores}
-            onLocate={(storeId) => { if (storeId) setMapPreselect(storeId); setTab('map'); }}
-          />
+            {tab === 'promo' && (
+              <PromosTab
+                promos={promos}
+                stores={stores}
+                onLocate={(storeId) => { if (storeId) setMapPreselect(storeId); setTab('map'); }}
+              />
+            )}
+          </>
         )}
-
-        {tab === 'schedule_item' && <ScheduleTab schedule={schedule} />}
       </div>
 
       {/* Booth detail sheet (from booths tab) */}
@@ -118,27 +138,34 @@ function BoothsTab({
 
   return (
     <div>
-      {/* Category strip */}
+      {/* Category filter chips */}
       <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-3">
         <button
           onClick={() => setActiveCategory(null)}
-          className={`shrink-0 px-3 py-1.5 rounded-full text-xs ${
-            activeCategory === null ? 'bg-plum text-cream' : 'bg-white text-plum/70 border border-plum/10'
+          className={`shrink-0 inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+            activeCategory === null
+              ? 'bg-plum text-cream'
+              : 'bg-white text-plum/65 border border-plum/15 hover:border-plum/30'
           }`}
         >
           All
         </button>
-        {categories.map((c) => (
-          <button
-            key={c}
-            onClick={() => setActiveCategory(c === activeCategory ? null : c)}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs ${
-              c === activeCategory ? 'bg-plum text-cream' : 'bg-white text-plum/70 border border-plum/10'
-            }`}
-          >
-            {c}
-          </button>
-        ))}
+        {categories.map((c) => {
+          const active = c === activeCategory;
+          return (
+            <button
+              key={c}
+              onClick={() => setActiveCategory(active ? null : c)}
+              className={`shrink-0 inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+                active
+                  ? 'bg-plum text-cream'
+                  : 'bg-white text-plum/65 border border-plum/15 hover:border-plum/30'
+              }`}
+            >
+              {c}
+            </button>
+          );
+        })}
       </div>
 
       {/* Booth grid */}
@@ -233,7 +260,7 @@ function BoothDetail({ store, onLocate }: { store: Store; onLocate: () => void }
         <button onClick={onLocate} className="btn-ghost border border-plum/15">
           <MapPin size={16} className="mr-1.5" /> Find on map
         </button>
-        <button disabled className="btn-primary opacity-60 cursor-not-allowed">
+        <button disabled className="btn-primary">
           <Heart size={16} className="mr-1.5" /> Save
         </button>
       </div>

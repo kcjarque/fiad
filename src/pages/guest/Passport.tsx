@@ -166,7 +166,7 @@ export function Passport() {
               })}
             </div>
 
-            <button className="btn-primary w-full opacity-60 cursor-not-allowed" disabled>
+            <button className="btn-primary w-full" disabled>
               Book a consultation (soon)
             </button>
           </div>

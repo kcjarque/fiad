@@ -28,9 +28,15 @@ export function Modal({ open, onClose, title, children, size = 'md' }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
-          <div className="px-6 py-4 border-b border-plum/10 flex items-center justify-between">
-            <h3 className="font-display text-xl text-plum">{title}</h3>
-            <button onClick={onClose} className="text-plum/60 hover:text-plum p-1" aria-label="Close"><X size={20} /></button>
+          <div className="px-4 pl-6 py-3 border-b border-plum/10 flex items-center justify-between gap-3">
+            <h3 className="font-display text-xl text-plum truncate">{title}</h3>
+            <button
+              onClick={onClose}
+              className="shrink-0 h-10 w-10 rounded-full text-plum/60 hover:text-plum hover:bg-plum/5 flex items-center justify-center transition-colors"
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
           </div>
         )}
         <div className="px-6 py-5 max-h-[80vh] overflow-y-auto">{children}</div>

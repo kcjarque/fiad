@@ -97,9 +97,9 @@ export function Ticket() {
 
             <button
               onClick={() => setHowOpen(true)}
-              className="mt-4 w-full flex items-center justify-center gap-1.5 text-xs text-plum/60 hover:text-plum py-2"
+              className="mt-4 mx-auto flex items-center justify-center gap-1.5 rounded-full border border-plum/15 px-4 py-2 text-xs font-medium text-plum/70 hover:text-plum hover:border-plum/30 transition-colors"
             >
-              <Info size={13} /> How it works
+              <Info size={13} /> How entries work
             </button>
           </div>
         </div>
