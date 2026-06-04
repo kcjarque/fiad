@@ -3,6 +3,7 @@ import {
   Cake, Shirt, MapPin, Camera, UtensilsCrossed, ClipboardCheck,
   Flower2, Mic2, Gem as GemIcon, Store as StoreIcon,
   DoorOpen, Heart, Calendar, Music, Gift, BookHeart,
+  Lightbulb, ShieldCheck, Sparkles, Brush, Mail, HeartPulse, CreditCard, Home,
   ExternalLink, Trophy,
   type LucideIcon,
 } from 'lucide-react';
@@ -19,6 +20,15 @@ type CatMeta = { label: string; icon: LucideIcon; color: string; ring: string; f
 const CATEGORY_META: Record<string, CatMeta> = {
   'Event Hosts':                  { label: 'Hosts',     icon: Mic2,            color: 'bg-fuchsia-100 text-fuchsia-800', ring: 'ring-fuchsia-400', fill: '#f5d0fe' },
   'Musicians, Sounds & Lights':   { label: 'Music/AV',  icon: Music,           color: 'bg-violet-100 text-violet-800',   ring: 'ring-violet-400',  fill: '#ddd6fe' },
+  'Music & Entertainment':        { label: 'Music',     icon: Music,           color: 'bg-indigo-100 text-indigo-800',   ring: 'ring-indigo-400',  fill: '#c7d2fe' },
+  'Lights & Sounds':              { label: 'Lights/Sounds', icon: Lightbulb,   color: 'bg-lime-100 text-lime-800',       ring: 'ring-lime-400',    fill: '#d9f99d' },
+  'Insurance':                    { label: 'Insurance', icon: ShieldCheck,     color: 'bg-blue-100 text-blue-800',       ring: 'ring-blue-400',    fill: '#bfdbfe' },
+  'Skincare':                     { label: 'Skincare',  icon: Sparkles,        color: 'bg-stone-100 text-stone-800',     ring: 'ring-stone-400',   fill: '#e7e5e4' },
+  'Hair & Make-up':               { label: 'Hair/MUA',  icon: Brush,           color: 'bg-red-100 text-red-800',         ring: 'ring-red-400',     fill: '#fecaca' },
+  'Invitations':                  { label: 'Invites',   icon: Mail,            color: 'bg-fuchsia-100 text-fuchsia-800', ring: 'ring-fuchsia-400', fill: '#f5d0fe' },
+  'Mobile Wellness':              { label: 'Wellness',  icon: HeartPulse,      color: 'bg-emerald-100 text-emerald-800', ring: 'ring-emerald-400', fill: '#a7f3d0' },
+  'Credit Card':                  { label: 'Credit Card', icon: CreditCard,    color: 'bg-slate-100 text-slate-800',     ring: 'ring-slate-400',   fill: '#cbd5e1' },
+  'Real Estate':                  { label: 'Real Estate', icon: Home,          color: 'bg-orange-100 text-orange-800',   ring: 'ring-orange-400',  fill: '#fed7aa' },
   'Gowns & Custom Shoes':         { label: 'Gowns',     icon: Shirt,           color: 'bg-purple-100 text-purple-800',   ring: 'ring-purple-400',  fill: '#e9d5ff' },
   'Event Stylists & Florists':    { label: 'Florists',  icon: Flower2,         color: 'bg-pink-100 text-pink-800',       ring: 'ring-pink-400',    fill: '#fbcfe8' },
   'Jewelers':                     { label: 'Jewelers',  icon: GemIcon,         color: 'bg-yellow-100 text-yellow-900',   ring: 'ring-yellow-400',  fill: '#fef08a' },
