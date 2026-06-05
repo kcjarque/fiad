@@ -151,6 +151,91 @@ export function Raffle() {
         </div>
       </div>
 
+      {/* ── Upcoming raffle schedule ───────────────────────────────────── */}
+      {(() => {
+        const upcoming = sortedPrizes.filter((p) => !p.winnerGuestId);
+        if (upcoming.length === 0) return null;
+        const nextId = upcoming[0]?.id;
+
+        type Group = { label: string; prizes: typeof upcoming };
+        const groups: Group[] = [];
+        const day1 = upcoming.filter((p) => p.id.startsWith('prize_d1_'));
+        const day2 = upcoming.filter((p) => p.id.startsWith('prize_d2_'));
+        const grand = upcoming.find((p) => p.id === 'prize_grand');
+        if (day1.length) groups.push({ label: 'Day 1 · Saturday, June 6', prizes: day1 });
+        if (day2.length) groups.push({ label: 'Day 2 · Sunday, June 7', prizes: day2 });
+        if (grand)       groups.push({ label: 'Grand Finale', prizes: [grand] });
+
+        return (
+          <div className="px-5 mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-display text-plum text-lg">Raffle schedule</div>
+              <div className="chip">{upcoming.length} upcoming</div>
+            </div>
+
+            {groups.map((g) => (
+              <div key={g.label} className="mb-5 last:mb-0">
+                <div className="text-[10px] uppercase tracking-[0.25em] text-plum/50 mb-2 px-1">
+                  {g.label}
+                </div>
+                <div className="rounded-2xl bg-white shadow-card overflow-hidden divide-y divide-plum/5">
+                  {g.prizes.map((p) => {
+                    const iso = getDrawTime(schedule, p.id);
+                    const t = iso
+                      ? new Date(iso).toLocaleTimeString('en-PH', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          timeZone: 'Asia/Manila',
+                        })
+                      : 'TBA';
+                    const sponsor = p.sponsoredByStoreId
+                      ? storesById.get(p.sponsoredByStoreId)
+                      : undefined;
+                    const isNext = p.id === nextId;
+                    return (
+                      <div
+                        key={p.id}
+                        className={`flex items-center gap-3 p-3 ${
+                          isNext ? 'bg-coral/5' : ''
+                        }`}
+                      >
+                        <div className="shrink-0 w-14 text-center">
+                          <div className="font-mono text-[11px] font-semibold text-plum/80">{t}</div>
+                          {isNext && (
+                            <div className="text-[9px] uppercase tracking-wider text-coral font-bold mt-0.5">
+                              Next
+                            </div>
+                          )}
+                        </div>
+                        {p.imageUrl ? (
+                          <img
+                            src={p.imageUrl}
+                            alt=""
+                            className="w-12 h-12 rounded-xl object-cover shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-champagne/20 shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-plum font-medium text-sm leading-tight truncate">
+                            {p.name}
+                          </div>
+                          {sponsor && (
+                            <div className="text-[11px] text-plum/55 mt-0.5 truncate">
+                              by {sponsor.name}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {wins.length > 0 && (
         <div className="px-5 mt-5">
           <div className="rounded-2xl bg-gradient-to-br from-coral via-[#c5305f] to-[#8B2348] p-5 text-white shadow-soft">
