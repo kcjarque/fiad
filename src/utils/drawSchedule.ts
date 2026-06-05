@@ -1,52 +1,63 @@
 /**
  * Hourly raffle-draw schedule for Forever in a Day.
  *
- * Slots:
- *   Day 1 (June 6) — 11am hourly through 5pm (7 prizes: d1_02..d1_08)
- *   Day 2 (June 7) — 11am hourly through 6pm (8 prizes: d2_01..d2_08)
- *   Grand prize    — 9:30pm Day 2 (14K Gold Wedding Ring)
+ * Slots are position-based, not ID-based:
+ *   Day 1 — first d1 prize at 11am, then hourly
+ *   Day 2 — first d2 prize at 11am, then hourly
+ *   Grand — 9:30pm Day 2 (always last)
  *
- * All times are interpreted in the browser's local timezone, matching the
- * convention used elsewhere in the app. PH guests will see PH times.
+ * Position-based means deleting a prize naturally compacts the schedule —
+ * if d1_02 (Coffee GC) is removed, d1_03 (Frozen Steak) moves into the 11am
+ * slot instead of leaving an empty 11am with the first draw silently shifted
+ * to 12pm.
  *
- * Returns null if the prize ID doesn't fit the known pattern — callers should
- * treat that as "schedule unknown" rather than crashing.
+ * Caller passes the current full prize list and the event date; this returns
+ * a Map of prizeId → ISO draw-time string. Times are interpreted in the
+ * browser's local timezone (PH guests see PH times).
  */
-export function scheduledDrawTime(prizeId: string, eventDate: string): string | null {
-  // eventDate is the YYYY-MM-DD for Day 1.
-  const day1 = new Date(`${eventDate}T11:00:00`);
-  if (isNaN(day1.getTime())) return null;
+export function buildSchedule(prizeIds: string[], eventDate: string): Map<string, string> {
+  const map = new Map<string, string>();
+  const day1Base = new Date(`${eventDate}T11:00:00`);
+  if (isNaN(day1Base.getTime())) return map;
 
-  if (prizeId === 'prize_grand') {
-    const grand = new Date(day1);
-    grand.setDate(grand.getDate() + 1); // Day 2 (June 7)
-    grand.setHours(21, 30, 0, 0);       // 9:30pm
-    return grand.toISOString();
+  // Day-1 prizes — sorted by ID so the order is stable across re-renders.
+  const d1 = prizeIds.filter((id) => /^prize_d1_/.test(id)).sort();
+  d1.forEach((id, idx) => {
+    const t = new Date(day1Base);
+    t.setHours(11 + idx, 0, 0, 0);
+    map.set(id, t.toISOString());
+  });
+
+  // Day-2 prizes — same shape, one calendar day later.
+  const d2 = prizeIds.filter((id) => /^prize_d2_/.test(id)).sort();
+  d2.forEach((id, idx) => {
+    const t = new Date(day1Base);
+    t.setDate(t.getDate() + 1);
+    t.setHours(11 + idx, 0, 0, 0);
+    map.set(id, t.toISOString());
+  });
+
+  // Grand prize — 9:30pm Day 2.
+  if (prizeIds.includes('prize_grand')) {
+    const t = new Date(day1Base);
+    t.setDate(t.getDate() + 1);
+    t.setHours(21, 30, 0, 0);
+    map.set('prize_grand', t.toISOString());
   }
 
-  // Match prize_d{1|2}_{NN}
-  const m = prizeId.match(/^prize_d([12])_(\d+)$/);
-  if (!m) return null;
-  const dayNum = Number(m[1]);
-  const slotNum = Number(m[2]);
+  return map;
+}
 
-  // Day 1 prizes are numbered _02..._08 (because _01 was the removed Peridot
-  // prize) — slot index = slotNum - 2.
-  // Day 2 prizes are numbered _01..._08 — slot index = slotNum - 1.
-  const slotIdx = dayNum === 1 ? slotNum - 2 : slotNum - 1;
-  if (slotIdx < 0) return null;
-
-  const t = new Date(day1);
-  t.setDate(t.getDate() + (dayNum - 1));
-  t.setHours(11 + slotIdx, 0, 0, 0);
-  return t.toISOString();
+/** Read one prize's scheduled time from the Map. */
+export function getDrawTime(schedule: Map<string, string>, prizeId: string): string | null {
+  return schedule.get(prizeId) ?? null;
 }
 
 /**
- * Sort key for prizes so they appear in draw-time order across the UI.
- * Prizes the schedule doesn't recognize sort last.
+ * Sort key for prizes so the UI lists them in draw-time order. Prizes the
+ * schedule doesn't recognize sort last.
  */
-export function drawSortKey(prizeId: string, eventDate: string): number {
-  const iso = scheduledDrawTime(prizeId, eventDate);
+export function getDrawSortKey(schedule: Map<string, string>, prizeId: string): number {
+  const iso = schedule.get(prizeId);
   return iso ? new Date(iso).getTime() : Number.MAX_SAFE_INTEGER;
 }

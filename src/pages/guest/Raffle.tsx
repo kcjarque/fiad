@@ -12,7 +12,7 @@ import { getActiveEvent } from '../../services/eventService';
 import { Hero } from '../../components/shared/Hero';
 import { Confetti } from '../../components/shared/Confetti';
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown';
-import { scheduledDrawTime, drawSortKey } from '../../utils/drawSchedule';
+import { buildSchedule, getDrawTime, getDrawSortKey } from '../../utils/drawSchedule';
 
 export function Raffle() {
   const session = useAuth((s) => s.session);
@@ -45,13 +45,19 @@ export function Raffle() {
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const txById = useMemo(() => new Map(transactions.map((t) => [t.id, t])), [transactions]);
 
-  // Sort by scheduled draw time so the UI lists prizes in the order they
-  // will be drawn (11am Day 1 → 5pm Day 1, 11am Day 2 → 6pm Day 2, then 9:30pm
-  // Day 2 grand finale). Falls back to id order for unrecognised IDs.
-  const sortedPrizes = useMemo(() => {
-    if (!event?.date) return prizes;
-    return [...prizes].sort((a, b) => drawSortKey(a.id, event.date) - drawSortKey(b.id, event.date));
+  // Build the schedule from the current prize list — position-based, so a
+  // deleted prize doesn't leave a hole. First Day-1 prize gets 11am, second
+  // gets 12pm, etc.; Day-2 same shape; grand prize always 9:30pm Day 2.
+  const schedule = useMemo(() => {
+    if (!event?.date) return new Map<string, string>();
+    return buildSchedule(prizes.map((p) => p.id), event.date);
   }, [prizes, event?.date]);
+
+  // Sort by scheduled draw time so the UI lists prizes in the order they
+  // will be drawn.
+  const sortedPrizes = useMemo(() => {
+    return [...prizes].sort((a, b) => getDrawSortKey(schedule, a.id) - getDrawSortKey(schedule, b.id));
+  }, [prizes, schedule]);
 
   const wins = sortedPrizes.filter((p) => p.winnerGuestId === guestId);
   const drawn = sortedPrizes.filter((p) => p.winnerGuestId);
@@ -61,9 +67,7 @@ export function Raffle() {
   // nextPrize if the grand prize row hasn't been seeded.
   const grandPrize = sortedPrizes.find((p) => p.id === 'prize_grand') ?? nextPrize;
 
-  const drawTarget = nextPrize && event?.date
-    ? scheduledDrawTime(nextPrize.id, event.date)
-    : null;
+  const drawTarget = nextPrize ? getDrawTime(schedule, nextPrize.id) : null;
   const cd = useCountdown(drawTarget);
 
   const odds = useMemo(() => {

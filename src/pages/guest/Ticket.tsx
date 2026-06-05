@@ -10,7 +10,7 @@ import { getActiveEvent } from '../../services/eventService';
 import { QRDisplay } from '../../components/shared/QRDisplay';
 import { Modal } from '../../components/shared/Modal';
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown';
-import { scheduledDrawTime, drawSortKey } from '../../utils/drawSchedule';
+import { buildSchedule, getDrawTime, getDrawSortKey } from '../../utils/drawSchedule';
 
 export function Ticket() {
   const session = useAuth((s) => s.session);
@@ -28,13 +28,10 @@ export function Ticket() {
   const { data: prizes = [] } = useQuery({ queryKey: ['prizes'], queryFn: listPrizes });
   const [howOpen, setHowOpen] = useState(false);
 
-  const sortedPrizes = event?.date
-    ? [...prizes].sort((a, b) => drawSortKey(a.id, event.date) - drawSortKey(b.id, event.date))
-    : prizes;
+  const schedule = event?.date ? buildSchedule(prizes.map((p) => p.id), event.date) : new Map<string, string>();
+  const sortedPrizes = [...prizes].sort((a, b) => getDrawSortKey(schedule, a.id) - getDrawSortKey(schedule, b.id));
   const nextPrize = sortedPrizes.find((p) => !p.winnerGuestId);
-  const drawTarget = nextPrize && event?.date
-    ? scheduledDrawTime(nextPrize.id, event.date)
-    : null;
+  const drawTarget = nextPrize ? getDrawTime(schedule, nextPrize.id) : null;
   const cd = useCountdown(drawTarget);
 
   if (guestLoading) {
