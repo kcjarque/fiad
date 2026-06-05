@@ -4,9 +4,10 @@ import {
   Flower2, Mic2, Gem as GemIcon, Store as StoreIcon,
   DoorOpen, Heart, Calendar, Music, Gift, BookHeart,
   Lightbulb, ShieldCheck, Sparkles, Brush, Mail, HeartPulse, CreditCard, Home,
-  ExternalLink, Trophy,
+  ExternalLink, Trophy, ZoomIn, ZoomOut,
   type LucideIcon,
 } from 'lucide-react';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { useQuery } from '@tanstack/react-query';
 import type { Store } from '../../types';
 import { Modal } from '../shared/Modal';
@@ -180,16 +181,33 @@ function BazaarMap({
   const byBooth = useMemo(() => new Map(stores.map((s) => [s.boothNumber, s])), [stores]);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-plum/10 bg-white shadow-card">
-      <div className="text-[10px] uppercase tracking-widest text-plum/50 px-3 pt-3 pb-1">
-        Bazaar Area · Bamboo Hall
+    <div className="relative overflow-hidden rounded-2xl border border-plum/10 bg-white shadow-card">
+      <div className="text-[10px] uppercase tracking-widest text-plum/50 px-3 pt-3 pb-1 flex items-center justify-between">
+        <span>Bazaar Area · Bamboo Hall</span>
+        <span className="text-plum/40 normal-case tracking-normal text-[10px] flex items-center gap-1">
+          <ZoomIn size={11} /> Pinch / scroll to zoom
+        </span>
       </div>
-      <svg
-        viewBox="0 0 960 720"
-        preserveAspectRatio="xMidYMid meet"
-        style={{ width: '100%', height: 'auto', display: 'block' }}
-        fontFamily="system-ui, sans-serif"
+      <TransformWrapper
+        initialScale={1}
+        minScale={1}
+        maxScale={6}
+        doubleClick={{ mode: 'reset' }}
+        pinch={{ step: 5 }}
+        wheel={{ step: 0.2 }}
       >
+        {({ zoomIn, zoomOut, resetTransform }) => (
+          <>
+            <TransformComponent
+              wrapperStyle={{ width: '100%', height: 'auto' }}
+              contentStyle={{ width: '100%' }}
+            >
+              <svg
+                viewBox="0 0 960 720"
+                preserveAspectRatio="xMidYMid meet"
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+                fontFamily="system-ui, sans-serif"
+              >
         {/* Room background */}
         <rect x={0} y={0} width={960} height={720} fill="#faf8f5" stroke="#c9b99a" strokeWidth={2} />
 
@@ -285,9 +303,37 @@ function BazaarMap({
               fill="none" stroke="#7c3aed" strokeWidth={3} rx={3} />
           );
         })()}
-      </svg>
+              </svg>
+            </TransformComponent>
+            {/* Floating zoom controls — sit bottom-right above the hint row. */}
+            <div className="absolute bottom-12 right-3 flex flex-col gap-1.5 z-10">
+              <button
+                onClick={() => zoomIn()}
+                aria-label="Zoom in"
+                className="h-9 w-9 rounded-full bg-white shadow-card border border-plum/10 text-plum flex items-center justify-center hover:bg-plum/5 transition-colors"
+              >
+                <ZoomIn size={16} />
+              </button>
+              <button
+                onClick={() => zoomOut()}
+                aria-label="Zoom out"
+                className="h-9 w-9 rounded-full bg-white shadow-card border border-plum/10 text-plum flex items-center justify-center hover:bg-plum/5 transition-colors"
+              >
+                <ZoomOut size={16} />
+              </button>
+              <button
+                onClick={() => resetTransform()}
+                aria-label="Reset zoom"
+                className="h-9 w-9 rounded-full bg-white shadow-card border border-plum/10 text-plum/70 flex items-center justify-center text-[10px] hover:bg-plum/5 transition-colors"
+              >
+                1×
+              </button>
+            </div>
+          </>
+        )}
+      </TransformWrapper>
       <div className="px-3 pb-2 text-[10px] text-plum/40 flex items-center gap-1 mt-1">
-        <MapPin size={10} /> Tap a booth to see details
+        <MapPin size={10} /> Tap a booth to see details · Double-tap to reset zoom
       </div>
     </div>
   );
