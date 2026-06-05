@@ -1,7 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Prize } from '../types';
 import { uid } from '../utils/id';
-import { getGuest } from './guestService';
 
 const ACTIVE_EVENT_ID = 'evt_fiad_dec25';
 
