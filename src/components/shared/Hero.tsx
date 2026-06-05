@@ -48,7 +48,10 @@ export function Hero({
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${imageUrl})` }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-coral/20 via-coral/60 to-[#8B2348]/95" />
+          {/* Photo overlay: transparent at the top so most of the image
+              shows through, a soft coral wash in the middle, and a heavier
+              plum at the bottom only where text needs to stay readable. */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-coral/25 to-[#8B2348]/75" />
         </>
       )}
 
