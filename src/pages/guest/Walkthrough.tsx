@@ -12,7 +12,7 @@ import { FloorPlan, getCategoryMeta } from '../../components/guest/FloorPlan';
 import type { Store } from '../../types';
 
 const eventTabs = [
-  { key: 'map', label: 'Booths' },
+  { key: 'map', label: 'Map' },
   { key: 'booth_info', label: 'Booth Info' },
   { key: 'promo', label: 'Promos' },
 ] as const;

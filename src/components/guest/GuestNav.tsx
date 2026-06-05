@@ -21,7 +21,7 @@ const items: { to: string; label: string; Icon: LucideIcon }[] = [
   { to: '/app/passport', label: 'Passport', Icon: BookHeart },
   { to: '/app/challenges', label: 'Quests', Icon: Trophy },
   { to: '/app/schedule', label: 'Schedule', Icon: CalendarClock },
-  { to: '/app/walkthrough', label: 'Event', Icon: Map },
+  { to: '/app/walkthrough', label: 'Booths', Icon: Map },
 ];
 
 export function GuestNav() {
