@@ -259,6 +259,89 @@ $$;
 grant execute on function deny_override(text, text) to anon;
 
 -- ──────────────────────────────────────────────────────────────────────
+-- draw_prize
+-- ──────────────────────────────────────────────────────────────────────
+-- Atomic raffle draw. The old client-side implementation made three
+-- separate round-trips (fetch prize / fetch all won tickets / fetch ALL
+-- raffle entries) and then wrote — two admins double-tapping "Draw"
+-- within the round-trip window could both pick the same ticket. This
+-- RPC does the entire pick-and-lock in one transaction with an explicit
+-- FOR UPDATE row lock on the prize, so concurrent draws on the same
+-- prize serialise (second caller sees the prize already won and returns
+-- the existing winner instead of overwriting).
+--
+-- Also: the old path SELECT'd every raffle_entries row (~17K under load)
+-- across the wire. This RPC samples randomly inside Postgres — one row
+-- comes back regardless of pool size.
+
+create or replace function draw_prize(p_prize_id text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_prize         prizes;
+  v_winner_guest  text;
+  v_winner_ticket text;
+  v_winner_name   text;
+begin
+  -- Lock the prize row so a parallel call has to wait until this commits.
+  select * into v_prize
+    from prizes
+   where id = p_prize_id
+   for update;
+  if not found then return null; end if;
+
+  -- Already drawn? Return the existing winner — idempotent.
+  if v_prize.winner_guest_id is not null
+     and v_prize.winning_ticket_number is not null then
+    select name into v_winner_name from guests where id = v_prize.winner_guest_id;
+    return jsonb_build_object(
+      'prize_id', p_prize_id,
+      'winner_guest_id', v_prize.winner_guest_id,
+      'winner_name', coalesce(v_winner_name, 'Guest'),
+      'ticket_number', v_prize.winning_ticket_number
+    );
+  end if;
+
+  -- Pick a random eligible ticket — excludes tickets already won by other
+  -- prizes via NOT IN subquery on the same locked snapshot.
+  select e.guest_id, e.ticket_number
+    into v_winner_guest, v_winner_ticket
+    from raffle_entries e
+   where e.ticket_number not in (
+           select winning_ticket_number from prizes
+            where winning_ticket_number is not null
+         )
+   order by random()
+   limit 1;
+
+  if v_winner_ticket is null then
+    return null;
+  end if;
+
+  -- Commit the winner.
+  update prizes
+     set winner_guest_id = v_winner_guest,
+         winning_ticket_number = v_winner_ticket,
+         drawn_at = now()
+   where id = p_prize_id;
+
+  select name into v_winner_name from guests where id = v_winner_guest;
+
+  return jsonb_build_object(
+    'prize_id', p_prize_id,
+    'winner_guest_id', v_winner_guest,
+    'winner_name', coalesce(v_winner_name, 'Guest'),
+    'ticket_number', v_winner_ticket
+  );
+end;
+$$;
+
+grant execute on function draw_prize(text) to anon;
+
+-- ──────────────────────────────────────────────────────────────────────
 -- Indexes the agents flagged as missing (we already had a few, but
 -- raffle_entries.event_id, transactions.store_id, prizes.winner_guest_id
 -- were absent and would slow scans under 500-user load).

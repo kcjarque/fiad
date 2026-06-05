@@ -88,59 +88,25 @@ export type DrawResult = {
 };
 
 export const drawWinner = async (prizeId: string): Promise<DrawResult | null> => {
-  const { data: prizeRow, error: fetchErr } = await supabase
-    .from('prizes')
-    .select('*')
-    .eq('id', prizeId)
-    .maybeSingle();
-  if (fetchErr) throw fetchErr;
-  if (!prizeRow) return null;
-
-  const prize = rowToPrize(prizeRow);
-
-  // Guard: already drawn — never overwrite.
-  if (prize.winnerGuestId && prize.winningTicketNumber) {
-    const existing = await getGuest(prize.winnerGuestId);
-    return {
-      prizeId,
-      winnerGuestId: prize.winnerGuestId,
-      winnerName: existing?.name ?? 'Guest',
-      ticketNumber: prize.winningTicketNumber,
-    };
-  }
-
-  // Exclude tickets that were already won by other prizes.
-  const { data: wonRows } = await supabase
-    .from('prizes')
-    .select('winning_ticket_number')
-    .not('winning_ticket_number', 'is', null);
-  const drawnTickets = new Set(
-    (wonRows ?? []).map((r) => r.winning_ticket_number as string).filter(Boolean),
-  );
-
-  const { data: entries, error: entriesErr } = await supabase
-    .from('raffle_entries')
-    .select('*');
-  if (entriesErr) throw entriesErr;
-
-  const pool = (entries ?? []).filter((e) => !drawnTickets.has(e.ticket_number));
-  if (pool.length === 0) return null;
-
-  const pick = pool[Math.floor(Math.random() * pool.length)];
-  const guest = await getGuest(pick.guest_id);
-  const now = new Date().toISOString();
-
-  await updatePrize(prizeId, {
-    drawnAt: now,
-    winnerGuestId: pick.guest_id,
-    winningTicketNumber: pick.ticket_number,
-  });
-
+  // Atomic single-call draw via the draw_prize RPC (migration 0040).
+  // The RPC takes a FOR UPDATE row lock on the prize, picks a random
+  // eligible ticket inside Postgres (no full raffle_entries scan over
+  // the wire), and either returns the new winner or — if the prize was
+  // already drawn — returns the existing winner.
+  const { data, error } = await supabase.rpc('draw_prize', { p_prize_id: prizeId });
+  if (error) throw error;
+  if (!data) return null;
+  const result = data as {
+    prize_id: string;
+    winner_guest_id: string;
+    winner_name: string;
+    ticket_number: string;
+  };
   return {
-    prizeId,
-    winnerGuestId: pick.guest_id,
-    winnerName: guest?.name ?? 'Guest',
-    ticketNumber: pick.ticket_number,
+    prizeId: result.prize_id,
+    winnerGuestId: result.winner_guest_id,
+    winnerName: result.winner_name,
+    ticketNumber: result.ticket_number,
   };
 };
 
