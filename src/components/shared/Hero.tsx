@@ -58,8 +58,10 @@ export function Hero({
       {/* Top-right slot */}
       {topRight && <div className="absolute top-4 right-5 z-10">{topRight}</div>}
 
-      {/* Content */}
-      <div className={`relative h-full flex flex-col justify-end px-5 pb-5 text-cream ${contentClassName}`}>
+      {/* Content. If the caller passed any pb-* override via contentClassName,
+          drop the default pb-5 — Tailwind's CSS source order would otherwise
+          let the smaller default win and silently undo the override. */}
+      <div className={`relative h-full flex flex-col justify-end px-5 ${/\bpb-\S+/.test(contentClassName) ? '' : 'pb-5'} text-cream ${contentClassName}`}>
         {kicker && (
           <div className="text-[10px] uppercase tracking-[0.3em] text-champagne/90 mb-2">
             {kicker}
