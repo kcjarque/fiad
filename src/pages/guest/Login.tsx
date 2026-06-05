@@ -14,6 +14,8 @@ export function GuestLogin() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Re-entry guard — prevents a double-tap from firing two login calls.
+    if (busy) return;
     setBusy(true);
     try {
       const guest = await loginGuestWithAccessCode(email, code);

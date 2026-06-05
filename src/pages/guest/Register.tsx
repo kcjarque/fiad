@@ -13,6 +13,9 @@ export function Register() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Re-entry guard — a double-tap during the network roundtrip would
+    // otherwise queue two registerGuest calls with the same email.
+    if (busy) return;
     if (!form.consent) {
       toast.error('Please accept the data privacy notice to continue.');
       return;

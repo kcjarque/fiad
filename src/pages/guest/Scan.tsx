@@ -40,7 +40,10 @@ export function Scan() {
       setLastResult(store.name);
       setScanning(false);
     } catch (err) {
+      // On transient network failure, re-arm the scanner so the guest can
+      // try again without tapping anything. Their camera is already on.
       toast.error(`Scan failed: ${(err as Error).message}`);
+      setScanning(true);
     }
   };
 

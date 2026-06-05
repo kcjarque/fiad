@@ -13,6 +13,27 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
+      workbox: {
+        // Activate new SW immediately so guests don't stay stuck on an old
+        // bundle for hours after a deploy on event day.
+        skipWaiting: true,
+        clientsClaim: true,
+        // HTML / navigation requests must be network-first. If wifi is
+        // reachable we fetch fresh; otherwise we fall back to cache so the
+        // app still loads offline. Hashed asset URLs change per build, so
+        // they keep their default cache-first behavior.
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'fiad-html',
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+        ],
+      },
       manifest: {
         name: 'Forever in a Day',
         short_name: 'FIAD',

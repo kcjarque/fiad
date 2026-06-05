@@ -47,13 +47,20 @@ export function AdminDraw() {
 
   const spin = async () => {
     if (!prize) return;
+    // Re-entry guard — admin double-tap during the drawWinner roundtrip
+    // would otherwise race two parallel draws on the same prize.
+    if (phase !== 'idle') return;
     if (entries.length === 0) {
       alert('No raffle entries available to draw.');
       return;
     }
 
+    setPhase('spinning'); // disable the button immediately
     const result = await drawWinner(prize.id);
-    if (!result) return;
+    if (!result) {
+      setPhase('idle');
+      return;
+    }
 
     const allNames = entries
       .map((e) => guestsById.get(e.guestId)?.name)
