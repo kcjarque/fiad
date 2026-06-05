@@ -56,6 +56,10 @@ export function Raffle() {
   const wins = sortedPrizes.filter((p) => p.winnerGuestId === guestId);
   const drawn = sortedPrizes.filter((p) => p.winnerGuestId);
   const nextPrize = sortedPrizes.find((p) => !p.winnerGuestId);
+  // The Hero shows the marquee grand-prize image always — the gold "Next Draw"
+  // card to the right shows the actual next hourly prize. Falls back to
+  // nextPrize if the grand prize row hasn't been seeded.
+  const grandPrize = sortedPrizes.find((p) => p.id === 'prize_grand') ?? nextPrize;
 
   const drawTarget = nextPrize && event?.date
     ? scheduledDrawTime(nextPrize.id, event.date)
@@ -100,10 +104,10 @@ export function Raffle() {
   return (
     <div className="min-h-full pb-28 bg-cream">
       <Hero
-        imageUrl={nextPrize?.imageUrl}
-        kicker={nextPrize ? 'Grand Prize' : 'All prizes drawn'}
-        title={nextPrize ? nextPrize.name : 'The draws are complete'}
-        subtitle={nextPrize?.description}
+        imageUrl={grandPrize?.imageUrl}
+        kicker="Grand Prize"
+        title={grandPrize?.name ?? '14K Gold Wedding Ring'}
+        subtitle={grandPrize?.description ?? 'Stay for the final draw to win the grand prize.'}
         height="xl"
       />
 
