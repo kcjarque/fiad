@@ -13,6 +13,9 @@ type Props = {
   /** Absolutely positioned content inside the hero (top-right corner) */
   topRight?: ReactNode;
   className?: string;
+  /** Extra classes for the content wrapper. Use to push text up when the
+   *  page overlaps the Hero from below (e.g. floating-card patterns). */
+  contentClassName?: string;
 };
 
 const heightMap = {
@@ -32,6 +35,7 @@ export function Hero({
   solid = false,
   topRight,
   className = '',
+  contentClassName = '',
 }: Props) {
   return (
     <div className={`relative overflow-hidden ${heightMap[height]} ${className}`}>
@@ -55,7 +59,7 @@ export function Hero({
       {topRight && <div className="absolute top-4 right-5 z-10">{topRight}</div>}
 
       {/* Content */}
-      <div className="relative h-full flex flex-col justify-end px-5 pb-5 text-cream">
+      <div className={`relative h-full flex flex-col justify-end px-5 pb-5 text-cream ${contentClassName}`}>
         {kicker && (
           <div className="text-[10px] uppercase tracking-[0.3em] text-champagne/90 mb-2">
             {kicker}

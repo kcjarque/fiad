@@ -109,6 +109,9 @@ export function Raffle() {
         title={grandPrize?.name ?? '14K Gold Wedding Ring'}
         subtitle={grandPrize?.description ?? 'Stay for the final draw to win the grand prize.'}
         height="xl"
+        // The Odds + Next Draw cards float over the Hero bottom with -mt-10.
+        // Pad the Hero content up so the subtitle clears the overlap zone.
+        contentClassName="pb-20"
       />
 
       <div className="px-5 -mt-10 relative z-10 grid grid-cols-2 gap-3">
