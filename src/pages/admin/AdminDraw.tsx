@@ -1,11 +1,12 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { drawWinner, listPrizes } from '../../services/prizeService';
 import { allActiveEntries } from '../../services/raffleService';
 import { listGuests } from '../../services/guestService';
 import { Confetti } from '../../components/shared/Confetti';
-import { Trophy } from 'lucide-react';
+import { Trophy, MonitorPlay } from 'lucide-react';
+import { openChannel, postMessage, type StageMsg, type Prize as ChannelPrize } from '../../utils/drawChannel';
 
 const ROW_HEIGHT = 64;
 const VISIBLE_ROWS = 5;
@@ -28,9 +29,62 @@ export function AdminDraw() {
   const [transition, setTransition] = useState('none');
   const resetTimer = useRef<number | null>(null);
 
+  // Cross-window channel to the LCD/projector stage view.
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const [stageOpen, setStageOpen] = useState(false);
+
   // Default to first undrawn prize once prizes load
   const effectivePrizeId = prizeId || undrawn[0]?.id || '';
   const prize = prizes.find((p) => p.id === effectivePrizeId);
+
+  // ── Stage channel: open on mount, broadcast prize / drawn list updates ──
+  useEffect(() => {
+    const ch = openChannel();
+    channelRef.current = ch;
+    const handler = (e: MessageEvent<StageMsg>) => {
+      // Stage view announces itself with `ping` — flip the indicator so
+      // the admin knows the projector is connected.
+      if (e.data?.type === 'ping') {
+        setStageOpen(true);
+        postMessage(ch, { type: 'pong' });
+      }
+    };
+    ch.addEventListener('message', handler);
+    return () => {
+      ch.removeEventListener('message', handler);
+      ch.close();
+    };
+  }, []);
+
+  // Whenever the selected prize OR the drawn-list changes, sync the stage.
+  useEffect(() => {
+    const ch = channelRef.current;
+    if (!ch) return;
+    const channelPrize: ChannelPrize | null = prize
+      ? { id: prize.id, name: prize.name, description: prize.description, imageUrl: prize.imageUrl }
+      : null;
+    const drawnList = prizes
+      .filter((p) => p.winnerGuestId)
+      .map((p) => ({ name: p.name, winner: guestsById.get(p.winnerGuestId!)?.name ?? '—' }));
+    postMessage(ch, {
+      type: 'set_prize',
+      prize: channelPrize,
+      undrawnCount: undrawn.length,
+      drawnList,
+    });
+  }, [prize, prizes, undrawn.length, guestsById]);
+
+  const openStage = () => {
+    const w = 1600;
+    const h = 900;
+    const left = window.screenX + (window.outerWidth - w) / 2;
+    const top = window.screenY + 60;
+    window.open(
+      '/admin/draw/stage',
+      'fiad-draw-stage',
+      `popup=yes,width=${w},height=${h},left=${left},top=${top}`,
+    );
+  };
 
   const idleNames = useMemo(() => {
     const names = new Set<string>();
@@ -84,11 +138,24 @@ export function AdminDraw() {
     setPhase('spinning');
     setWinner(null);
 
+    const SPIN_DURATION_MS = 4200;
+
+    // Broadcast to the projector window so it spins in sync.
+    if (channelRef.current && prize) {
+      postMessage(channelRef.current, {
+        type: 'spin_start',
+        prize: { id: prize.id, name: prize.name, description: prize.description, imageUrl: prize.imageUrl },
+        reel: pool,
+        landingIndex,
+        durationMs: SPIN_DURATION_MS,
+      });
+    }
+
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const targetY = -(landingIndex - CENTER_INDEX) * ROW_HEIGHT;
         const jitter = Math.random() * 6 - 3;
-        setTransition('transform 4.2s cubic-bezier(0.15, 0.85, 0.25, 1)');
+        setTransition(`transform ${SPIN_DURATION_MS}ms cubic-bezier(0.15, 0.85, 0.25, 1)`);
         setTranslateY(targetY + jitter);
       });
     });
@@ -97,10 +164,19 @@ export function AdminDraw() {
     resetTimer.current = window.setTimeout(() => {
       setWinner({ name: result.winnerName, ticketNumber: result.ticketNumber, prizeName: prize.name });
       setPhase('revealed');
+      // Reveal on the projector with a tiny extra beat so the reel comes
+      // to a stop visually before the splash takes over.
+      if (channelRef.current && prize) {
+        postMessage(channelRef.current, {
+          type: 'reveal',
+          winner: { name: result.winnerName, ticketNumber: result.ticketNumber },
+          prize: { id: prize.id, name: prize.name, description: prize.description, imageUrl: prize.imageUrl },
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['prizes'] });
       queryClient.invalidateQueries({ queryKey: ['raffle'] });
       queryClient.invalidateQueries({ queryKey: ['guests'] });
-    }, 4500);
+    }, SPIN_DURATION_MS + 300);
   };
 
   const reset = () => {
@@ -109,6 +185,7 @@ export function AdminDraw() {
     setReel([]);
     setTranslateY(0);
     setTransition('none');
+    if (channelRef.current) postMessage(channelRef.current, { type: 'reset' });
     // prizes already refreshed via invalidation in spin(); pick next undrawn
     const nextUndrawn = prizes.find((p) => !p.winnerGuestId);
     if (nextUndrawn) setPrizeId(nextUndrawn.id);
@@ -118,8 +195,25 @@ export function AdminDraw() {
 
   return (
     <AdminShell>
-      <h1 className="font-display text-2xl md:text-3xl mb-2">Live Raffle Draw</h1>
-      <p className="text-plum/60 mb-4 md:mb-6 text-sm md:text-base">{entries.length} active entries in the pool</p>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div>
+          <h1 className="font-display text-2xl md:text-3xl">Live Raffle Draw</h1>
+          <p className="text-plum/60 mt-1 text-sm md:text-base">{entries.length} active entries in the pool</p>
+        </div>
+        <button
+          onClick={openStage}
+          className="inline-flex items-center gap-2 rounded-full bg-plum text-cream px-4 py-2 text-sm font-medium hover:bg-[#5a2147] transition-colors shrink-0"
+          title="Open the projector window — drag it to the second monitor / LCD"
+        >
+          <MonitorPlay size={16} />
+          <span className="hidden sm:inline">Open Stage View</span>
+          <span className="sm:hidden">Stage</span>
+          <span
+            className={`ml-1 h-2 w-2 rounded-full ${stageOpen ? 'bg-emerald-400' : 'bg-coral'}`}
+            title={stageOpen ? 'Stage connected' : 'Stage not connected'}
+          />
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 lg:gap-8 items-start">
         <div className="card flex flex-col items-center">

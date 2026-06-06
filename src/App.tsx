@@ -28,6 +28,7 @@ import { AdminChallenges } from './pages/admin/AdminChallenges';
 import { AdminWalkthrough } from './pages/admin/AdminWalkthrough';
 import { AdminPrizes } from './pages/admin/AdminPrizes';
 import { AdminDraw } from './pages/admin/AdminDraw';
+import { AdminDrawStage } from './pages/admin/AdminDrawStage';
 import { ToastHost } from './components/shared/Toast';
 import { useAuth } from './stores/authStore';
 
@@ -110,6 +111,9 @@ export default function App() {
         <Route path="/admin/walkthrough" element={<RequireAdmin><AdminWalkthrough /></RequireAdmin>} />
         <Route path="/admin/prizes" element={<RequireAdmin><AdminPrizes /></RequireAdmin>} />
         <Route path="/admin/draw" element={<RequireAdmin><AdminDraw /></RequireAdmin>} />
+        {/* Projector / LCD presentation window — opened from /admin/draw.
+            Intentionally outside the AdminShell so it fills the whole window. */}
+        <Route path="/admin/draw/stage" element={<RequireAdmin><AdminDrawStage /></RequireAdmin>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
