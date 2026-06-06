@@ -68,7 +68,9 @@ export function StoreScan() {
   const submit = async () => {
     if (busy) return;
     if (!guest) return;
-    const amt = Number(amount);
+    // Tolerate commas, peso signs, and spaces the cashier may type
+    // (e.g. "₱11,000"). Strip everything except digits and a decimal point.
+    const amt = Number(amount.replace(/[^0-9.]/g, ''));
     if (!amt || amt <= 0) {
       toast.error('Enter a valid amount.');
       return;
@@ -118,7 +120,7 @@ export function StoreScan() {
   const cap = event?.dailyCapPerGuestPerStore ?? 5000;
   const raffleRate = event?.raffleRate ?? 100;
   const remaining = Math.max(cap - alreadySpent, 0);
-  const willExceed = !!guest && Number(amount) > remaining;
+  const willExceed = !!guest && Number(amount.replace(/[^0-9.]/g, '')) > remaining;
 
   return (
     <PageShell title="Issue Raffle Entries" subtitle={`₱${raffleRate} = 1 entry · Cap ${peso(cap)}/day/guest`}>
@@ -163,7 +165,8 @@ export function StoreScan() {
           <Card>
             <label className="label">Purchase amount (₱)</label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               className="input"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
