@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import type { Store } from '../types';
 import { uid } from '../utils/id';
 import { getActiveEvent } from './eventService';
+import { HIDDEN_STORE_IDS } from '../constants/hidden';
 
 type Row = {
   id: string;
@@ -54,7 +55,11 @@ const storeToInsert = (s: Store): Row => ({
 export const listStores = async (): Promise<Store[]> => {
   const { data, error } = await supabase.from('stores').select('*').order('booth_number');
   if (error) throw error;
-  return (data ?? []).map(rowToStore);
+  // Drop no-show suppliers per src/constants/hidden.ts. The data stays
+  // in the DB; remove an entry from that file to re-enable instantly.
+  return (data ?? [])
+    .filter((r) => !HIDDEN_STORE_IDS.has(r.id))
+    .map(rowToStore);
 };
 
 export const getStore = async (id: string): Promise<Store | undefined> => {

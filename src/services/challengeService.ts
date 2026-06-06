@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { Challenge, ChallengeCompletion, PassportStamp } from '../types';
 import { uid } from '../utils/id';
+import { HIDDEN_STORE_IDS } from '../constants/hidden';
 
 const ACTIVE_EVENT_ID = 'evt_fiad_dec25';
 
@@ -45,7 +46,11 @@ const rowToCompletion = (r: CompletionRow): ChallengeCompletion => ({
 export const listChallenges = async (): Promise<Challenge[]> => {
   const { data, error } = await supabase.from('challenges').select('*').order('id');
   if (error) throw error;
-  return (data ?? []).map(rowToChallenge);
+  // Hide quests linked to a no-show supplier so guests don't see a quest
+  // they can't physically complete.
+  return (data ?? [])
+    .filter((r) => !r.store_id || !HIDDEN_STORE_IDS.has(r.store_id))
+    .map(rowToChallenge);
 };
 
 export const createChallenge = async (c: Omit<Challenge, 'id'>): Promise<Challenge> => {
