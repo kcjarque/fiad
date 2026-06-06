@@ -69,9 +69,14 @@ export type RaffleEntry = {
   id: string;
   eventId: string;
   guestId: string;
-  transactionId: string;
+  /** Null for complimentary entries (every guest gets one on signup). */
+  transactionId: string | null;
   ticketNumber: string;
   createdAt: string;
+  /** True when the entry was issued automatically on signup rather than
+   *  earned through a transaction. Complimentary entries are NOT eligible
+   *  for the grand prize. */
+  isComplimentary: boolean;
 };
 
 export type Prize = {

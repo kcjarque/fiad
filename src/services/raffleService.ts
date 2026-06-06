@@ -5,9 +5,10 @@ type Row = {
   id: string;
   event_id: string;
   guest_id: string;
-  transaction_id: string;
+  transaction_id: string | null;
   ticket_number: string;
   created_at: string;
+  is_complimentary?: boolean;
 };
 
 const rowToEntry = (r: Row): RaffleEntry => ({
@@ -17,6 +18,7 @@ const rowToEntry = (r: Row): RaffleEntry => ({
   transactionId: r.transaction_id,
   ticketNumber: r.ticket_number,
   createdAt: r.created_at,
+  isComplimentary: r.is_complimentary ?? false,
 });
 
 export const entriesForGuest = async (guestId: string): Promise<RaffleEntry[]> => {

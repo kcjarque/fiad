@@ -76,21 +76,33 @@ export function Raffle() {
     return { mine: active, total: activePool.length, ratio: Math.round(activePool.length / active) };
   }, [activePool, guestId]);
 
+  // Group entries for the "Your entries" list. Complimentary entries
+  // (issued on signup, transactionId === null) collapse into a single
+  // "Welcome bonus" row so the list doesn't look noisy with one row per
+  // ticket. Transaction-backed entries group by their tx id (one row per
+  // store scan) as before.
   const grouped = useMemo(() => {
-    const byTx = new Map<string, { storeId: string; count: number; at: string }>();
+    const COMP_KEY = '__complimentary__';
+    type Bucket = { storeId: string; count: number; at: string; complimentary: boolean };
+    const byKey = new Map<string, Bucket>();
     for (const e of entries) {
-      const existing = byTx.get(e.transactionId);
-      if (existing) existing.count += 1;
-      else {
-        const tx = txById.get(e.transactionId);
-        byTx.set(e.transactionId, {
-          storeId: tx?.storeId ?? '',
-          count: 1,
-          at: e.createdAt,
-        });
+      const key = e.transactionId ?? COMP_KEY;
+      const existing = byKey.get(key);
+      if (existing) {
+        existing.count += 1;
+        // Keep the earliest createdAt so the welcome bonus sorts predictably.
+        if (e.createdAt < existing.at) existing.at = e.createdAt;
+        continue;
       }
+      const tx = e.transactionId ? txById.get(e.transactionId) : undefined;
+      byKey.set(key, {
+        storeId: tx?.storeId ?? '',
+        count: 1,
+        at: e.createdAt,
+        complimentary: e.isComplimentary || !e.transactionId,
+      });
     }
-    return [...byTx.entries()]
+    return [...byKey.entries()]
       .map(([txId, v]) => ({ txId, ...v }))
       .sort((a, b) => b.at.localeCompare(a.at));
   }, [entries, txById]);
@@ -277,7 +289,11 @@ export function Raffle() {
               const store = g.storeId ? storesById.get(g.storeId) : undefined;
               return (
                 <div key={g.txId} className="rounded-2xl bg-white shadow-card flex items-center gap-3 p-3">
-                  {store?.imageUrl ? (
+                  {g.complimentary ? (
+                    <div className="w-12 h-12 rounded-xl foil-gold flex items-center justify-center text-plum">
+                      <Sparkles size={20} />
+                    </div>
+                  ) : store?.imageUrl ? (
                     <img src={store.imageUrl} alt={store.name} className="w-12 h-12 rounded-xl object-cover" />
                   ) : (
                     <div className="w-12 h-12 rounded-xl bg-champagne/20" />
@@ -292,7 +308,9 @@ export function Raffle() {
                       </div>
                     </div>
                     <div className="text-xs text-plum/60 truncate">
-                      from {store?.name ?? 'Unknown booth'}
+                      {g.complimentary
+                        ? 'Welcome bonus — not eligible for the Grand Prize'
+                        : `from ${store?.name ?? 'Unknown booth'}`}
                     </div>
                     <div className="text-[10px] text-plum/40 mt-0.5">
                       {new Date(g.at).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
