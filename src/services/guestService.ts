@@ -25,12 +25,58 @@ const rowToGuest = (r: Row): Guest => ({
   accessCode: r.access_code ?? undefined,
 });
 
+const CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+const randomAccessCode = (): string =>
+  Array.from({ length: 6 }, () =>
+    CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)],
+  ).join('');
+
+/**
+ * Generate a 6-char access code that isn't already in use. 36^6 ≈ 2.2B
+ * keyspace — collisions over a few hundred guests are vanishingly rare,
+ * but we still check + retry to be safe.
+ */
+const generateUniqueAccessCode = async (): Promise<string> => {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const code = randomAccessCode();
+    const { data } = await supabase
+      .from('guests')
+      .select('id')
+      .eq('access_code', code)
+      .maybeSingle();
+    if (!data) return code;
+  }
+  throw new Error('Could not generate a unique access code');
+};
+
 export const registerGuest = async (data: {
   name: string;
   email: string;
   mobile: string;
 }): Promise<Guest> => {
+  // ── Idempotency: same email already registered → return the existing
+  // account instead of creating a second row. This is the root cause of the
+  // "Alex Gonzales × 3" duplicate-guest bug — a tap-Register-twice on the
+  // form (or a confused guest re-submitting) would otherwise create a new
+  // row each time.
+  const existing = await findGuestByEmail(data.email);
+  if (existing) {
+    // If the existing row is missing an access code (happens for rows
+    // created before this fix landed), backfill it now so the returning
+    // guest still gets a usable code.
+    if (!existing.accessCode) {
+      const code = await generateUniqueAccessCode();
+      await supabase.from('guests').update({ access_code: code }).eq('id', existing.id);
+      return { ...existing, accessCode: code };
+    }
+    return existing;
+  }
+
+  // ── Truly new guest. Auto-assign a unique 6-char access code so they
+  // can sign in on a different device with email + code.
   const event = await getActiveEvent();
+  const accessCode = await generateUniqueAccessCode();
   const guest: Guest = {
     id: uid('guest'),
     name: data.name.trim(),
@@ -39,6 +85,7 @@ export const registerGuest = async (data: {
     qrToken: `guest-qr-${Math.random().toString(36).slice(2, 12)}`,
     registeredAt: new Date().toISOString(),
     eventId: event.id,
+    accessCode,
   };
   const { error } = await supabase.from('guests').insert({
     id: guest.id,
@@ -48,8 +95,20 @@ export const registerGuest = async (data: {
     mobile: guest.mobile,
     qr_token: guest.qrToken,
     registered_at: guest.registeredAt,
+    access_code: accessCode,
   });
-  if (error) throw error;
+  if (error) {
+    // ── Race: two concurrent registrations with the same email both passed
+    // findGuestByEmail. Once the dashboard SQL below adds a unique index
+    // on lower(email), the second insert returns 23505 and we recover by
+    // returning whichever row won the race.
+    const code = (error as { code?: string }).code;
+    if (code === '23505') {
+      const winner = await findGuestByEmail(data.email);
+      if (winner) return winner;
+    }
+    throw error;
+  }
   return guest;
 };
 
