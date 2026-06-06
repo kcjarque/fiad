@@ -4,7 +4,7 @@ import { useAuth } from '../../stores/authStore';
 import { QRScanner } from '../../components/shared/QRScanner';
 import { PageShell } from '../../components/shared/PageShell';
 import { Card } from '../../components/shared/Card';
-import { getStoreByQr } from '../../services/storeService';
+import { getStoreByQr, getStoreByBoothNumber } from '../../services/storeService';
 import { stampPassport } from '../../services/passportService';
 import { toast } from '../../stores/toastStore';
 import { BookHeart } from 'lucide-react';
@@ -18,16 +18,42 @@ export function Scan() {
   const [scanning, setScanning] = useState(true);
 
   const handleResult = async (text: string) => {
-    // Booth QRs now encode `${origin}/s/${qrToken}`. Accept either the URL
-    // form (when the user scans a printed sticker via the in-app camera)
-    // or a bare token (for any older stickers still in circulation).
-    let token = text.trim();
-    const m = token.match(/\/s\/([^?#/]+)/);
-    if (m) token = decodeURIComponent(m[1]);
+    const raw = text.trim();
+    if (!raw) return;
+
+    // ── Resolve what the guest gave us, in order of how easy it was to type:
+    //
+    //   1. Bare booth number (e.g. "BA22", "H1-01", "ba22", "Concierge").
+    //      This is the manual-fallback case Sir asked for — staff at the
+    //      booth tells the guest "type BA22" and it works without anyone
+    //      typing a 22-char QR token.
+    //   2. Full URL the camera decoded (e.g. "https://www.fiad.app/s/store-qr-…").
+    //      Strip down to the bare token.
+    //   3. Bare qr_token (e.g. "store-qr-peridot-photoman").
+    //
+    // Order matters: BA22 doesn't contain "/s/" or "store-qr-" so it's
+    // unambiguous; we try it first because the worst case is one wasted
+    // lookup, and it makes manual entry massively friendlier.
     try {
-      const store = await getStoreByQr(token);
+      let store = undefined;
+
+      // 1. Booth-number attempt (only if it doesn't look like a URL or a token).
+      const looksLikeUrl = /\/s\//.test(raw) || /^https?:/i.test(raw);
+      const looksLikeToken = /^store-qr-/i.test(raw);
+      if (!looksLikeUrl && !looksLikeToken) {
+        store = await getStoreByBoothNumber(raw);
+      }
+
+      // 2/3. Fall back to URL/token resolution.
       if (!store) {
-        toast.error('Not a valid booth QR.');
+        let token = raw;
+        const m = token.match(/\/s\/([^?#/]+)/);
+        if (m) token = decodeURIComponent(m[1]);
+        store = await getStoreByQr(token);
+      }
+
+      if (!store) {
+        toast.error('Not a valid booth code.');
         setScanning(false);
         return;
       }
@@ -51,7 +77,10 @@ export function Scan() {
     <PageShell title="Stamp my Passport" subtitle="Scan a booth's static QR">
       {scanning ? (
         <Card>
-          <QRScanner onResult={handleResult} hint="Scan a booth's static QR code to stamp your passport." />
+          <QRScanner
+            onResult={handleResult}
+            hint="Scan a booth's QR — or tap 'Enter code' and type the booth number (e.g. BA22)."
+          />
         </Card>
       ) : (
         <Card className="text-center">

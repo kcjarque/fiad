@@ -78,6 +78,29 @@ export const getStoreByQr = async (qrToken: string): Promise<Store | undefined> 
   return data ? rowToStore(data) : undefined;
 };
 
+/**
+ * Case-insensitive booth-number lookup. Used by the manual scan-fallback
+ * so a guest whose camera won't work can just type `BA22` instead of the
+ * full `store-qr-…` token.
+ *
+ * Hidden suppliers (no-shows) are NOT filtered here — the scan flow has
+ * its own friendly "this booth isn't participating today" handling, and
+ * filtering would surface as a confusing "not found" message.
+ */
+export const getStoreByBoothNumber = async (boothNumber: string): Promise<Store | undefined> => {
+  const trimmed = boothNumber.trim();
+  if (!trimmed) return undefined;
+  // ilike is case-insensitive and treats the input as a literal (no wildcards),
+  // so 'ba22' matches 'BA22' and only 'BA22' — not 'BA22B'.
+  const { data, error } = await supabase
+    .from('stores')
+    .select('*')
+    .ilike('booth_number', trimmed)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToStore(data) : undefined;
+};
+
 export const createStore = async (
   data: Omit<Store, 'id' | 'qrToken' | 'eventId'>,
 ): Promise<Store> => {
