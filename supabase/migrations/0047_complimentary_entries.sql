@@ -33,7 +33,9 @@ declare
   v_attempts int := 0;
 begin
   loop
-    v_ticket := 'FIAD-COMP-' || lpad(((floor(random() * 90000))::int + 10000)::text, 5, '0');
+    -- 7-digit range (9M keyspace) so a single new-guest insert essentially
+    -- never collides; the retry loop covers the rare case anyway.
+    v_ticket := 'FIAD-COMP-' || lpad(((floor(random() * 9000000))::int + 1000000)::text, 7, '0');
     begin
       insert into raffle_entries (id, event_id, guest_id, transaction_id, ticket_number, is_complimentary)
       values (
@@ -64,13 +66,16 @@ create trigger guests_create_complimentary_entry
 
 -- 4) Backfill: issue a complimentary entry to every existing guest who
 --    doesn't already have one. Idempotent — re-running just no-ops.
+--    Ticket numbers are SEQUENTIAL (row_number) so the bulk insert can't
+--    self-collide the way random numbers did (407 rows vs a 90k keyspace
+--    is ~60% likely to collide via the birthday paradox).
 insert into raffle_entries (id, event_id, guest_id, transaction_id, ticket_number, is_complimentary)
 select
   'rt_comp_' || replace(gen_random_uuid()::text, '-', ''),
   'evt_fiad_dec25',
   g.id,
   null,
-  'FIAD-COMP-' || lpad(((floor(random() * 90000))::int + 10000)::text, 5, '0'),
+  'FIAD-COMP-' || lpad((row_number() over (order by g.id))::text, 6, '0'),
   true
 from guests g
 where not exists (
