@@ -46,7 +46,22 @@ export const allActiveEntries = async (): Promise<RaffleEntry[]> => {
   const drawnTickets = new Set(
     (wonRows ?? []).map((r) => r.winning_ticket_number as string).filter(Boolean),
   );
-  const { data, error } = await supabase.from('raffle_entries').select('*');
-  if (error) throw error;
-  return (data ?? []).map(rowToEntry).filter((e) => !drawnTickets.has(e.ticketNumber));
+
+  // PostgREST caps a single response at 1000 rows, so once the pool grows
+  // past 1000 entries a plain select('*') silently drops the rest — making
+  // the displayed pool count too low. Page through with .range() until we've
+  // fetched everything. (Only the columns the pool/reel needs.)
+  const PAGE = 1000;
+  const rows: Row[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('raffle_entries')
+      .select('id,event_id,guest_id,transaction_id,ticket_number,created_at,is_complimentary')
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    const batch = (data ?? []) as Row[];
+    rows.push(...batch);
+    if (batch.length < PAGE) break; // last page
+  }
+  return rows.map(rowToEntry).filter((e) => !drawnTickets.has(e.ticketNumber));
 };
