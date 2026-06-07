@@ -20,6 +20,30 @@ const rowToStamp = (r: Row): PassportStamp => ({
   stampedAt: r.stamped_at,
 });
 
+/**
+ * Distinct guests who have stamped at least one booth, plus the total
+ * stamp count. Used by the dashboard as the "attended + used the app"
+ * signal (a stamp requires being logged in AND physically scanning a
+ * booth QR). Paginated so it stays accurate past 1000 stamps.
+ */
+export const stampActivity = async (): Promise<{ guestIds: Set<string>; totalStamps: number }> => {
+  const PAGE = 1000;
+  const guestIds = new Set<string>();
+  let total = 0;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('passport_stamps')
+      .select('guest_id')
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    const batch = data ?? [];
+    for (const r of batch) guestIds.add(r.guest_id as string);
+    total += batch.length;
+    if (batch.length < PAGE) break;
+  }
+  return { guestIds, totalStamps: total };
+};
+
 export const stampsForGuest = async (guestId: string): Promise<PassportStamp[]> => {
   const { data, error } = await supabase
     .from('passport_stamps')
