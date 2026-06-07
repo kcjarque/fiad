@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Copy, Search } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Copy, Search, Pencil, Check, X } from 'lucide-react';
 import { AdminShell } from '../../components/admin/AdminShell';
-import { listGuests } from '../../services/guestService';
+import { listGuests, updateGuestName } from '../../services/guestService';
 import { allActiveEntries } from '../../services/raffleService';
 import { formatDate } from '../../utils/id';
 import { toast } from '../../stores/toastStore';
@@ -17,9 +17,43 @@ const copyCode = async (code: string) => {
 };
 
 export function AdminGuests() {
+  const queryClient = useQueryClient();
   const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
   const { data: entries = [] } = useQuery({ queryKey: ['raffle', 'active'], queryFn: allActiveEntries });
   const [query, setQuery] = useState('');
+
+  // Inline name editing — fix wrongly-entered guest names.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = (id: string, current: string) => {
+    setEditingId(id);
+    setEditName(current);
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName('');
+  };
+  const saveEdit = async (id: string) => {
+    if (saving) return;
+    const trimmed = editName.trim();
+    if (!trimmed) {
+      toast.error('Name cannot be empty');
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateGuestName(id, trimmed);
+      await queryClient.invalidateQueries({ queryKey: ['guests'] });
+      toast.success('Name updated');
+      cancelEdit();
+    } catch (err) {
+      toast.error(`Update failed: ${(err as Error).message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const entriesByGuest = useMemo(() => {
     const m = new Map<string, number>();
@@ -77,7 +111,34 @@ export function AdminGuests() {
               <div key={g.id} className="card !p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium truncate">{g.name}</div>
+                    {editingId === g.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          autoFocus
+                          className="input !py-1 !px-2 text-sm"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveEdit(g.id);
+                            if (e.key === 'Escape') cancelEdit();
+                          }}
+                        />
+                        <button onClick={() => saveEdit(g.id)} disabled={saving} className="text-emerald-600 p-1" aria-label="Save">
+                          <Check size={16} />
+                        </button>
+                        <button onClick={cancelEdit} className="text-plum/50 p-1" aria-label="Cancel">
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => startEdit(g.id, g.name)}
+                        className="font-medium truncate inline-flex items-center gap-1.5 group text-left"
+                      >
+                        {g.name}
+                        <Pencil size={12} className="text-plum/30 group-hover:text-plum/60 shrink-0" />
+                      </button>
+                    )}
                     <div className="text-xs text-plum/60 truncate">{g.email}</div>
                     <div className="text-xs text-plum/60">{g.mobile}</div>
                   </div>
@@ -118,7 +179,37 @@ export function AdminGuests() {
               <tbody>
                 {filtered.map((g) => (
                   <tr key={g.id} className="border-b border-plum/5 last:border-0">
-                    <td className="py-2 pr-4 font-medium">{g.name}</td>
+                    <td className="py-2 pr-4 font-medium">
+                      {editingId === g.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            autoFocus
+                            className="input !py-1 !px-2 text-sm !w-48"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveEdit(g.id);
+                              if (e.key === 'Escape') cancelEdit();
+                            }}
+                          />
+                          <button onClick={() => saveEdit(g.id)} disabled={saving} className="text-emerald-600 p-1" aria-label="Save">
+                            <Check size={16} />
+                          </button>
+                          <button onClick={cancelEdit} className="text-plum/50 p-1" aria-label="Cancel">
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => startEdit(g.id, g.name)}
+                          className="inline-flex items-center gap-1.5 group text-left"
+                          title="Click to edit name"
+                        >
+                          {g.name}
+                          <Pencil size={12} className="text-plum/25 group-hover:text-plum/60" />
+                        </button>
+                      )}
+                    </td>
                     <td className="py-2 pr-4 text-plum/70">{g.email}</td>
                     <td className="py-2 pr-4 text-plum/70">{g.mobile}</td>
                     <td className="py-2 pr-4">

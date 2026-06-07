@@ -4,6 +4,7 @@ import { AdminShell } from '../../components/admin/AdminShell';
 import { drawWinner, listPrizes } from '../../services/prizeService';
 import { allActiveEntries } from '../../services/raffleService';
 import { listGuests } from '../../services/guestService';
+import { listStores } from '../../services/storeService';
 import { Confetti } from '../../components/shared/Confetti';
 import { Trophy, MonitorPlay } from 'lucide-react';
 import { openChannel, postMessage, type StageMsg, type Prize as ChannelPrize } from '../../utils/drawChannel';
@@ -17,7 +18,9 @@ export function AdminDraw() {
   const { data: prizes = [] } = useQuery({ queryKey: ['prizes'], queryFn: listPrizes });
   const { data: entries = [] } = useQuery({ queryKey: ['raffle', 'active'], queryFn: allActiveEntries });
   const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
+  const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
+  const storesById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
 
   const undrawn = prizes.filter((p) => !p.winnerGuestId);
 
@@ -36,6 +39,24 @@ export function AdminDraw() {
   // Default to first undrawn prize once prizes load
   const effectivePrizeId = prizeId || undrawn[0]?.id || '';
   const prize = prizes.find((p) => p.id === effectivePrizeId);
+
+  // Resolve "Store Name · Booth X" for a prize's sponsor so the announcement
+  // can tell the winner where to claim. Falls back to the registration desk.
+  const claimLocationFor = (sponsoredByStoreId?: string): string => {
+    const s = sponsoredByStoreId ? storesById.get(sponsoredByStoreId) : undefined;
+    if (!s) return 'the Registration desk';
+    return s.boothNumber ? `${s.name} · Booth ${s.boothNumber}` : s.name;
+  };
+  const toChannelPrize = (p: typeof prize): ChannelPrize | null =>
+    p
+      ? {
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          imageUrl: p.imageUrl,
+          claimLocation: claimLocationFor(p.sponsoredByStoreId),
+        }
+      : null;
 
   // ── Stage channel: open on mount, broadcast prize / drawn list updates ──
   useEffect(() => {
@@ -60,9 +81,7 @@ export function AdminDraw() {
   useEffect(() => {
     const ch = channelRef.current;
     if (!ch) return;
-    const channelPrize: ChannelPrize | null = prize
-      ? { id: prize.id, name: prize.name, description: prize.description, imageUrl: prize.imageUrl }
-      : null;
+    const channelPrize: ChannelPrize | null = toChannelPrize(prize);
     const drawnList = prizes
       .filter((p) => p.winnerGuestId)
       .map((p) => ({ name: p.name, winner: guestsById.get(p.winnerGuestId!)?.name ?? '—' }));
@@ -144,7 +163,7 @@ export function AdminDraw() {
     if (channelRef.current && prize) {
       postMessage(channelRef.current, {
         type: 'spin_start',
-        prize: { id: prize.id, name: prize.name, description: prize.description, imageUrl: prize.imageUrl },
+        prize: toChannelPrize(prize)!,
         reel: pool,
         landingIndex,
         durationMs: SPIN_DURATION_MS,
@@ -170,7 +189,7 @@ export function AdminDraw() {
         postMessage(channelRef.current, {
           type: 'reveal',
           winner: { name: result.winnerName, ticketNumber: result.ticketNumber },
-          prize: { id: prize.id, name: prize.name, description: prize.description, imageUrl: prize.imageUrl },
+          prize: toChannelPrize(prize)!,
         });
       }
       queryClient.invalidateQueries({ queryKey: ['prizes'] });
@@ -303,6 +322,9 @@ export function AdminDraw() {
           <div className="mt-4 text-xl text-cream/90">Ticket {winner.ticketNumber}</div>
           <div className="mt-10 chip bg-white text-plum text-base px-5 py-2 inline-flex items-center gap-2">
             <Trophy size={16} /> {winner.prizeName}
+          </div>
+          <div className="mt-4 text-cream/90 text-lg">
+            Claim at <span className="font-semibold">{claimLocationFor(prize?.sponsoredByStoreId)}</span>
           </div>
           <button className="btn bg-white text-plum mt-10 px-8" onClick={reset}>
             Next draw

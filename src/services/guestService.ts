@@ -118,6 +118,14 @@ export const getGuest = async (id: string): Promise<Guest | undefined> => {
   return data ? rowToGuest(data) : undefined;
 };
 
+/** Admin: correct a wrongly-entered guest name. */
+export const updateGuestName = async (id: string, name: string): Promise<void> => {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error('Name cannot be empty');
+  const { error } = await supabase.from('guests').update({ name: trimmed }).eq('id', id);
+  if (error) throw error;
+};
+
 export const getGuestByQr = async (qrToken: string): Promise<Guest | undefined> => {
   const { data, error } = await supabase
     .from('guests')

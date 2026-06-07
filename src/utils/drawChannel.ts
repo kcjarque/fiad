@@ -13,6 +13,8 @@ export type Prize = {
   name: string;
   description?: string;
   imageUrl?: string;
+  /** Pre-formatted "Store Name · Booth X" string for the claim notice. */
+  claimLocation?: string;
 };
 
 export type StageMsg =

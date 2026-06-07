@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Trophy, Timer, Sparkles } from 'lucide-react';
+import { Trophy, Timer, Sparkles, MapPin } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../stores/authStore';
 import { entriesForGuest, allActiveEntries } from '../../services/raffleService';
@@ -252,18 +252,34 @@ export function Raffle() {
         <div className="px-5 mt-5">
           <div className="rounded-2xl bg-gradient-to-br from-coral via-[#c5305f] to-[#8B2348] p-5 text-white shadow-soft">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-cream/80">
-              <Trophy size={12} /> You've won
+              <Trophy size={12} /> You've won — claim your prize!
             </div>
-            <div className="space-y-2 mt-3">
-              {wins.map((w) => (
-                <div key={w.id} className="flex items-center justify-between">
-                  <div>
-                    <div className="font-display text-xl leading-tight">{w.name}</div>
-                    <div className="text-cream/70 text-xs">Ticket {w.winningTicketNumber}</div>
+            <div className="space-y-3 mt-3">
+              {wins.map((w) => {
+                const sponsor = w.sponsoredByStoreId ? storesById.get(w.sponsoredByStoreId) : undefined;
+                return (
+                  <div key={w.id} className="rounded-xl bg-white/10 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-display text-xl leading-tight truncate">{w.name}</div>
+                        <div className="text-cream/70 text-xs">Ticket {w.winningTicketNumber}</div>
+                      </div>
+                      <Sparkles size={20} className="text-champagne shrink-0" />
+                    </div>
+                    {/* Where to claim */}
+                    <div className="mt-2 flex items-start gap-1.5 text-sm bg-white text-plum rounded-lg px-3 py-2">
+                      <MapPin size={15} className="text-coral shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-plum/60">Claim at </span>
+                        <span className="font-semibold">{sponsor?.name ?? 'the Registration desk'}</span>
+                        {sponsor?.boothNumber && (
+                          <span className="text-plum/60"> · Booth {sponsor.boothNumber}</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <Sparkles size={20} className="text-champagne" />
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

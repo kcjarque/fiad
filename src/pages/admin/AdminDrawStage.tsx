@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../stores/authStore';
 import { Confetti } from '../../components/shared/Confetti';
-import { Trophy } from 'lucide-react';
+import { Trophy, MapPin } from 'lucide-react';
 import { openChannel, postMessage, type StageMsg, type Prize } from '../../utils/drawChannel';
 
 /**
@@ -234,6 +234,12 @@ export function AdminDrawStage() {
           <div className="mt-12 inline-flex items-center gap-3 bg-white text-plum px-8 py-4 rounded-full text-2xl font-medium shadow-2xl">
             <Trophy size={28} /> {prize.name}
           </div>
+          {prize.claimLocation && (
+            <div className="mt-8 flex items-center gap-2 text-2xl text-cream">
+              <MapPin size={26} className="text-champagne" />
+              <span>Claim at <span className="font-semibold">{prize.claimLocation}</span></span>
+            </div>
+          )}
         </div>
       )}
     </div>
