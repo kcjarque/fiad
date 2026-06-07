@@ -126,6 +126,24 @@ export const updateGuestName = async (id: string, name: string): Promise<void> =
   if (error) throw error;
 };
 
+/**
+ * Admin: delete a guest (e.g. an accidental duplicate). Cascades to that
+ * guest's raffle entries, transactions, and passport stamps via the FK
+ * on-delete-cascade rules.
+ *
+ * Uses .select() so we can detect the case where RLS silently blocks the
+ * delete (returns 0 rows) and surface a real error instead of a no-op.
+ */
+export const deleteGuest = async (id: string): Promise<void> => {
+  const { data, error } = await supabase.from('guests').delete().eq('id', id).select('id');
+  if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error(
+      'Delete was blocked by the database (missing delete permission). Ask the developer to add the anon_delete_guests policy.',
+    );
+  }
+};
+
 export const getGuestByQr = async (qrToken: string): Promise<Guest | undefined> => {
   const { data, error } = await supabase
     .from('guests')

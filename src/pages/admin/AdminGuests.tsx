@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Search, Pencil, Check, X } from 'lucide-react';
+import { Copy, Search, Pencil, Check, X, Trash2 } from 'lucide-react';
 import { AdminShell } from '../../components/admin/AdminShell';
-import { listGuests, updateGuestName } from '../../services/guestService';
+import { listGuests, updateGuestName, deleteGuest } from '../../services/guestService';
 import { allActiveEntries } from '../../services/raffleService';
+import { Modal } from '../../components/shared/Modal';
 import { formatDate } from '../../utils/id';
 import { toast } from '../../stores/toastStore';
+import type { Guest } from '../../types';
 
 const copyCode = async (code: string) => {
   try {
@@ -52,6 +54,25 @@ export function AdminGuests() {
       toast.error(`Update failed: ${(err as Error).message}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Delete-confirmation modal state.
+  const [toDelete, setToDelete] = useState<Guest | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const confirmDelete = async () => {
+    if (!toDelete || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteGuest(toDelete.id);
+      await queryClient.invalidateQueries({ queryKey: ['guests'] });
+      await queryClient.invalidateQueries({ queryKey: ['raffle', 'active'] });
+      toast.success(`Deleted ${toDelete.name}`);
+      setToDelete(null);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -149,15 +170,24 @@ export function AdminGuests() {
                 </div>
                 <div className="flex items-center justify-between mt-2 gap-2">
                   <div className="text-xs text-plum/50">Registered {formatDate(g.registeredAt)}</div>
-                  {g.accessCode && (
+                  <div className="flex items-center gap-2">
+                    {g.accessCode && (
+                      <button
+                        onClick={() => copyCode(g.accessCode!)}
+                        className="font-mono text-[11px] tracking-widest bg-plum/5 hover:bg-plum/10 text-plum px-2 py-1 rounded inline-flex items-center gap-1.5 transition"
+                      >
+                        {g.accessCode}
+                        <Copy size={11} className="text-plum/50" />
+                      </button>
+                    )}
                     <button
-                      onClick={() => copyCode(g.accessCode!)}
-                      className="font-mono text-[11px] tracking-widest bg-plum/5 hover:bg-plum/10 text-plum px-2 py-1 rounded inline-flex items-center gap-1.5 transition"
+                      onClick={() => setToDelete(g)}
+                      className="text-red-500/70 hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition"
+                      aria-label="Delete guest"
                     >
-                      {g.accessCode}
-                      <Copy size={11} className="text-plum/50" />
+                      <Trash2 size={15} />
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -173,7 +203,8 @@ export function AdminGuests() {
                   <th className="py-2 pr-4">Mobile</th>
                   <th className="py-2 pr-4">Access code</th>
                   <th className="py-2 pr-4">Entries</th>
-                  <th className="py-2">Registered</th>
+                  <th className="py-2 pr-4">Registered</th>
+                  <th className="py-2"></th>
                 </tr>
               </thead>
               <tbody>
@@ -227,7 +258,17 @@ export function AdminGuests() {
                       )}
                     </td>
                     <td className="py-2 pr-4 text-coral font-medium">{entriesByGuest.get(g.id) ?? 0}</td>
-                    <td className="py-2 text-plum/60">{formatDate(g.registeredAt)}</td>
+                    <td className="py-2 pr-4 text-plum/60">{formatDate(g.registeredAt)}</td>
+                    <td className="py-2">
+                      <button
+                        onClick={() => setToDelete(g)}
+                        className="text-red-500/70 hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition"
+                        aria-label="Delete guest"
+                        title="Delete guest"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -235,6 +276,31 @@ export function AdminGuests() {
           </div>
         </>
       )}
+
+      {/* Delete confirmation */}
+      <Modal open={!!toDelete} onClose={() => !deleting && setToDelete(null)} title="Delete guest?" size="sm">
+        {toDelete && (
+          <div className="space-y-4">
+            <p className="text-sm text-plum/80">
+              This permanently removes <span className="font-semibold">{toDelete.name}</span>{' '}
+              ({toDelete.email}) and <span className="font-semibold">all {entriesByGuest.get(toDelete.id) ?? 0} of their
+              raffle entries</span>, plus any transactions and passport stamps. This can't be undone.
+            </p>
+            <p className="text-xs text-amber-700 bg-amber-50 rounded-lg p-3">
+              Only delete accidental duplicates. If this guest has earned entries from real
+              purchases, deleting them removes those entries from the draw.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button className="btn-ghost border border-plum/15" onClick={() => setToDelete(null)} disabled={deleting}>
+                Cancel
+              </button>
+              <button className="btn bg-red-600 text-white hover:bg-red-700" onClick={confirmDelete} disabled={deleting}>
+                {deleting ? 'Deleting…' : 'Delete guest'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </AdminShell>
   );
 }
