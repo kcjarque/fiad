@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../stores/authStore';
 import { Confetti } from '../../components/shared/Confetti';
 import { Trophy, MapPin } from 'lucide-react';
 import { openChannel, postMessage, type StageMsg, type Prize } from '../../utils/drawChannel';
+import { listPrizes } from '../../services/prizeService';
+import { listGuests } from '../../services/guestService';
+import { allActiveEntries } from '../../services/raffleService';
 
 /**
  * Projector / LCD presentation view for the live raffle draw.
@@ -31,14 +35,49 @@ export function AdminDrawStage() {
   if (session.role !== 'admin') return <Navigate to="/admin/login" replace />;
 
   const [phase, setPhase] = useState<Phase>('idle');
-  const [prize, setPrize] = useState<Prize | null>(null);
-  const [drawnList, setDrawnList] = useState<{ name: string; winner: string }[]>([]);
-  const [undrawnCount, setUndrawnCount] = useState(0);
+  // The prize shown during a live spin/reveal comes from the channel; the
+  // idle "Up Next" prize is derived from data (see displayPrize below).
+  const [channelPrize, setChannelPrize] = useState<Prize | null>(null);
   const [reel, setReel] = useState<string[]>([]);
   const [winner, setWinner] = useState<{ name: string; ticketNumber: string } | null>(null);
   const [translateY, setTranslateY] = useState(0);
   const [transition, setTransition] = useState('none');
   const channelRef = useRef<BroadcastChannel | null>(null);
+
+  // ── Load real data so the stage works even standalone (the projector no
+  //    longer depends on the admin window broadcasting to show the count +
+  //    next prize). Polls so it stays live as prizes get drawn. ──────────
+  const { data: prizes = [] } = useQuery({
+    queryKey: ['prizes'],
+    queryFn: listPrizes,
+    refetchInterval: 4000,
+  });
+  const { data: guests = [] } = useQuery({
+    queryKey: ['guests'],
+    queryFn: listGuests,
+    refetchInterval: 10000,
+  });
+  const { data: entries = [] } = useQuery({
+    queryKey: ['raffle', 'active'],
+    queryFn: allActiveEntries,
+    refetchInterval: 8000,
+  });
+  const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
+
+  const undrawn = useMemo(() => prizes.filter((p) => !p.winnerGuestId), [prizes]);
+  const undrawnCount = undrawn.length;
+  const drawnList = useMemo(
+    () =>
+      prizes
+        .filter((p) => p.winnerGuestId)
+        .map((p) => ({ name: p.name, winner: guestsById.get(p.winnerGuestId!)?.name ?? '—' })),
+    [prizes, guestsById],
+  );
+  // Next undrawn prize in id order (d1 → d2 → grand) for the idle display.
+  const dataNextPrize: Prize | null = useMemo(() => {
+    const next = [...undrawn].sort((a, b) => a.id.localeCompare(b.id))[0];
+    return next ? { id: next.id, name: next.name, description: next.description, imageUrl: next.imageUrl } : null;
+  }, [undrawn]);
 
   useEffect(() => {
     const ch = openChannel();
@@ -49,9 +88,9 @@ export function AdminDrawStage() {
       if (!msg) return;
       switch (msg.type) {
         case 'set_prize':
-          setPrize(msg.prize);
-          setUndrawnCount(msg.undrawnCount);
-          setDrawnList(msg.drawnList);
+          // Mirror the admin's currently-selected prize. Counts/drawn list
+          // come from our own data query, so we ignore those fields here.
+          setChannelPrize(msg.prize);
           if (phase === 'revealed') {
             // Admin clicked next; clear the overlay.
             setPhase('idle');
@@ -62,7 +101,7 @@ export function AdminDrawStage() {
           }
           break;
         case 'spin_start': {
-          setPrize(msg.prize);
+          setChannelPrize(msg.prize);
           setReel(msg.reel);
           setTransition('none');
           setTranslateY(0);
@@ -81,7 +120,7 @@ export function AdminDrawStage() {
           break;
         }
         case 'reveal':
-          setPrize(msg.prize);
+          setChannelPrize(msg.prize);
           setWinner(msg.winner);
           setPhase('revealed');
           break;
@@ -114,10 +153,22 @@ export function AdminDrawStage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Idle decorative reel — random names from drawn list (or a placeholder).
-  const idleReel = drawnList.length > 0
-    ? Array.from({ length: VISIBLE_ROWS + 2 }, (_, i) => drawnList[i % drawnList.length].winner)
-    : Array(VISIBLE_ROWS + 2).fill('Waiting for next draw…');
+  // The prize shown in "Up Next": the admin's live selection if the channel
+  // sent one, otherwise the next undrawn prize from our own data.
+  const prize: Prize | null = channelPrize ?? dataNextPrize;
+
+  // Idle decorative reel — scroll real participant names from the active
+  // entry pool so the projector always looks alive. Falls back to a
+  // placeholder only when there are genuinely no entries.
+  const idleReel = useMemo(() => {
+    const names = Array.from(
+      new Set(entries.map((e) => guestsById.get(e.guestId)?.name).filter((n): n is string => !!n)),
+    );
+    if (names.length === 0) return Array(VISIBLE_ROWS + 2).fill('Waiting for entries…');
+    const out: string[] = [];
+    while (out.length < VISIBLE_ROWS + 2) out.push(...names);
+    return out;
+  }, [entries, guestsById]);
 
   const displayReel = reel.length > 0 ? reel : idleReel;
 
@@ -206,7 +257,7 @@ export function AdminDrawStage() {
               </>
             ) : (
               <div className="text-cream/40 text-center py-16 italic">
-                Waiting for the admin to select a prize…
+                {prizes.length === 0 ? 'Loading prizes…' : 'All prizes have been drawn 🎉'}
               </div>
             )}
           </div>

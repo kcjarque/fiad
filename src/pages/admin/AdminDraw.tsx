@@ -58,16 +58,22 @@ export function AdminDraw() {
         }
       : null;
 
+  // Latest set_prize payload, kept in a ref so the ping handler (which has
+  // an empty-deps closure) can re-broadcast current state when the stage
+  // view connects/reconnects.
+  const latestSetPrizeRef = useRef<StageMsg | null>(null);
+
   // ── Stage channel: open on mount, broadcast prize / drawn list updates ──
   useEffect(() => {
     const ch = openChannel();
     channelRef.current = ch;
     const handler = (e: MessageEvent<StageMsg>) => {
-      // Stage view announces itself with `ping` — flip the indicator so
-      // the admin knows the projector is connected.
+      // Stage view announces itself with `ping` — flip the indicator AND
+      // re-send the current prize so a stage opened after selection syncs.
       if (e.data?.type === 'ping') {
         setStageOpen(true);
         postMessage(ch, { type: 'pong' });
+        if (latestSetPrizeRef.current) postMessage(ch, latestSetPrizeRef.current);
       }
     };
     ch.addEventListener('message', handler);
@@ -85,12 +91,14 @@ export function AdminDraw() {
     const drawnList = prizes
       .filter((p) => p.winnerGuestId)
       .map((p) => ({ name: p.name, winner: guestsById.get(p.winnerGuestId!)?.name ?? '—' }));
-    postMessage(ch, {
+    const msg: StageMsg = {
       type: 'set_prize',
       prize: channelPrize,
       undrawnCount: undrawn.length,
       drawnList,
-    });
+    };
+    latestSetPrizeRef.current = msg;
+    postMessage(ch, msg);
   }, [prize, prizes, undrawn.length, guestsById]);
 
   const openStage = () => {
