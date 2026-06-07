@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
-import { listTransactions } from '../../services/transactionService';
+import { listTransactions, getTransaction } from '../../services/transactionService';
 import { listStores } from '../../services/storeService';
 import { listGuests } from '../../services/guestService';
 import { Modal } from '../../components/shared/Modal';
@@ -22,6 +22,14 @@ export function AdminTransactions() {
   const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
   const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
   const { data: allTx = [] } = useQuery({ queryKey: ['transactions'], queryFn: () => listTransactions() });
+
+  // The list query omits the heavy receipt blob; fetch it only for the
+  // transaction the admin actually opens.
+  const { data: selectedDetail } = useQuery({
+    queryKey: ['transaction', selected?.id],
+    queryFn: () => getTransaction(selected!.id),
+    enabled: !!selected,
+  });
 
   const storesById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
@@ -135,7 +143,11 @@ export function AdminTransactions() {
             {selected.overrideNote && <div><span className="text-plum/60">Note:</span> {selected.overrideNote}</div>}
             <div className="pt-3">
               <div className="text-plum/60 mb-1">Receipt</div>
-              <img src={selected.receiptPhotoUrl} alt="receipt" className="rounded-xl max-h-80 mx-auto" />
+              {selectedDetail?.receiptPhotoUrl ? (
+                <img src={selectedDetail.receiptPhotoUrl} alt="receipt" className="rounded-xl max-h-80 mx-auto" />
+              ) : (
+                <div className="text-plum/40 text-sm text-center py-8">Loading receipt…</div>
+              )}
             </div>
           </div>
         )}

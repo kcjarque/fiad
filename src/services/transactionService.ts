@@ -16,19 +16,27 @@ type Row = {
   timestamp: string;
 };
 
-const rowToTx = (r: Row): Transaction => ({
+const rowToTx = (r: Partial<Row> & Omit<Row, 'receipt_photo_url'>): Transaction => ({
   id: r.id,
   eventId: r.event_id,
   storeId: r.store_id,
   guestId: r.guest_id,
   amount: r.amount,
-  receiptPhotoUrl: r.receipt_photo_url,
+  // Empty for list queries — receipts are 2-3 MB base64 blobs, so we never
+  // pull them in bulk (a `select *` over a handful of rows blows past the
+  // Postgres statement timeout). The detail modal fetches the receipt for a
+  // single row on demand via getTransaction().
+  receiptPhotoUrl: r.receipt_photo_url ?? '',
   entriesIssued: r.entries_issued,
   status: r.status,
   overrideNote: r.override_note ?? undefined,
   approvedBy: r.approved_by ?? undefined,
   timestamp: r.timestamp,
 });
+
+// Every column EXCEPT the heavy receipt_photo_url blob.
+const TX_LIST_COLUMNS =
+  'id,event_id,store_id,guest_id,amount,entries_issued,status,override_note,approved_by,timestamp';
 
 export const getTodaySpent = async (guestId: string, storeId: string): Promise<number> => {
   const start = `${todayKey()}T00:00:00.000Z`;
@@ -131,12 +139,13 @@ export const listTransactions = async (filter?: {
   storeId?: string;
   guestId?: string;
 }): Promise<Transaction[]> => {
-  let q = supabase.from('transactions').select('*').order('timestamp', { ascending: false });
+  // Select explicit columns minus the receipt blob — see TX_LIST_COLUMNS.
+  let q = supabase.from('transactions').select(TX_LIST_COLUMNS).order('timestamp', { ascending: false });
   if (filter?.storeId) q = q.eq('store_id', filter.storeId);
   if (filter?.guestId) q = q.eq('guest_id', filter.guestId);
   const { data, error } = await q;
   if (error) throw error;
-  return (data ?? []).map(rowToTx);
+  return (data ?? []).map((r) => rowToTx(r as Omit<Row, 'receipt_photo_url'>));
 };
 
 export const getTransaction = async (id: string): Promise<Transaction | undefined> => {
