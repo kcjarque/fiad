@@ -113,9 +113,19 @@ export function AdminDraw() {
     );
   };
 
+  // The grand prize draws from PAID (earned) entries only — complimentary
+  // signup entries are not eligible. This must mirror the draw_prize RPC,
+  // which filters is_complimentary = false for prize_grand. For every other
+  // prize the whole pool is eligible.
+  const isGrand = effectivePrizeId === 'prize_grand';
+  const eligibleEntries = useMemo(
+    () => (isGrand ? entries.filter((e) => !e.isComplimentary) : entries),
+    [entries, isGrand],
+  );
+
   const idleNames = useMemo(() => {
     const names = new Set<string>();
-    for (const e of entries) {
+    for (const e of eligibleEntries) {
       const g = guestsById.get(e.guestId);
       if (g) names.add(g.name);
     }
@@ -124,15 +134,19 @@ export function AdminDraw() {
     const padded: string[] = [];
     while (padded.length < VISIBLE_ROWS + 2) padded.push(...arr);
     return padded;
-  }, [entries, guestsById]);
+  }, [eligibleEntries, guestsById]);
 
   const spin = async () => {
     if (!prize) return;
     // Re-entry guard — admin double-tap during the drawWinner roundtrip
     // would otherwise race two parallel draws on the same prize.
     if (phase !== 'idle') return;
-    if (entries.length === 0) {
-      alert('No raffle entries available to draw.');
+    if (eligibleEntries.length === 0) {
+      alert(
+        isGrand
+          ? 'No PAID entries available — the grand prize draws from earned entries only.'
+          : 'No raffle entries available to draw.',
+      );
       return;
     }
 
@@ -143,7 +157,9 @@ export function AdminDraw() {
       return;
     }
 
-    const allNames = entries
+    // Reel spins through the eligible pool only (so a grand-prize draw never
+    // flashes complimentary-only guests who can't actually win it).
+    const allNames = eligibleEntries
       .map((e) => guestsById.get(e.guestId)?.name)
       .filter((n): n is string => Boolean(n));
     if (allNames.length === 0) return;
@@ -225,7 +241,9 @@ export function AdminDraw() {
       <div className="flex items-start justify-between gap-3 mb-2">
         <div>
           <h1 className="font-display text-2xl md:text-3xl">Live Raffle Draw</h1>
-          <p className="text-plum/60 mt-1 text-sm md:text-base">{entries.length} active entries in the pool</p>
+          <p className="text-plum/60 mt-1 text-sm md:text-base">
+            {eligibleEntries.length} {isGrand ? 'PAID entries eligible (grand prize)' : 'active entries in the pool'}
+          </p>
         </div>
         <button
           onClick={openStage}

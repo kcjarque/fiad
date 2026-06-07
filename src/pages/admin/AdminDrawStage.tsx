@@ -157,18 +157,28 @@ export function AdminDrawStage() {
   // sent one, otherwise the next undrawn prize from our own data.
   const prize: Prize | null = channelPrize ?? dataNextPrize;
 
-  // Idle decorative reel — scroll real participant names from the active
+  // Grand prize draws from PAID entries only (mirrors the draw_prize RPC and
+  // the admin page). So when the grand prize is up, the idle reel + the
+  // eligible count reflect only earned entries.
+  const isGrand = prize?.id === 'prize_grand';
+  const eligibleEntries = useMemo(
+    () => (isGrand ? entries.filter((e) => !e.isComplimentary) : entries),
+    [entries, isGrand],
+  );
+  const eligibleCount = eligibleEntries.length;
+
+  // Idle decorative reel — scroll real participant names from the eligible
   // entry pool so the projector always looks alive. Falls back to a
   // placeholder only when there are genuinely no entries.
   const idleReel = useMemo(() => {
     const names = Array.from(
-      new Set(entries.map((e) => guestsById.get(e.guestId)?.name).filter((n): n is string => !!n)),
+      new Set(eligibleEntries.map((e) => guestsById.get(e.guestId)?.name).filter((n): n is string => !!n)),
     );
     if (names.length === 0) return Array(VISIBLE_ROWS + 2).fill('Waiting for entries…');
     const out: string[] = [];
     while (out.length < VISIBLE_ROWS + 2) out.push(...names);
     return out;
-  }, [entries, guestsById]);
+  }, [eligibleEntries, guestsById]);
 
   const displayReel = reel.length > 0 ? reel : idleReel;
 
@@ -232,11 +242,19 @@ export function AdminDrawStage() {
 
           {/* Prize panel */}
           <div>
-            <div className="text-[11px] uppercase tracking-[0.4em] text-champagne mb-4">
-              Up Next
+            <div className="text-[11px] uppercase tracking-[0.4em] text-champagne mb-4 flex items-center justify-between">
+              <span>Up Next</span>
+              <span className="text-cream/70">
+                {eligibleCount.toLocaleString()} {isGrand ? 'paid tickets' : 'tickets'} in pool
+              </span>
             </div>
             {prize ? (
               <>
+                {isGrand && (
+                  <div className="mb-4 inline-flex items-center gap-2 bg-champagne text-plum px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wide">
+                    <Trophy size={16} /> Grand Prize · Paid Tickets Only
+                  </div>
+                )}
                 <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-champagne/40 aspect-[4/3] bg-plum/20">
                   {prize.imageUrl ? (
                     <img src={prize.imageUrl} alt="" className="w-full h-full object-cover" />
