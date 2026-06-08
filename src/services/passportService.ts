@@ -21,6 +21,26 @@ const rowToStamp = (r: Row): PassportStamp => ({
 });
 
 /**
+ * Every (storeId, guestId) stamp pair, paginated. Used by the supplier
+ * sales report to count scans per booth + list who scanned.
+ */
+export const allStamps = async (): Promise<{ storeId: string; guestId: string }[]> => {
+  const PAGE = 1000;
+  const out: { storeId: string; guestId: string }[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('passport_stamps')
+      .select('store_id,guest_id')
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    const batch = data ?? [];
+    for (const r of batch) out.push({ storeId: r.store_id as string, guestId: r.guest_id as string });
+    if (batch.length < PAGE) break;
+  }
+  return out;
+};
+
+/**
  * Distinct guests who have stamped at least one booth, plus the total
  * stamp count. Used by the dashboard as the "attended + used the app"
  * signal (a stamp requires being logged in AND physically scanning a

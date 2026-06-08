@@ -21,6 +21,7 @@ import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminEvent } from './pages/admin/AdminEvent';
 import { AdminStores } from './pages/admin/AdminStores';
+import { AdminSupplierSales } from './pages/admin/AdminSupplierSales';
 import { AdminGuests } from './pages/admin/AdminGuests';
 import { AdminTransactions } from './pages/admin/AdminTransactions';
 import { AdminOverrides } from './pages/admin/AdminOverrides';
@@ -104,6 +105,7 @@ export default function App() {
         <Route path="/admin/dashboard" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
         <Route path="/admin/event" element={<RequireAdmin><AdminEvent /></RequireAdmin>} />
         <Route path="/admin/stores" element={<RequireAdmin><AdminStores /></RequireAdmin>} />
+        <Route path="/admin/supplier-sales" element={<RequireAdmin><AdminSupplierSales /></RequireAdmin>} />
         <Route path="/admin/guests" element={<RequireAdmin><AdminGuests /></RequireAdmin>} />
         <Route path="/admin/transactions" element={<RequireAdmin><AdminTransactions /></RequireAdmin>} />
         <Route path="/admin/overrides" element={<RequireAdmin><AdminOverrides /></RequireAdmin>} />
