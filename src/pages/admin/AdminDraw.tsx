@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { drawWinner, listPrizes } from '../../services/prizeService';
-import { allActiveEntries } from '../../services/raffleService';
+import { allEntries, wonTicketNumbers } from '../../services/raffleService';
 import { listGuests } from '../../services/guestService';
 import { listStores } from '../../services/storeService';
 import { Confetti } from '../../components/shared/Confetti';
@@ -16,7 +16,11 @@ const CENTER_INDEX = Math.floor(VISIBLE_ROWS / 2);
 export function AdminDraw() {
   const queryClient = useQueryClient();
   const { data: prizes = [] } = useQuery({ queryKey: ['prizes'], queryFn: listPrizes });
-  const { data: entries = [] } = useQuery({ queryKey: ['raffle', 'active'], queryFn: allActiveEntries });
+  // Full pool (incl. tickets that already won) + the won-ticket set, so we
+  // can apply the won-exclusion only for hourly prizes — the grand prize has
+  // no past-winner limitation.
+  const { data: allPool = [] } = useQuery({ queryKey: ['raffle', 'all'], queryFn: allEntries });
+  const { data: wonTickets = new Set<string>() } = useQuery({ queryKey: ['raffle', 'won'], queryFn: wonTicketNumbers });
   const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
   const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
@@ -113,14 +117,19 @@ export function AdminDraw() {
     );
   };
 
-  // The grand prize draws from PAID (earned) entries only — complimentary
-  // signup entries are not eligible. This must mirror the draw_prize RPC,
-  // which filters is_complimentary = false for prize_grand. For every other
-  // prize the whole pool is eligible.
+  // Eligibility rules (must mirror the draw_prize RPC):
+  //   • Grand prize  → PAID entries only (no complimentary), but NO
+  //                    past-winner exclusion — a ticket that already won an
+  //                    hourly prize can still win the grand.
+  //   • Hourly prize → whole pool, but exclude tickets that already won
+  //                    (no double winners on the hourly draws).
   const isGrand = effectivePrizeId === 'prize_grand';
   const eligibleEntries = useMemo(
-    () => (isGrand ? entries.filter((e) => !e.isComplimentary) : entries),
-    [entries, isGrand],
+    () =>
+      isGrand
+        ? allPool.filter((e) => !e.isComplimentary)
+        : allPool.filter((e) => !wonTickets.has(e.ticketNumber)),
+    [allPool, wonTickets, isGrand],
   );
 
   const idleNames = useMemo(() => {

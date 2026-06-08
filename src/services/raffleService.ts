@@ -38,19 +38,12 @@ export const totalEntries = async (): Promise<number> => {
   return count ?? 0;
 };
 
-export const allActiveEntries = async (): Promise<RaffleEntry[]> => {
-  const { data: wonRows } = await supabase
-    .from('prizes')
-    .select('winning_ticket_number')
-    .not('winning_ticket_number', 'is', null);
-  const drawnTickets = new Set(
-    (wonRows ?? []).map((r) => r.winning_ticket_number as string).filter(Boolean),
-  );
-
-  // PostgREST caps a single response at 1000 rows, so once the pool grows
-  // past 1000 entries a plain select('*') silently drops the rest — making
-  // the displayed pool count too low. Page through with .range() until we've
-  // fetched everything. (Only the columns the pool/reel needs.)
+/**
+ * Every raffle entry, paginated. PostgREST caps a single response at 1000
+ * rows, so once the pool grows past 1000 a plain select('*') silently drops
+ * the rest — page through with .range() until we've fetched everything.
+ */
+export const allEntries = async (): Promise<RaffleEntry[]> => {
   const PAGE = 1000;
   const rows: Row[] = [];
   for (let from = 0; ; from += PAGE) {
@@ -63,5 +56,19 @@ export const allActiveEntries = async (): Promise<RaffleEntry[]> => {
     rows.push(...batch);
     if (batch.length < PAGE) break; // last page
   }
-  return rows.map(rowToEntry).filter((e) => !drawnTickets.has(e.ticketNumber));
+  return rows.map(rowToEntry);
+};
+
+/** Tickets that have already won a prize (so hourly draws can exclude them). */
+export const wonTicketNumbers = async (): Promise<Set<string>> => {
+  const { data } = await supabase
+    .from('prizes')
+    .select('winning_ticket_number')
+    .not('winning_ticket_number', 'is', null);
+  return new Set((data ?? []).map((r) => r.winning_ticket_number as string).filter(Boolean));
+};
+
+export const allActiveEntries = async (): Promise<RaffleEntry[]> => {
+  const [entries, drawnTickets] = await Promise.all([allEntries(), wonTicketNumbers()]);
+  return entries.filter((e) => !drawnTickets.has(e.ticketNumber));
 };
