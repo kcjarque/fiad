@@ -118,16 +118,15 @@ export function AdminDraw() {
   };
 
   // Eligibility rules (must mirror the draw_prize RPC):
-  //   • Grand prize  → PAID entries only (no complimentary) AND exclude
-  //                    tickets that already won — no past-winner can win
-  //                    the grand prize.
+  //   • Grand prize  → PAID entries only (no complimentary), but NO
+  //                    past-winner exclusion — a past winner can still win.
   //   • Hourly prize → whole pool, but exclude tickets that already won
   //                    (no double winners on the hourly draws).
   const isGrand = effectivePrizeId === 'prize_grand';
   const eligibleEntries = useMemo(
     () =>
       isGrand
-        ? allPool.filter((e) => !e.isComplimentary && !wonTickets.has(e.ticketNumber))
+        ? allPool.filter((e) => !e.isComplimentary)
         : allPool.filter((e) => !wonTickets.has(e.ticketNumber)),
     [allPool, wonTickets, isGrand],
   );
