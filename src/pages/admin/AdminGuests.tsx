@@ -9,6 +9,19 @@ import { formatDate } from '../../utils/id';
 import { toast } from '../../stores/toastStore';
 import type { Guest } from '../../types';
 
+const dayLabel = (d?: string): string | null =>
+  d === 'day1' ? 'Day 1' : d === 'day2' ? 'Day 2' : null;
+
+const DayBadge = ({ day }: { day?: string }) => {
+  const label = dayLabel(day);
+  if (!label) return null;
+  return (
+    <span className="text-[10px] uppercase tracking-wider bg-champagne/50 text-plum px-1.5 py-0.5 rounded-full whitespace-nowrap">
+      {label}
+    </span>
+  );
+};
+
 const copyCode = async (code: string) => {
   try {
     await navigator.clipboard.writeText(code);
@@ -152,13 +165,16 @@ export function AdminGuests() {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => startEdit(g.id, g.name)}
-                        className="font-medium truncate inline-flex items-center gap-1.5 group text-left"
-                      >
-                        {g.name}
-                        <Pencil size={12} className="text-plum/30 group-hover:text-plum/60 shrink-0" />
-                      </button>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <button
+                          onClick={() => startEdit(g.id, g.name)}
+                          className="font-medium truncate inline-flex items-center gap-1.5 group text-left"
+                        >
+                          {g.name}
+                          <Pencil size={12} className="text-plum/30 group-hover:text-plum/60 shrink-0" />
+                        </button>
+                        <DayBadge day={g.preferredDay} />
+                      </div>
                     )}
                     <div className="text-xs text-plum/60 truncate">{g.email}</div>
                     <div className="text-xs text-plum/60">{g.mobile}</div>
@@ -231,14 +247,17 @@ export function AdminGuests() {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => startEdit(g.id, g.name)}
-                          className="inline-flex items-center gap-1.5 group text-left"
-                          title="Click to edit name"
-                        >
-                          {g.name}
-                          <Pencil size={12} className="text-plum/25 group-hover:text-plum/60" />
-                        </button>
+                        <span className="inline-flex items-center gap-1.5">
+                          <button
+                            onClick={() => startEdit(g.id, g.name)}
+                            className="inline-flex items-center gap-1.5 group text-left"
+                            title="Click to edit name"
+                          >
+                            {g.name}
+                            <Pencil size={12} className="text-plum/25 group-hover:text-plum/60" />
+                          </button>
+                          <DayBadge day={g.preferredDay} />
+                        </span>
                       )}
                     </td>
                     <td className="py-2 pr-4 text-plum/70">{g.email}</td>

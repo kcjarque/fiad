@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { useAuth } from '../../stores/authStore';
+import { EventSwitcher } from './EventSwitcher';
 
 const sections = [
   { to: '/admin/dashboard', label: 'Dashboard' },
@@ -9,6 +10,7 @@ const sections = [
   { to: '/admin/stores', label: 'Vendors' },
   { to: '/admin/supplier-sales', label: 'Supplier Sales' },
   { to: '/admin/guests', label: 'Guests' },
+  { to: '/admin/inquiries', label: 'Inquiries' },
   { to: '/admin/transactions', label: 'Transactions' },
   { to: '/admin/overrides', label: 'Overrides' },
   { to: '/admin/challenges', label: 'Challenges' },
@@ -53,6 +55,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
           <div className="text-cream/60 text-xs uppercase tracking-wider">Admin Console</div>
         </div>
+        <EventSwitcher />
         <nav className="flex-1 space-y-1 text-sm">
           {sections.map((s) => (
             <NavLink
@@ -102,6 +105,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 <X size={20} />
               </button>
             </div>
+            <EventSwitcher />
             <nav className="flex-1 space-y-1 text-sm overflow-y-auto">
               {sections.map((s) => (
                 <NavLink

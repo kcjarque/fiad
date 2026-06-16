@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { EventInfo } from '../types';
+import { getSelectedEventId } from '../stores/eventStore';
 
 const rowToEvent = (r: {
   id: string;
@@ -19,7 +20,40 @@ const rowToEvent = (r: {
   status: r.status,
 });
 
+/** Fetch a single event by id (used by the public RSVP funnel for Season 2). */
+export const getEventById = async (id: string): Promise<EventInfo | undefined> => {
+  const { data, error } = await supabase.from('events').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data ? rowToEvent(data) : undefined;
+};
+
+/** Every event, newest first — used by the admin event switcher. */
+export const listEvents = async (): Promise<EventInfo[]> => {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .order('date', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(rowToEvent);
+};
+
+/**
+ * The "current" event = whichever event this browser has selected
+ * (multi-tenant). Defaults to Season 1, so live/guest behavior is unchanged.
+ * Falls back to the newest event by date if the selected id isn't found
+ * (e.g. stale localStorage pointing at a deleted event).
+ */
 export const getActiveEvent = async (): Promise<EventInfo> => {
+  const selectedId = getSelectedEventId();
+  const { data: selected, error: selErr } = await supabase
+    .from('events')
+    .select('*')
+    .eq('id', selectedId)
+    .maybeSingle();
+  if (selErr) throw selErr;
+  if (selected) return rowToEvent(selected);
+
+  // Fallback: newest event by date.
   const { data, error } = await supabase
     .from('events')
     .select('*')

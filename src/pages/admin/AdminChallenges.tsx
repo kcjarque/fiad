@@ -31,7 +31,7 @@ export function AdminChallenges() {
       await updateChallenge(editing.id, draft);
       toast.success('Challenge updated');
     } else {
-      await createChallenge({ ...draft, eventId: 'evt_fiad_dec25' });
+      await createChallenge(draft);
       toast.success('Challenge added');
     }
     qc.invalidateQueries({ queryKey: ['challenges'] });

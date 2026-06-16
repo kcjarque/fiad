@@ -20,7 +20,8 @@ export function AdminLogin() {
         return;
       }
       setAdmin(admin.id);
-      navigate('/admin/dashboard');
+      // Multi-tenant: choose which event to manage before the dashboard.
+      navigate('/admin/events');
     } catch (err) {
       toast.error(`Sign-in failed: ${(err as Error).message}`);
     }

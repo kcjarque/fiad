@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { OverrideRequest, Transaction } from '../types';
 import { todayKey } from '../utils/id';
+import { getSelectedEventId } from '../stores/eventStore';
 
 type Row = {
   id: string;
@@ -140,7 +141,11 @@ export const listTransactions = async (filter?: {
   guestId?: string;
 }): Promise<Transaction[]> => {
   // Select explicit columns minus the receipt blob — see TX_LIST_COLUMNS.
-  let q = supabase.from('transactions').select(TX_LIST_COLUMNS).order('timestamp', { ascending: false });
+  let q = supabase
+    .from('transactions')
+    .select(TX_LIST_COLUMNS)
+    .eq('event_id', getSelectedEventId())
+    .order('timestamp', { ascending: false });
   if (filter?.storeId) q = q.eq('store_id', filter.storeId);
   if (filter?.guestId) q = q.eq('guest_id', filter.guestId);
   const { data, error } = await q;

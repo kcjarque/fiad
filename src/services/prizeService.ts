@@ -2,8 +2,7 @@ import { supabase } from '../lib/supabase';
 import type { Prize } from '../types';
 import { uid } from '../utils/id';
 import { HIDDEN_PRIZE_IDS } from '../constants/hidden';
-
-const ACTIVE_EVENT_ID = 'evt_fiad_dec25';
+import { getSelectedEventId } from '../stores/eventStore';
 
 type Row = {
   id: string;
@@ -32,7 +31,11 @@ const rowToPrize = (r: Row): Prize => ({
 });
 
 export const listPrizes = async (): Promise<Prize[]> => {
-  const { data, error } = await supabase.from('prizes').select('*').order('id');
+  const { data, error } = await supabase
+    .from('prizes')
+    .select('*')
+    .eq('event_id', getSelectedEventId())
+    .order('id');
   if (error) throw error;
   // Drop hidden prizes per src/constants/hidden.ts. The position-based
   // raffle schedule naturally compacts the remaining slots so there are
@@ -45,7 +48,7 @@ export const listPrizes = async (): Promise<Prize[]> => {
 export const createPrize = async (p: Omit<Prize, 'id' | 'eventId'>): Promise<Prize> => {
   const row: Row = {
     id: uid('prize'),
-    event_id: ACTIVE_EVENT_ID,
+    event_id: getSelectedEventId(),
     name: p.name,
     description: p.description,
     image_url: p.imageUrl,

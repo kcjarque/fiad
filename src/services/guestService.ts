@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { Guest } from '../types';
 import { uid } from '../utils/id';
-import { getActiveEvent } from './eventService';
+import { getSelectedEventId } from '../stores/eventStore';
 
 type Row = {
   id: string;
@@ -12,6 +12,7 @@ type Row = {
   qr_token: string;
   registered_at: string;
   access_code?: string | null;
+  preferred_day?: string | null;
 };
 
 const rowToGuest = (r: Row): Guest => ({
@@ -23,6 +24,7 @@ const rowToGuest = (r: Row): Guest => ({
   qrToken: r.qr_token,
   registeredAt: r.registered_at,
   accessCode: r.access_code ?? undefined,
+  preferredDay: r.preferred_day ?? undefined,
 });
 
 const CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -50,32 +52,47 @@ const generateUniqueAccessCode = async (): Promise<string> => {
   throw new Error('Could not generate a unique access code');
 };
 
-export const registerGuest = async (data: {
-  name: string;
-  email: string;
-  mobile: string;
-}): Promise<Guest> => {
-  // ── Idempotency: same email already registered → return the existing
-  // account instead of creating a second row. This is the root cause of the
-  // "Alex Gonzales × 3" duplicate-guest bug — a tap-Register-twice on the
-  // form (or a confused guest re-submitting) would otherwise create a new
-  // row each time.
-  const existing = await findGuestByEmail(data.email);
+export const registerGuest = async (
+  data: {
+    name: string;
+    email: string;
+    mobile: string;
+    /** Day 1 / Day 2 choice from the RSVP funnel. */
+    preferredDay?: string;
+  },
+  // Which event this registration belongs to. Defaults to the currently
+  // selected event (Season 1 on the live admin/booth browsers); the
+  // Season 2 public form passes SEASON_2_EVENT_ID explicitly.
+  eventId?: string,
+): Promise<Guest> => {
+  const targetEventId = eventId ?? getSelectedEventId();
+
+  // ── Idempotency: same email already registered FOR THIS EVENT → return
+  // the existing account instead of creating a second row. Scoped per-event
+  // so the same person can register for both Season 1 and Season 2.
+  const existing = await findGuestByEmail(data.email, targetEventId);
   if (existing) {
-    // If the existing row is missing an access code (happens for rows
-    // created before this fix landed), backfill it now so the returning
-    // guest still gets a usable code.
+    const patch: Record<string, string> = {};
+    let merged = existing;
+    // Backfill an access code for rows created before that feature landed.
     if (!existing.accessCode) {
       const code = await generateUniqueAccessCode();
-      await supabase.from('guests').update({ access_code: code }).eq('id', existing.id);
-      return { ...existing, accessCode: code };
+      patch.access_code = code;
+      merged = { ...merged, accessCode: code };
     }
-    return existing;
+    // Let a returning RSVP update their preferred day.
+    if (data.preferredDay && existing.preferredDay !== data.preferredDay) {
+      patch.preferred_day = data.preferredDay;
+      merged = { ...merged, preferredDay: data.preferredDay };
+    }
+    if (Object.keys(patch).length > 0) {
+      await supabase.from('guests').update(patch).eq('id', existing.id);
+    }
+    return merged;
   }
 
   // ── Truly new guest. Auto-assign a unique 6-char access code so they
   // can sign in on a different device with email + code.
-  const event = await getActiveEvent();
   const accessCode = await generateUniqueAccessCode();
   const guest: Guest = {
     id: uid('guest'),
@@ -84,8 +101,9 @@ export const registerGuest = async (data: {
     mobile: data.mobile.trim(),
     qrToken: `guest-qr-${Math.random().toString(36).slice(2, 12)}`,
     registeredAt: new Date().toISOString(),
-    eventId: event.id,
+    eventId: targetEventId,
     accessCode,
+    preferredDay: data.preferredDay,
   };
   const { error } = await supabase.from('guests').insert({
     id: guest.id,
@@ -96,6 +114,7 @@ export const registerGuest = async (data: {
     qr_token: guest.qrToken,
     registered_at: guest.registeredAt,
     access_code: accessCode,
+    preferred_day: guest.preferredDay ?? null,
   });
   if (error) {
     // ── Race: two concurrent registrations with the same email both passed
@@ -104,7 +123,7 @@ export const registerGuest = async (data: {
     // returning whichever row won the race.
     const code = (error as { code?: string }).code;
     if (code === '23505') {
-      const winner = await findGuestByEmail(data.email);
+      const winner = await findGuestByEmail(data.email, targetEventId);
       if (winner) return winner;
     }
     throw error;
@@ -154,11 +173,15 @@ export const getGuestByQr = async (qrToken: string): Promise<Guest | undefined> 
   return data ? rowToGuest(data) : undefined;
 };
 
-export const findGuestByEmail = async (email: string): Promise<Guest | undefined> => {
+export const findGuestByEmail = async (
+  email: string,
+  eventId: string = getSelectedEventId(),
+): Promise<Guest | undefined> => {
   const e = email.trim().toLowerCase();
   const { data, error } = await supabase
     .from('guests')
     .select('*')
+    .eq('event_id', eventId)
     .ilike('email', e)
     .maybeSingle();
   if (error) throw error;
@@ -188,6 +211,7 @@ export const listGuests = async (): Promise<Guest[]> => {
   const { data, error } = await supabase
     .from('guests')
     .select('*')
+    .eq('event_id', getSelectedEventId())
     .order('registered_at', { ascending: false });
   if (error) throw error;
   return (data ?? []).map(rowToGuest);

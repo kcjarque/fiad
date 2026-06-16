@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Admin, Store } from '../types';
+import { getSelectedEventId } from '../stores/eventStore';
 
 const rowToStore = (r: {
   id: string;
@@ -55,7 +56,11 @@ export const loginStore = async (storeId: string, passcode: string): Promise<Sto
 };
 
 export const listStoresForLogin = async (): Promise<Store[]> => {
-  const { data, error } = await supabase.from('stores').select('*').order('booth_number');
+  const { data, error } = await supabase
+    .from('stores')
+    .select('*')
+    .eq('event_id', getSelectedEventId())
+    .order('booth_number');
   if (error) throw error;
   return (data ?? []).map(rowToStore);
 };

@@ -1,8 +1,8 @@
 import { supabase } from '../lib/supabase';
 import type { Store } from '../types';
 import { uid } from '../utils/id';
-import { getActiveEvent } from './eventService';
 import { HIDDEN_STORE_IDS } from '../constants/hidden';
+import { getSelectedEventId } from '../stores/eventStore';
 
 type Row = {
   id: string;
@@ -53,7 +53,11 @@ const storeToInsert = (s: Store): Row => ({
 });
 
 export const listStores = async (): Promise<Store[]> => {
-  const { data, error } = await supabase.from('stores').select('*').order('booth_number');
+  const { data, error } = await supabase
+    .from('stores')
+    .select('*')
+    .eq('event_id', getSelectedEventId())
+    .order('booth_number');
   if (error) throw error;
   // Drop no-show suppliers per src/constants/hidden.ts. The data stays
   // in the DB; remove an entry from that file to re-enable instantly.
@@ -104,12 +108,11 @@ export const getStoreByBoothNumber = async (boothNumber: string): Promise<Store 
 export const createStore = async (
   data: Omit<Store, 'id' | 'qrToken' | 'eventId'>,
 ): Promise<Store> => {
-  const event = await getActiveEvent();
   const store: Store = {
     ...data,
     id: uid('store'),
     qrToken: `store-qr-${Math.random().toString(36).slice(2, 10)}`,
-    eventId: event.id,
+    eventId: getSelectedEventId(),
   };
   const { error } = await supabase.from('stores').insert(storeToInsert(store));
   if (error) throw error;
