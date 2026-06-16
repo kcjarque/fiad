@@ -44,7 +44,7 @@ body::before {
     font-family: 'Playfair Display', ui-serif, serif;
   }
   .btn {
-    @apply inline-flex items-center justify-center rounded-full px-5 py-3 font-medium transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center rounded-full px-5 py-3 font-medium transition active:scale-[0.98] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 focus-visible:ring-offset-cream disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
     @apply btn bg-coral text-white shadow-soft hover:brightness-105;
@@ -177,7 +177,7 @@ body::before {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.reveal { animation: fadeUp 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.reveal { animation: fadeUp 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
 /* Slow shimmer across the gold-foil text/pills */
 @keyframes foilShimmer {

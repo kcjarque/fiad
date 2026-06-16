@@ -16,6 +16,7 @@ import {
   Star,
   ArrowRight,
   ChevronDown,
+  Check,
 } from 'lucide-react';
 import { registerGuest } from '../services/guestService';
 import { createInquiry } from '../services/inquiryService';
@@ -96,6 +97,7 @@ export function InviteFunnel() {
     consent: false,
   });
   const [busy, setBusy] = useState(false);
+  const [consentError, setConsentError] = useState(false);
 
   const day1 = fmtDay(event?.date, 0);
   const day2 = fmtDay(event?.date, 1);
@@ -105,6 +107,7 @@ export function InviteFunnel() {
     e.preventDefault();
     if (busy) return;
     if (!form.consent) {
+      setConsentError(true);
       toast.error('Please accept the data privacy notice to continue.');
       return;
     }
@@ -138,6 +141,8 @@ export function InviteFunnel() {
       form={form}
       setForm={setForm}
       busy={busy}
+      consentError={consentError}
+      clearConsentError={() => setConsentError(false)}
       onSubmit={submitRegistration}
     />
   );
@@ -151,6 +156,8 @@ function Landing({
   form,
   setForm,
   busy,
+  consentError,
+  clearConsentError,
   onSubmit,
 }: {
   event: { name: string } | undefined;
@@ -160,6 +167,8 @@ function Landing({
   form: { name: string; email: string; mobile: string; day: 'day1' | 'day2'; consent: boolean };
   setForm: React.Dispatch<React.SetStateAction<typeof form>>;
   busy: boolean;
+  consentError: boolean;
+  clearConsentError: () => void;
   onSubmit: (e: React.FormEvent) => void;
 }) {
   return (
@@ -167,8 +176,8 @@ function Landing({
       {/* ── Sticky header ── */}
       <header className="sticky top-0 z-40 backdrop-blur-md bg-cream/80 border-b border-plum/5">
         <div className="max-w-5xl mx-auto px-5 h-16 flex items-center justify-between">
-          <img src="/logo.png" alt="Forever in a Day" className="h-9 w-auto" />
-          <button onClick={scrollToForm} className="btn-primary !px-4 !py-2 text-sm">
+          <img src="/logo.png" alt="Forever in a Day" className="h-9 w-auto" width="120" height="36" />
+          <button onClick={scrollToForm} className="btn-primary !px-4 !py-2 text-sm min-h-[44px]">
             Reserve free spot
           </button>
         </div>
@@ -225,16 +234,33 @@ function Landing({
             See what’s inside <ChevronDown size={16} className="ml-1" />
           </button>
         </div>
-        <p className="reveal text-xs text-plum/50 mt-4" style={{ animationDelay: '380ms' }}>
+        <p className="reveal text-xs text-plum/60 mt-4" style={{ animationDelay: '380ms' }}>
           Limited slots per day — reserve before they’re gone.
         </p>
+      </section>
+
+      {/* ── Social proof / trust band ── */}
+      <section className="max-w-3xl mx-auto px-5 pb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          {[
+            { stat: '50+', label: 'Curated suppliers' },
+            { stat: '2', label: 'Full days' },
+            { stat: 'Free', label: 'Admission' },
+            { stat: '1', label: 'Couple wins rings' },
+          ].map((s) => (
+            <div key={s.label} className="bg-white/70 rounded-2xl py-4 px-2 shadow-card">
+              <div className="font-display text-2xl sm:text-3xl text-coral leading-none">{s.stat}</div>
+              <div className="text-xs text-plum/70 mt-1.5 leading-tight">{s.label}</div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* ── Ring raffle hook ── */}
       <section className="max-w-5xl mx-auto px-5">
         <div className="relative overflow-hidden rounded-3xl bg-plum text-cream px-6 py-10 sm:py-12 text-center shadow-soft">
           <Gem size={28} className="mx-auto text-champagne animate-floaty" />
-          <div className="text-[11px] uppercase tracking-[0.2em] text-champagne/80 mt-3">
+          <div className="text-[11px] uppercase tracking-[0.2em] text-champagne mt-3">
             The grand moment
           </div>
           <h2 className="font-display text-3xl sm:text-4xl mt-2">
@@ -253,10 +279,10 @@ function Landing({
           {VALUE_PROPS.map((v) => (
             <div key={v.title} className="card !p-6">
               <div className="h-11 w-11 rounded-xl bg-coral/10 text-coral flex items-center justify-center">
-                <v.icon size={20} />
+                <v.icon size={20} aria-hidden="true" />
               </div>
               <h3 className="font-display text-xl text-plum mt-4">{v.title}</h3>
-              <p className="text-sm text-plum/65 mt-1.5 leading-relaxed">{v.body}</p>
+              <p className="text-sm text-plum/75 mt-1.5 leading-relaxed">{v.body}</p>
             </div>
           ))}
         </div>
@@ -269,16 +295,16 @@ function Landing({
           <h2 className="font-display text-3xl sm:text-4xl text-plum mt-2">
             Everything for your big day
           </h2>
-          <p className="text-plum/65 mt-2">
+          <p className="text-plum/75 mt-2">
             Two days of fittings, tastings, culture and celebration — all under one roof.
           </p>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-8">
           {EXPERIENCES.map((x) => (
             <div key={x.label} className="bg-white rounded-2xl p-4 shadow-card hover:shadow-soft transition">
-              <x.icon size={20} className="text-coral" />
+              <x.icon size={20} className="text-coral" aria-hidden="true" />
               <div className="font-medium text-plum mt-3 leading-tight">{x.label}</div>
-              <div className="text-xs text-plum/55 mt-1 leading-snug">{x.sub}</div>
+              <div className="text-xs text-plum/65 mt-1 leading-snug">{x.sub}</div>
             </div>
           ))}
         </div>
@@ -299,7 +325,7 @@ function Landing({
               <ul className="mt-4 space-y-2.5">
                 {d.items.map((it) => (
                   <li key={it} className="flex items-start gap-2.5 text-sm text-plum/75">
-                    <CheckCircle2 size={16} className="text-champagne shrink-0 mt-0.5" />
+                    <CheckCircle2 size={16} className="text-champagne shrink-0 mt-0.5" aria-hidden="true" />
                     {it}
                   </li>
                 ))}
@@ -307,7 +333,7 @@ function Landing({
             </div>
           ))}
         </div>
-        <p className="text-center text-xs text-plum/45 mt-4">
+        <p className="text-center text-xs text-plum/60 mt-4">
           Full programme announced closer to the date. Highlights shown are representative.
         </p>
       </section>
@@ -317,16 +343,22 @@ function Landing({
         <div className="text-center mb-6">
           <div className="text-[11px] uppercase tracking-[0.2em] text-coral">Reserve your spot</div>
           <h2 className="font-display text-3xl sm:text-4xl text-plum mt-2">Save your free seat</h2>
-          <p className="text-plum/65 mt-2">
+          <p className="text-plum/75 mt-2">
             Takes 20 seconds. We’ll send your confirmation and event reminders.
           </p>
         </div>
 
         <form onSubmit={onSubmit} className="bg-white rounded-2xl shadow-soft p-6 space-y-4">
           <div>
-            <label className="label">Full name</label>
+            <label htmlFor="rsvp-name" className="label">
+              Full name <span className="text-coral" aria-hidden="true">*</span>
+            </label>
             <input
+              id="rsvp-name"
+              name="name"
               required
+              aria-required="true"
+              autoComplete="name"
               className="input"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -334,9 +366,17 @@ function Landing({
             />
           </div>
           <div>
-            <label className="label">Mobile number</label>
+            <label htmlFor="rsvp-mobile" className="label">
+              Mobile number <span className="text-coral" aria-hidden="true">*</span>
+            </label>
             <input
+              id="rsvp-mobile"
+              name="mobile"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               required
+              aria-required="true"
               className="input"
               value={form.mobile}
               onChange={(e) => setForm({ ...form, mobile: e.target.value })}
@@ -344,10 +384,17 @@ function Landing({
             />
           </div>
           <div>
-            <label className="label">Email</label>
+            <label htmlFor="rsvp-email" className="label">
+              Email <span className="text-coral" aria-hidden="true">*</span>
+            </label>
             <input
-              required
+              id="rsvp-email"
+              name="email"
               type="email"
+              inputMode="email"
+              autoComplete="email"
+              required
+              aria-required="true"
               className="input"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -355,8 +402,8 @@ function Landing({
             />
           </div>
           <div>
-            <label className="label">Which day are you coming?</label>
-            <div className="grid grid-cols-2 gap-2.5 mt-1">
+            <div className="label" id="rsvp-day-label">Which day are you coming?</div>
+            <div role="radiogroup" aria-labelledby="rsvp-day-label" className="grid grid-cols-2 gap-2.5 mt-1">
               {(
                 [
                   { key: 'day1', title: 'Day 1', sub: day1 },
@@ -367,39 +414,56 @@ function Landing({
                 return (
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={active}
                     key={opt.key}
                     onClick={() => setForm({ ...form, day: opt.key })}
-                    className={`rounded-xl border p-3 text-left transition ${
+                    className={`rounded-xl border p-3 text-left transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 ${
                       active
                         ? 'border-coral bg-coral/10 ring-1 ring-coral'
                         : 'border-plum/15 bg-white hover:border-plum/30'
                     }`}
                   >
-                    <div className="font-medium text-plum">{opt.title}</div>
-                    <div className="text-xs text-plum/60">{opt.sub}</div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-plum">{opt.title}</span>
+                      {active && <Check size={16} className="text-coral shrink-0" aria-hidden="true" />}
+                    </div>
+                    <div className="text-xs text-plum/70">{opt.sub}</div>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <label className="flex items-start gap-3 text-xs text-plum/70 bg-cream/60 rounded-xl p-3">
-            <input
-              type="checkbox"
-              checked={form.consent}
-              onChange={(e) => setForm({ ...form, consent: e.target.checked })}
-              className="mt-0.5 h-4 w-4 accent-coral"
-            />
-            <span>
-              I consent to the collection of my contact details for event updates and communications
-              under RA 10173 (Data Privacy Act). I can request deletion anytime.
-            </span>
-          </label>
+          <div>
+            <label className="flex items-start gap-3 text-xs text-plum/75 bg-cream/60 rounded-xl p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.consent}
+                onChange={(e) => {
+                  setForm({ ...form, consent: e.target.checked });
+                  if (e.target.checked) clearConsentError();
+                }}
+                aria-invalid={consentError}
+                aria-describedby={consentError ? 'consent-error' : undefined}
+                className="mt-0.5 h-4 w-4 accent-coral cursor-pointer"
+              />
+              <span>
+                I consent to the collection of my contact details for event updates and communications
+                under RA 10173 (Data Privacy Act). I can request deletion anytime.
+              </span>
+            </label>
+            {consentError && (
+              <p id="consent-error" role="alert" className="text-xs text-coral mt-1.5 px-1">
+                Please accept the data privacy notice to continue.
+              </p>
+            )}
+          </div>
 
           <button type="submit" disabled={busy} className="btn-primary w-full text-base">
             {busy ? 'Reserving…' : 'Reserve my free spot'}
           </button>
-          <p className="text-center text-xs text-plum/50">
+          <p className="text-center text-xs text-plum/60">
             Free · No spam · Your spot is held instantly
           </p>
         </form>
@@ -411,11 +475,11 @@ function Landing({
         <div className="space-y-2.5">
           {FAQS.map((f) => (
             <details key={f.q} className="group card !p-0 overflow-hidden">
-              <summary className="flex items-center justify-between gap-3 cursor-pointer list-none px-5 py-4">
+              <summary className="flex items-center justify-between gap-3 cursor-pointer list-none px-5 py-4 outline-none rounded-2xl focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-inset">
                 <span className="font-medium text-plum">{f.q}</span>
-                <ChevronDown size={18} className="text-plum/40 transition group-open:rotate-180 shrink-0" />
+                <ChevronDown size={18} className="text-plum/60 transition group-open:rotate-180 shrink-0" />
               </summary>
-              <p className="px-5 pb-4 -mt-1 text-sm text-plum/65 leading-relaxed">{f.a}</p>
+              <p className="px-5 pb-4 -mt-1 text-sm text-plum/75 leading-relaxed">{f.a}</p>
             </details>
           ))}
         </div>
@@ -439,7 +503,7 @@ function Landing({
       </section>
 
       <footer className="text-center py-8 px-5">
-        <div className="text-[10px] text-plum/40">Forever in a Day © 2026 · A Fil-Korean Wedding &amp; Debut Fair</div>
+        <div className="text-[10px] text-plum/60">Forever in a Day © 2026 · A Fil-Korean Wedding &amp; Debut Fair</div>
       </footer>
 
       {/* ── Sticky mobile CTA ── */}
@@ -589,7 +653,7 @@ function DoneStep({
           </div>
         </div>
 
-        <div className="mt-8 flex items-center justify-center gap-1.5 text-sm text-plum/50">
+        <div className="mt-8 flex items-center justify-center gap-1.5 text-sm text-plum/60">
           <Sparkles size={14} className="text-champagne" /> Forever in a Day © 2026
         </div>
       </div>
