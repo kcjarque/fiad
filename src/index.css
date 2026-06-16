@@ -171,3 +171,28 @@ body::before {
   from { transform: translateY(100%); opacity: 0; }
   to   { transform: translateY(0); opacity: 1; }
 }
+
+/* ---- Landing / funnel reveal + accents ---- */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal { animation: fadeUp 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+/* Slow shimmer across the gold-foil text/pills */
+@keyframes foilShimmer {
+  0%   { background-position: 200% 50%; }
+  100% { background-position: -200% 50%; }
+}
+.foil-shimmer { animation: foilShimmer 7s linear infinite; }
+
+/* Subtle float for decorative marks */
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+.animate-floaty { animation: floaty 5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .foil-shimmer, .animate-floaty { animation: none !important; }
+}
