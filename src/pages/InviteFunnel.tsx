@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   CheckCircle2,
@@ -20,10 +20,19 @@ import {
 } from 'lucide-react';
 import { registerGuest } from '../services/guestService';
 import { createInquiry } from '../services/inquiryService';
-import { getEventById } from '../services/eventService';
-import { SEASON_2_EVENT_ID } from '../stores/eventStore';
+import { listEvents } from '../services/eventService';
 import { initMetaPixel, trackLead } from '../lib/meta';
 import { toast } from '../stores/toastStore';
+
+// Season 2 runs at TWO venues on overlapping dates. Each venue is its own
+// event, so the admin gets a clean, separate registrant list per location
+// (switchable in the admin event switcher). The funnel maps the chosen
+// venue → its event id.
+const VENUES = [
+  { key: 'brittany', eventId: 'evt_fiad_s2_brittany', hotel: 'Brittany Hotel', area: 'BGC, Taguig' },
+  { key: 'mella', eventId: 'evt_fiad_s2_mella', hotel: 'Mella Hotel', area: 'Las Piñas' },
+] as const;
+type VenueKey = (typeof VENUES)[number]['key'];
 
 const EXPERIENCES = [
   { icon: Shirt, label: 'Bridal gown fittings', sub: 'Try on the dress before you commit' },
@@ -57,17 +66,31 @@ const VALUE_PROPS = [
 const FAQS = [
   { q: 'Is it really free?', a: 'Yes — admission is completely free when you reserve your spot here.' },
   { q: 'Can I bring my partner or family?', a: 'Please do! Bring your fiancé(e), your parents, and your entourage. The more the merrier.' },
+  { q: 'Can I attend either location?', a: 'Yes — pick whichever venue and day is most convenient for you when you register below.' },
   { q: 'Do I have to stay the whole day?', a: 'Not at all. Drop by anytime during event hours and explore at your own pace.' },
   { q: 'Will there be food?', a: 'Complimentary tastings from our exhibitors, plus food available to purchase at the venue.' },
   { q: 'What should I wear?', a: 'Smart casual in any color — comfortable enough to walk, dressy enough for photos.' },
 ];
 
+/** "Sat, December 5" — full weekday + date, no time. */
 const fmtDay = (iso: string | undefined, addDays = 0): string => {
-  if (!iso) return 'Dates to be announced';
+  if (!iso) return 'Date to be announced';
   try {
     const d = new Date(iso);
     d.setDate(d.getDate() + addDays);
     return d.toLocaleDateString('en-PH', { weekday: 'short', month: 'long', day: 'numeric' });
+  } catch {
+    return 'TBA';
+  }
+};
+
+/** "Sep 18" — compact month + day. */
+const shortDate = (iso: string | undefined, addDays = 0): string => {
+  if (!iso) return 'TBA';
+  try {
+    const d = new Date(iso);
+    d.setDate(d.getDate() + addDays);
+    return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
   } catch {
     return 'TBA';
   }
@@ -78,11 +101,18 @@ const scrollToForm = () =>
 
 type Step = 'landing' | 'help' | 'done';
 
+type VenueOption = {
+  key: VenueKey;
+  eventId: string;
+  hotel: string;
+  area: string;
+  day1: string;
+  day2: string;
+  rangeShort: string;
+};
+
 export function InviteFunnel() {
-  const { data: event } = useQuery({
-    queryKey: ['event', SEASON_2_EVENT_ID],
-    queryFn: () => getEventById(SEASON_2_EVENT_ID),
-  });
+  const { data: events } = useQuery({ queryKey: ['events'], queryFn: listEvents });
 
   useEffect(() => {
     initMetaPixel();
@@ -93,15 +123,35 @@ export function InviteFunnel() {
     name: '',
     email: '',
     mobile: '',
+    venue: 'brittany' as VenueKey,
     day: 'day1' as 'day1' | 'day2',
     consent: false,
   });
   const [busy, setBusy] = useState(false);
   const [consentError, setConsentError] = useState(false);
 
-  const day1 = fmtDay(event?.date, 0);
-  const day2 = fmtDay(event?.date, 1);
-  const venue = event?.venue && event.venue !== 'TBA' ? event.venue : 'A premier BGC venue — announced soon';
+  // Enrich each venue with its dates from the matching event row, so dates
+  // stay editable from the admin Event tab.
+  const venueOptions: VenueOption[] = useMemo(
+    () =>
+      VENUES.map((v) => {
+        const ev = events?.find((e) => e.id === v.eventId);
+        return {
+          key: v.key,
+          eventId: v.eventId,
+          hotel: v.hotel,
+          area: v.area,
+          day1: fmtDay(ev?.date, 0),
+          day2: fmtDay(ev?.date, 1),
+          rangeShort: ev ? `${shortDate(ev.date, 0)} & ${shortDate(ev.date, 1)}` : 'September 2026',
+        };
+      }),
+    [events],
+  );
+
+  const selected = venueOptions.find((v) => v.key === form.venue) ?? venueOptions[0];
+  const chosenDate = form.day === 'day1' ? selected.day1 : selected.day2;
+  const venueLabel = `${selected.hotel}, ${selected.area}`;
 
   const submitRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,10 +165,9 @@ export function InviteFunnel() {
     try {
       await registerGuest(
         { name: form.name, email: form.email, mobile: form.mobile, preferredDay: form.day },
-        SEASON_2_EVENT_ID,
+        selected.eventId,
       );
-      // Fire the deduplicated Meta Lead (Pixel + Conversions API). Awaited but
-      // failure-safe, so it never blocks the funnel.
+      // Deduplicated Meta Lead (Pixel + CAPI). Awaited but failure-safe.
       await trackLead({ email: form.email, phone: form.mobile, name: form.name, preferredDay: form.day });
       setStep('help');
       window.scrollTo({ top: 0 });
@@ -129,15 +178,22 @@ export function InviteFunnel() {
     }
   };
 
-  if (step === 'help') return <HelpStep name={form.name} prefill={form} onDone={() => setStep('done')} />;
-  if (step === 'done') return <DoneStep day1={day1} day2={day2} venue={venue} day={form.day} />;
+  if (step === 'help')
+    return (
+      <HelpStep
+        name={form.name}
+        prefill={form}
+        eventId={selected.eventId}
+        onDone={() => setStep('done')}
+      />
+    );
+  if (step === 'done')
+    return <DoneStep venueLabel={venueLabel} chosenDate={chosenDate} day={form.day} />;
 
   return (
     <Landing
-      event={event}
-      day1={day1}
-      day2={day2}
-      venue={venue}
+      venueOptions={venueOptions}
+      selected={selected}
       form={form}
       setForm={setForm}
       busy={busy}
@@ -149,10 +205,8 @@ export function InviteFunnel() {
 }
 
 function Landing({
-  event,
-  day1,
-  day2,
-  venue,
+  venueOptions,
+  selected,
   form,
   setForm,
   busy,
@@ -160,11 +214,16 @@ function Landing({
   clearConsentError,
   onSubmit,
 }: {
-  event: { name: string } | undefined;
-  day1: string;
-  day2: string;
-  venue: string;
-  form: { name: string; email: string; mobile: string; day: 'day1' | 'day2'; consent: boolean };
+  venueOptions: VenueOption[];
+  selected: VenueOption;
+  form: {
+    name: string;
+    email: string;
+    mobile: string;
+    venue: VenueKey;
+    day: 'day1' | 'day2';
+    consent: boolean;
+  };
   setForm: React.Dispatch<React.SetStateAction<typeof form>>;
   busy: boolean;
   consentError: boolean;
@@ -186,7 +245,7 @@ function Landing({
       {/* ── Hero ── */}
       <section className="relative max-w-3xl mx-auto px-5 pt-12 sm:pt-16 pb-10 text-center">
         <div className="reveal chip" style={{ animationDelay: '0ms' }}>
-          {event?.name ?? 'FIAD Season 2'} · Wedding, Events &amp; Debut Fair
+          FIAD Season 2 · Wedding, Events &amp; Debut Fair
         </div>
         <h1
           className="reveal font-display text-[2.5rem] leading-[1.05] sm:text-6xl text-plum mt-5"
@@ -196,28 +255,35 @@ function Landing({
           <span className="foil-gold-text foil-shimmer">magical day.</span>
         </h1>
         <p
-          className="reveal text-plum/70 text-lg mt-5 max-w-xl mx-auto"
+          className="reveal text-plum/75 text-lg mt-5 max-w-xl mx-auto"
           style={{ animationDelay: '160ms' }}
         >
           Meet the country’s most-loved suppliers, try on gowns, taste the cakes, and watch a live
           runway show — a Fil-Korean celebration fair made for couples like you.
         </p>
 
+        {/* Two locations — pick the one nearest you */}
         <div
-          className="reveal flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-7 text-sm text-plum/75"
+          className="reveal mt-7 grid sm:grid-cols-2 gap-2.5 max-w-lg mx-auto"
           style={{ animationDelay: '240ms' }}
         >
-          <span className="inline-flex items-center gap-1.5">
-            <CalendarDays size={16} className="text-coral" /> {day1} &amp; {day2}
-          </span>
-          <span className="hidden sm:inline text-plum/25">•</span>
-          <span className="inline-flex items-center gap-1.5">
-            <MapPin size={16} className="text-coral" /> {venue}
-          </span>
-          <span className="hidden sm:inline text-plum/25">•</span>
-          <span className="inline-flex items-center gap-1.5 font-medium text-plum">
-            <CheckCircle2 size={16} className="text-coral" /> Free admission
-          </span>
+          {venueOptions.map((v) => (
+            <div key={v.key} className="bg-white/70 rounded-xl px-4 py-3 text-left shadow-card">
+              <div className="font-medium text-plum inline-flex items-center gap-1.5">
+                <MapPin size={15} className="text-coral" aria-hidden="true" /> {v.hotel}
+              </div>
+              <div className="text-xs text-plum/70 mt-0.5 ml-[22px]">
+                {v.area} · {v.rangeShort}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div
+          className="reveal inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-plum"
+          style={{ animationDelay: '280ms' }}
+        >
+          <CheckCircle2 size={16} className="text-coral" aria-hidden="true" /> Free admission · both
+          locations
         </div>
 
         <div
@@ -231,7 +297,7 @@ function Landing({
             onClick={() => document.getElementById('experience')?.scrollIntoView({ behavior: 'smooth' })}
             className="btn-ghost w-full sm:w-auto text-plum/70"
           >
-            See what’s inside <ChevronDown size={16} className="ml-1" />
+            See what’s inside <ChevronDown size={16} className="ml-1" aria-hidden="true" />
           </button>
         </div>
         <p className="reveal text-xs text-plum/60 mt-4" style={{ animationDelay: '380ms' }}>
@@ -244,7 +310,7 @@ function Landing({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
           {[
             { stat: '50+', label: 'Curated suppliers' },
-            { stat: '2', label: 'Full days' },
+            { stat: '2', label: 'Metro locations' },
             { stat: 'Free', label: 'Admission' },
             { stat: '1', label: 'Couple wins rings' },
           ].map((s) => (
@@ -259,7 +325,7 @@ function Landing({
       {/* ── Ring raffle hook ── */}
       <section className="max-w-5xl mx-auto px-5">
         <div className="relative overflow-hidden rounded-3xl bg-plum text-cream px-6 py-10 sm:py-12 text-center shadow-soft">
-          <Gem size={28} className="mx-auto text-champagne animate-floaty" />
+          <Gem size={28} className="mx-auto text-champagne animate-floaty" aria-hidden="true" />
           <div className="text-[11px] uppercase tracking-[0.2em] text-champagne mt-3">
             The grand moment
           </div>
@@ -304,7 +370,7 @@ function Landing({
             <div key={x.label} className="bg-white rounded-2xl p-4 shadow-card hover:shadow-soft transition">
               <x.icon size={20} className="text-coral" aria-hidden="true" />
               <div className="font-medium text-plum mt-3 leading-tight">{x.label}</div>
-              <div className="text-xs text-plum/65 mt-1 leading-snug">{x.sub}</div>
+              <div className="text-xs text-plum/60 mt-1 leading-snug">{x.sub}</div>
             </div>
           ))}
         </div>
@@ -314,14 +380,11 @@ function Landing({
       <section className="max-w-5xl mx-auto px-5 pb-14">
         <div className="grid sm:grid-cols-2 gap-4">
           {[
-            { tag: 'Day 1', date: day1, items: ['Grand opening & ribbon cutting', 'Gown fittings, cake tastings & K-culture', 'Wine selection workshop', 'Live bridal runway show', 'Musical performances'] },
-            { tag: 'Day 2', date: day2, items: ['Doors open · interactive booths', 'Q&A with a celebrity wedding planner', 'Wine & spirits basics', 'Supplier awards night', 'Wedding ring raffle & Season 3 reveal'] },
+            { tag: 'Day 1', items: ['Grand opening & ribbon cutting', 'Gown fittings, cake tastings & K-culture', 'Wine selection workshop', 'Live bridal runway show', 'Musical performances'] },
+            { tag: 'Day 2', items: ['Doors open · interactive booths', 'Q&A with a celebrity wedding planner', 'Wine & spirits basics', 'Supplier awards night', 'Wedding ring raffle & Season 3 reveal'] },
           ].map((d) => (
             <div key={d.tag} className="card !p-6">
-              <div className="flex items-baseline justify-between">
-                <div className="font-display text-2xl text-plum">{d.tag}</div>
-                <div className="text-sm text-coral font-medium">{d.date}</div>
-              </div>
+              <div className="font-display text-2xl text-plum">{d.tag}</div>
               <ul className="mt-4 space-y-2.5">
                 {d.items.map((it) => (
                   <li key={it} className="flex items-start gap-2.5 text-sm text-plum/75">
@@ -401,13 +464,53 @@ function Landing({
               placeholder="you@email.com"
             />
           </div>
+
+          {/* Location picker */}
           <div>
-            <div className="label" id="rsvp-day-label">Which day are you coming?</div>
+            <div className="label" id="rsvp-venue-label">
+              Choose your location <span className="text-coral" aria-hidden="true">*</span>
+            </div>
+            <div role="radiogroup" aria-labelledby="rsvp-venue-label" className="grid gap-2.5 mt-1">
+              {venueOptions.map((v) => {
+                const active = form.venue === v.key;
+                return (
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    key={v.key}
+                    onClick={() => setForm({ ...form, venue: v.key })}
+                    className={`rounded-xl border p-3.5 text-left transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 ${
+                      active
+                        ? 'border-coral bg-coral/10 ring-1 ring-coral'
+                        : 'border-plum/15 bg-white hover:border-plum/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-plum inline-flex items-center gap-1.5">
+                        <MapPin size={15} className="text-coral shrink-0" aria-hidden="true" /> {v.hotel}
+                      </span>
+                      {active && <Check size={16} className="text-coral shrink-0" aria-hidden="true" />}
+                    </div>
+                    <div className="text-xs text-plum/70 mt-0.5 ml-[22px]">
+                      {v.area} · {v.rangeShort}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Day picker (for the chosen venue) */}
+          <div>
+            <div className="label" id="rsvp-day-label">
+              Which day at {selected.hotel}?
+            </div>
             <div role="radiogroup" aria-labelledby="rsvp-day-label" className="grid grid-cols-2 gap-2.5 mt-1">
               {(
                 [
-                  { key: 'day1', title: 'Day 1', sub: day1 },
-                  { key: 'day2', title: 'Day 2', sub: day2 },
+                  { key: 'day1', title: 'Day 1', sub: selected.day1 },
+                  { key: 'day2', title: 'Day 2', sub: selected.day2 },
                 ] as const
               ).map((opt) => {
                 const active = form.day === opt.key;
@@ -477,7 +580,7 @@ function Landing({
             <details key={f.q} className="group card !p-0 overflow-hidden">
               <summary className="flex items-center justify-between gap-3 cursor-pointer list-none px-5 py-4 outline-none rounded-2xl focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-inset">
                 <span className="font-medium text-plum">{f.q}</span>
-                <ChevronDown size={18} className="text-plum/60 transition group-open:rotate-180 shrink-0" />
+                <ChevronDown size={18} className="text-plum/40 transition group-open:rotate-180 shrink-0" aria-hidden="true" />
               </summary>
               <p className="px-5 pb-4 -mt-1 text-sm text-plum/75 leading-relaxed">{f.a}</p>
             </details>
@@ -488,16 +591,16 @@ function Landing({
       {/* ── Final CTA ── */}
       <section className="max-w-5xl mx-auto px-5 py-10">
         <div className="rounded-3xl bg-gradient-to-br from-coral to-rose text-white text-center px-6 py-12 shadow-soft">
-          <Heart size={26} className="mx-auto" />
+          <Heart size={26} className="mx-auto" aria-hidden="true" />
           <h2 className="font-display text-3xl sm:text-4xl mt-3">Your forever starts here.</h2>
-          <p className="text-white/85 mt-2 max-w-md mx-auto">
+          <p className="text-white/90 mt-2 max-w-md mx-auto">
             Reserve your free spot and step into the wedding planning day couples can’t stop talking about.
           </p>
           <button
             onClick={scrollToForm}
             className="btn mt-6 bg-white text-coral hover:brightness-95 !px-8 text-base"
           >
-            Reserve my free spot <ArrowRight size={18} className="ml-1.5" />
+            Reserve my free spot <ArrowRight size={18} className="ml-1.5" aria-hidden="true" />
           </button>
         </div>
       </section>
@@ -519,10 +622,12 @@ function Landing({
 function HelpStep({
   name,
   prefill,
+  eventId,
   onDone,
 }: {
   name: string;
   prefill: { name: string; email: string; mobile: string };
+  eventId: string;
   onDone: () => void;
 }) {
   const firstName = name.trim().split(' ')[0] || 'there';
@@ -543,7 +648,7 @@ function HelpStep({
           eventType: inq.eventType,
           message: inq.message,
         },
-        SEASON_2_EVENT_ID,
+        eventId,
       );
       toast.success('Thanks! Our team will reach out.');
       onDone();
@@ -558,19 +663,19 @@ function HelpStep({
       <div className="max-w-xl mx-auto px-5 py-12">
         <div className="text-center">
           <div className="h-16 w-16 rounded-full bg-coral/15 text-coral flex items-center justify-center mx-auto mb-5">
-            <CheckCircle2 size={34} />
+            <CheckCircle2 size={34} aria-hidden="true" />
           </div>
           <h1 className="font-display text-3xl text-plum">You’re registered, {firstName}!</h1>
-          <p className="text-plum/70 mt-2">One more thing before you go —</p>
+          <p className="text-plum/75 mt-2">One more thing before you go —</p>
         </div>
 
         {!showForm ? (
           <div className="mt-6 bg-white rounded-2xl shadow-card p-6 text-center">
-            <Sparkles size={22} className="text-champagne mx-auto" />
+            <Sparkles size={22} className="text-champagne mx-auto" aria-hidden="true" />
             <div className="font-display text-2xl text-plum mt-2">
               Do you need help organizing your event?
             </div>
-            <p className="text-sm text-plum/60 mt-1">
+            <p className="text-sm text-plum/75 mt-1">
               Weddings, debuts, corporate — our team can help you plan it.
             </p>
             <div className="grid sm:grid-cols-2 gap-2.5 mt-5">
@@ -586,8 +691,9 @@ function HelpStep({
           <form onSubmit={sendInquiry} className="mt-6 bg-white rounded-2xl shadow-card p-6 space-y-4">
             <div className="font-display text-xl text-plum">Tell us about your event</div>
             <div>
-              <label className="label">What type of event?</label>
+              <label htmlFor="inq-type" className="label">What type of event?</label>
               <input
+                id="inq-type"
                 className="input"
                 value={inq.eventType}
                 onChange={(e) => setInq({ ...inq, eventType: e.target.value })}
@@ -595,8 +701,9 @@ function HelpStep({
               />
             </div>
             <div>
-              <label className="label">Tell us more (optional)</label>
+              <label htmlFor="inq-msg" className="label">Tell us more (optional)</label>
               <textarea
+                id="inq-msg"
                 className="input min-h-[90px]"
                 value={inq.message}
                 onChange={(e) => setInq({ ...inq, message: e.target.value })}
@@ -619,42 +726,41 @@ function HelpStep({
 }
 
 function DoneStep({
-  day1,
-  day2,
-  venue,
+  venueLabel,
+  chosenDate,
   day,
 }: {
-  day1: string;
-  day2: string;
-  venue: string;
+  venueLabel: string;
+  chosenDate: string;
   day: 'day1' | 'day2';
 }) {
-  const chosen = day === 'day1' ? day1 : day2;
   return (
     <div className="min-h-[100svh] bg-gradient-to-b from-cream via-rose/15 to-rose/35">
       <div className="max-w-xl mx-auto px-5 py-16 text-center">
         <div className="h-16 w-16 rounded-full bg-coral/15 text-coral flex items-center justify-center mx-auto mb-5">
-          <CheckCircle2 size={34} />
+          <CheckCircle2 size={34} aria-hidden="true" />
         </div>
         <h1 className="font-display text-4xl text-plum">See you at the fair!</h1>
-        <p className="text-plum/70 mt-2">
+        <p className="text-plum/75 mt-2">
           Your spot is reserved. We’ll send your details and reminders before the event.
         </p>
 
         <div className="mt-7 bg-white rounded-2xl shadow-card p-6 inline-block text-left">
           <div className="flex items-center gap-2.5 text-plum">
-            <CalendarDays size={16} className="text-coral" />
-            <span className="font-medium">You’re coming on {day === 'day1' ? 'Day 1' : 'Day 2'}</span>
+            <CalendarDays size={16} className="text-coral" aria-hidden="true" />
+            <span className="font-medium">
+              You’re coming on {day === 'day1' ? 'Day 1' : 'Day 2'}
+            </span>
           </div>
-          <div className="text-sm text-plum/60 mt-1 ml-[26px]">{chosen}</div>
+          <div className="text-sm text-plum/70 mt-1 ml-[26px]">{chosenDate}</div>
           <div className="flex items-center gap-2.5 text-plum mt-3">
-            <MapPin size={16} className="text-coral" />
-            <span className="font-medium">{venue}</span>
+            <MapPin size={16} className="text-coral" aria-hidden="true" />
+            <span className="font-medium">{venueLabel}</span>
           </div>
         </div>
 
         <div className="mt-8 flex items-center justify-center gap-1.5 text-sm text-plum/60">
-          <Sparkles size={14} className="text-champagne" /> Forever in a Day © 2026
+          <Sparkles size={14} className="text-champagne" aria-hidden="true" /> Forever in a Day © 2026
         </div>
       </div>
     </div>
