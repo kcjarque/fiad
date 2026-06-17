@@ -8,6 +8,7 @@ import { openChannel, postMessage, type StageMsg, type Prize } from '../../utils
 import { listPrizes } from '../../services/prizeService';
 import { listGuests } from '../../services/guestService';
 import { allActiveEntries } from '../../services/raffleService';
+import { useEventStore } from '../../stores/eventStore';
 
 /**
  * Projector / LCD presentation view for the live raffle draw.
@@ -44,21 +45,22 @@ export function AdminDrawStage() {
   const [transition, setTransition] = useState('none');
   const channelRef = useRef<BroadcastChannel | null>(null);
 
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
   // ── Load real data so the stage works even standalone (the projector no
   //    longer depends on the admin window broadcasting to show the count +
   //    next prize). Polls so it stays live as prizes get drawn. ──────────
   const { data: prizes = [] } = useQuery({
-    queryKey: ['prizes'],
+    queryKey: ['prizes', selectedEventId],
     queryFn: listPrizes,
     refetchInterval: 4000,
   });
   const { data: guests = [] } = useQuery({
-    queryKey: ['guests'],
+    queryKey: ['guests', selectedEventId],
     queryFn: listGuests,
     refetchInterval: 10000,
   });
   const { data: entries = [] } = useQuery({
-    queryKey: ['raffle', 'active'],
+    queryKey: ['raffle', 'active', selectedEventId],
     queryFn: allActiveEntries,
     refetchInterval: 8000,
   });

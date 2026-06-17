@@ -10,7 +10,6 @@ import { persist } from 'zustand/middleware';
  * switches events. Persisted per-browser in localStorage.
  */
 export const SEASON_1_EVENT_ID = 'evt_fiad_dec25';
-export const SEASON_2_EVENT_ID = 'evt_fiad_season2';
 
 type EventState = {
   selectedEventId: string;

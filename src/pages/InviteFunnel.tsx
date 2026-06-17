@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { registerGuest } from '../services/guestService';
 import { createInquiry } from '../services/inquiryService';
-import { listEvents } from '../services/eventService';
+import { getEventById } from '../services/eventService';
 import { initMetaPixel, trackLead } from '../lib/meta';
 import { toast } from '../stores/toastStore';
 
@@ -72,13 +72,26 @@ const FAQS = [
   { q: 'What should I wear?', a: 'Smart casual in any color — comfortable enough to walk, dressy enough for photos.' },
 ];
 
+/**
+ * Parse a 'YYYY-MM-DD' event date as a LOCAL calendar date (+ optional day
+ * offset). `new Date('2026-09-18')` parses as UTC midnight, which renders as
+ * the previous day for any viewer west of UTC — so build the date from parts
+ * in local time instead.
+ */
+const localDate = (iso: string, addDays = 0): Date => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d + addDays);
+};
+
 /** "Sat, December 5" — full weekday + date, no time. */
 const fmtDay = (iso: string | undefined, addDays = 0): string => {
   if (!iso) return 'Date to be announced';
   try {
-    const d = new Date(iso);
-    d.setDate(d.getDate() + addDays);
-    return d.toLocaleDateString('en-PH', { weekday: 'short', month: 'long', day: 'numeric' });
+    return localDate(iso, addDays).toLocaleDateString('en-PH', {
+      weekday: 'short',
+      month: 'long',
+      day: 'numeric',
+    });
   } catch {
     return 'TBA';
   }
@@ -88,9 +101,7 @@ const fmtDay = (iso: string | undefined, addDays = 0): string => {
 const shortDate = (iso: string | undefined, addDays = 0): string => {
   if (!iso) return 'TBA';
   try {
-    const d = new Date(iso);
-    d.setDate(d.getDate() + addDays);
-    return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+    return localDate(iso, addDays).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
   } catch {
     return 'TBA';
   }
@@ -112,7 +123,17 @@ type VenueOption = {
 };
 
 export function InviteFunnel() {
-  const { data: events } = useQuery({ queryKey: ['events'], queryFn: listEvents });
+  // Fetch ONLY the two venue events (not the whole events list) — the public
+  // funnel shouldn't pull every event's draft metadata to the client.
+  const { data: venueEvents } = useQuery({
+    queryKey: ['rsvp-venue-events'],
+    queryFn: async () => {
+      const pairs = await Promise.all(
+        VENUES.map(async (v) => [v.eventId, await getEventById(v.eventId)] as const),
+      );
+      return Object.fromEntries(pairs);
+    },
+  });
 
   useEffect(() => {
     initMetaPixel();
@@ -135,7 +156,7 @@ export function InviteFunnel() {
   const venueOptions: VenueOption[] = useMemo(
     () =>
       VENUES.map((v) => {
-        const ev = events?.find((e) => e.id === v.eventId);
+        const ev = venueEvents?.[v.eventId];
         return {
           key: v.key,
           eventId: v.eventId,
@@ -146,7 +167,7 @@ export function InviteFunnel() {
           rangeShort: ev ? `${shortDate(ev.date, 0)} & ${shortDate(ev.date, 1)}` : 'September 2026',
         };
       }),
-    [events],
+    [venueEvents],
   );
 
   const selected = venueOptions.find((v) => v.key === form.venue) ?? venueOptions[0];
@@ -167,8 +188,10 @@ export function InviteFunnel() {
         { name: form.name, email: form.email, mobile: form.mobile, preferredDay: form.day },
         selected.eventId,
       );
-      // Deduplicated Meta Lead (Pixel + CAPI). Awaited but failure-safe.
-      await trackLead({ email: form.email, phone: form.mobile, name: form.name, preferredDay: form.day });
+      // Fire the deduplicated Meta Lead (Pixel + CAPI) fire-and-forget — it must
+      // never block the thank-you transition or surface a false "Registration
+      // failed" if tracking hiccups. trackLead swallows its own errors.
+      void trackLead({ email: form.email, phone: form.mobile, name: form.name, preferredDay: form.day });
       setStep('help');
       window.scrollTo({ top: 0 });
     } catch (err) {
@@ -424,7 +447,7 @@ function Landing({
               autoComplete="name"
               className="input"
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Juana Dela Cruz"
             />
           </div>
@@ -442,7 +465,7 @@ function Landing({
               aria-required="true"
               className="input"
               value={form.mobile}
-              onChange={(e) => setForm({ ...form, mobile: e.target.value })}
+              onChange={(e) => setForm((f) => ({ ...f, mobile: e.target.value }))}
               placeholder="+63 9xx xxx xxxx"
             />
           </div>
@@ -460,7 +483,7 @@ function Landing({
               aria-required="true"
               className="input"
               value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
               placeholder="you@email.com"
             />
           </div>
@@ -479,7 +502,7 @@ function Landing({
                     role="radio"
                     aria-checked={active}
                     key={v.key}
-                    onClick={() => setForm({ ...form, venue: v.key })}
+                    onClick={() => setForm((f) => ({ ...f, venue: v.key }))}
                     className={`rounded-xl border p-3.5 text-left transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 ${
                       active
                         ? 'border-coral bg-coral/10 ring-1 ring-coral'
@@ -520,7 +543,7 @@ function Landing({
                     role="radio"
                     aria-checked={active}
                     key={opt.key}
-                    onClick={() => setForm({ ...form, day: opt.key })}
+                    onClick={() => setForm((f) => ({ ...f, day: opt.key }))}
                     className={`rounded-xl border p-3 text-left transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 ${
                       active
                         ? 'border-coral bg-coral/10 ring-1 ring-coral'
@@ -544,7 +567,7 @@ function Landing({
                 type="checkbox"
                 checked={form.consent}
                 onChange={(e) => {
-                  setForm({ ...form, consent: e.target.checked });
+                  setForm((f) => ({ ...f, consent: e.target.checked }));
                   if (e.target.checked) clearConsentError();
                 }}
                 aria-invalid={consentError}

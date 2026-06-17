@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Landing } from './pages/Landing';
-import { RegisterSeason2 } from './pages/RegisterSeason2';
 import { InviteFunnel } from './pages/InviteFunnel';
 import { Register } from './pages/guest/Register';
 import { GuestLogin } from './pages/guest/Login';
@@ -80,11 +79,11 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
 
-        {/* Season 2 — public registration + lead capture */}
-        <Route path="/season2" element={<RegisterSeason2 />} />
-
         {/* Ads funnel — marketing landing → RSVP → "need help?" → thank-you */}
         <Route path="/rsvp" element={<InviteFunnel />} />
+        {/* Retired: the older /season2 page is superseded by /rsvp (which routes
+            to the per-venue Season 2 events). Redirect so old links still work. */}
+        <Route path="/season2" element={<Navigate to="/rsvp" replace />} />
 
         {/* Guest */}
         <Route path="/app/register" element={<div className="max-w-md mx-auto bg-cream min-h-screen"><Register /></div>} />

@@ -61,8 +61,8 @@ export const registerGuest = async (
     preferredDay?: string;
   },
   // Which event this registration belongs to. Defaults to the currently
-  // selected event (Season 1 on the live admin/booth browsers); the
-  // Season 2 public form passes SEASON_2_EVENT_ID explicitly.
+  // selected event (Season 1 on the live admin/booth browsers); the /rsvp
+  // funnel passes the chosen venue's event id explicitly.
   eventId?: string,
 ): Promise<Guest> => {
   const targetEventId = eventId ?? getSelectedEventId();
@@ -177,7 +177,9 @@ export const findGuestByEmail = async (
   email: string,
   eventId: string = getSelectedEventId(),
 ): Promise<Guest | undefined> => {
-  const e = email.trim().toLowerCase();
+  // Escape LIKE metacharacters so an address containing % or _ can't match a
+  // different guest's email as a wildcard.
+  const e = email.trim().toLowerCase().replace(/[\\%_]/g, (c) => '\\' + c);
   const { data, error } = await supabase
     .from('guests')
     .select('*')

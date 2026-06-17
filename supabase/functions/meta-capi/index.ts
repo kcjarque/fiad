@@ -33,7 +33,16 @@ const sha256 = async (v: string): Promise<string> => {
 };
 
 const norm = (v?: string) => (v ?? '').trim().toLowerCase();
-const normPhone = (v?: string) => (v ?? '').replace(/[^0-9]/g, '');
+
+// Meta wants phone as country-code + number digits only (no +, no leading 0).
+// Normalize PH formats: '0917…'→'63917…', '+63 917…'→'63917…', bare '9XXXXXXXXX'→'639…'.
+const normPhone = (v?: string) => {
+  let d = (v ?? '').replace(/[^0-9]/g, '');
+  if (d.startsWith('0')) d = '63' + d.slice(1);
+  else if (d.startsWith('63')) { /* already has country code */ }
+  else if (d.length === 10 && d.startsWith('9')) d = '63' + d;
+  return d;
+};
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });

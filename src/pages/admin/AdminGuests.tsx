@@ -8,6 +8,7 @@ import { Modal } from '../../components/shared/Modal';
 import { formatDate } from '../../utils/id';
 import { toast } from '../../stores/toastStore';
 import type { Guest } from '../../types';
+import { useEventStore } from '../../stores/eventStore';
 
 const dayLabel = (d?: string): string | null =>
   d === 'day1' ? 'Day 1' : d === 'day2' ? 'Day 2' : null;
@@ -33,8 +34,9 @@ const copyCode = async (code: string) => {
 
 export function AdminGuests() {
   const queryClient = useQueryClient();
-  const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
-  const { data: entries = [] } = useQuery({ queryKey: ['raffle', 'active'], queryFn: allActiveEntries });
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
+  const { data: guests = [] } = useQuery({ queryKey: ['guests', selectedEventId], queryFn: listGuests });
+  const { data: entries = [] } = useQuery({ queryKey: ['raffle', 'active', selectedEventId], queryFn: allActiveEntries });
   const [query, setQuery] = useState('');
 
   // Inline name editing — fix wrongly-entered guest names.

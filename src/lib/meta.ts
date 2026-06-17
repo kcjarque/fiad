@@ -82,18 +82,20 @@ export const trackLead = async (data: LeadData): Promise<void> => {
   const [firstName, ...rest] = (data.name ?? '').trim().split(/\s+/);
   const lastName = rest.join(' ');
 
-  // 1) Browser Pixel
-  if (PIXEL_ID && window.fbq) {
-    window.fbq(
-      'track',
-      'Lead',
-      { content_name: 'FIAD Season 2 RSVP', content_category: 'event_registration' },
-      { eventID: eventId },
-    );
-  }
-
-  // 2) Server-side Conversions API (best-effort)
+  // Everything here is best-effort: tracking must NEVER break the funnel, so
+  // the entire body (including the synchronous Pixel call) is guarded.
   try {
+    // 1) Browser Pixel
+    if (PIXEL_ID && window.fbq) {
+      window.fbq(
+        'track',
+        'Lead',
+        { content_name: 'FIAD Season 2 RSVP', content_category: 'event_registration' },
+        { eventID: eventId },
+      );
+    }
+
+    // 2) Server-side Conversions API
     await supabase.functions.invoke('meta-capi', {
       body: {
         event_id: eventId,

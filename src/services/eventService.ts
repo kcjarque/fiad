@@ -40,8 +40,9 @@ export const listEvents = async (): Promise<EventInfo[]> => {
 /**
  * The "current" event = whichever event this browser has selected
  * (multi-tenant). Defaults to Season 1, so live/guest behavior is unchanged.
- * Falls back to the newest event by date if the selected id isn't found
- * (e.g. stale localStorage pointing at a deleted event).
+ * Falls back to the LIVE event if the selected id isn't found (e.g. stale
+ * localStorage pointing at a deleted event) — never to a future/draft event,
+ * so guest-facing pages can't accidentally render a draft Season 2.
  */
 export const getActiveEvent = async (): Promise<EventInfo> => {
   const selectedId = getSelectedEventId();
@@ -53,7 +54,18 @@ export const getActiveEvent = async (): Promise<EventInfo> => {
   if (selErr) throw selErr;
   if (selected) return rowToEvent(selected);
 
-  // Fallback: newest event by date.
+  // Fallback 1: the live event.
+  const { data: live, error: liveErr } = await supabase
+    .from('events')
+    .select('*')
+    .eq('status', 'live')
+    .order('date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (liveErr) throw liveErr;
+  if (live) return rowToEvent(live);
+
+  // Fallback 2 (no live event exists): newest event by date.
   const { data, error } = await supabase
     .from('events')
     .select('*')

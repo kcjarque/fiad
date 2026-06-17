@@ -6,6 +6,7 @@ import { listStores } from '../../services/storeService';
 import { Modal } from '../../components/shared/Modal';
 import { toast } from '../../stores/toastStore';
 import type { Challenge } from '../../types';
+import { useEventStore } from '../../stores/eventStore';
 
 const empty: Omit<Challenge, 'id' | 'eventId'> = {
   type: 'booth',
@@ -16,8 +17,9 @@ const empty: Omit<Challenge, 'id' | 'eventId'> = {
 
 export function AdminChallenges() {
   const qc = useQueryClient();
-  const { data: challenges = [] } = useQuery({ queryKey: ['challenges'], queryFn: listChallenges });
-  const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
+  const { data: challenges = [] } = useQuery({ queryKey: ['challenges', selectedEventId], queryFn: listChallenges });
+  const { data: stores = [] } = useQuery({ queryKey: ['stores', selectedEventId], queryFn: listStores });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Challenge | null>(null);
   const [draft, setDraft] = useState<Omit<Challenge, 'id' | 'eventId'>>(empty);

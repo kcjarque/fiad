@@ -33,9 +33,9 @@ export const createInquiry = async (
     eventType?: string;
     message?: string;
   },
-  // Event the lead came from. The public Season 2 page passes
-  // SEASON_2_EVENT_ID explicitly (a public browser's selected event still
-  // defaults to Season 1, so we can't infer it).
+  // Event the lead came from. The /rsvp funnel passes the chosen venue's
+  // event id explicitly (a public browser's selected event still defaults to
+  // Season 1, so we can't infer it).
   eventId: string = getSelectedEventId(),
 ): Promise<EventInquiry> => {
   const inquiry: Row = {

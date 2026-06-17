@@ -1,6 +1,5 @@
 import { supabase } from '../lib/supabase';
 import type { Admin, Store } from '../types';
-import { getSelectedEventId } from '../stores/eventStore';
 
 const rowToStore = (r: {
   id: string;
@@ -55,12 +54,12 @@ export const loginStore = async (storeId: string, passcode: string): Promise<Sto
   return data ? rowToStore(data) : null;
 };
 
+// NOT event-scoped: the booth-login picker must work regardless of which event
+// the browser happens to have selected (a shared device left on Season 2 would
+// otherwise show an empty dropdown and lock suppliers out). Booth ids/passcodes
+// are unique across events, so listing all is safe.
 export const listStoresForLogin = async (): Promise<Store[]> => {
-  const { data, error } = await supabase
-    .from('stores')
-    .select('*')
-    .eq('event_id', getSelectedEventId())
-    .order('booth_number');
+  const { data, error } = await supabase.from('stores').select('*').order('booth_number');
   if (error) throw error;
   return (data ?? []).map(rowToStore);
 };
