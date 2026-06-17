@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Landing } from './pages/Landing';
+import { InviteFunnel } from './pages/InviteFunnel';
 import { Register } from './pages/guest/Register';
 import { GuestLogin } from './pages/guest/Login';
 import { Ticket } from './pages/guest/Ticket';
@@ -18,11 +19,13 @@ import { StoreOverrides } from './pages/store/StoreOverrides';
 import { StorePassportQR } from './pages/store/StorePassportQR';
 import { StoreNav } from './components/store/StoreNav';
 import { AdminLogin } from './pages/admin/AdminLogin';
+import { AdminSelectEvent } from './pages/admin/AdminSelectEvent';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminEvent } from './pages/admin/AdminEvent';
 import { AdminStores } from './pages/admin/AdminStores';
 import { AdminSupplierSales } from './pages/admin/AdminSupplierSales';
 import { AdminGuests } from './pages/admin/AdminGuests';
+import { AdminInquiries } from './pages/admin/AdminInquiries';
 import { AdminTransactions } from './pages/admin/AdminTransactions';
 import { AdminOverrides } from './pages/admin/AdminOverrides';
 import { AdminChallenges } from './pages/admin/AdminChallenges';
@@ -76,6 +79,12 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
 
+        {/* Ads funnel — marketing landing → RSVP → "need help?" → thank-you */}
+        <Route path="/rsvp" element={<InviteFunnel />} />
+        {/* Retired: the older /season2 page is superseded by /rsvp (which routes
+            to the per-venue Season 2 events). Redirect so old links still work. */}
+        <Route path="/season2" element={<Navigate to="/rsvp" replace />} />
+
         {/* Guest */}
         <Route path="/app/register" element={<div className="max-w-md mx-auto bg-cream min-h-screen"><Register /></div>} />
         <Route path="/app/login" element={<div className="max-w-md mx-auto bg-cream min-h-screen"><GuestLogin /></div>} />
@@ -102,11 +111,13 @@ export default function App() {
 
         {/* Admin */}
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/events" element={<RequireAdmin><AdminSelectEvent /></RequireAdmin>} />
         <Route path="/admin/dashboard" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
         <Route path="/admin/event" element={<RequireAdmin><AdminEvent /></RequireAdmin>} />
         <Route path="/admin/stores" element={<RequireAdmin><AdminStores /></RequireAdmin>} />
         <Route path="/admin/supplier-sales" element={<RequireAdmin><AdminSupplierSales /></RequireAdmin>} />
         <Route path="/admin/guests" element={<RequireAdmin><AdminGuests /></RequireAdmin>} />
+        <Route path="/admin/inquiries" element={<RequireAdmin><AdminInquiries /></RequireAdmin>} />
         <Route path="/admin/transactions" element={<RequireAdmin><AdminTransactions /></RequireAdmin>} />
         <Route path="/admin/overrides" element={<RequireAdmin><AdminOverrides /></RequireAdmin>} />
         <Route path="/admin/challenges" element={<RequireAdmin><AdminChallenges /></RequireAdmin>} />

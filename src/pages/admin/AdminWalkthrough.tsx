@@ -5,6 +5,7 @@ import { createWalkthrough, deleteWalkthrough, listWalkthrough, updateWalkthroug
 import { Modal } from '../../components/shared/Modal';
 import { toast } from '../../stores/toastStore';
 import type { WalkthroughItem, WalkthroughType } from '../../types';
+import { useEventStore } from '../../stores/eventStore';
 
 const typeOptions: { value: WalkthroughType; label: string }[] = [
   { value: 'booth_info', label: 'Booth info' },
@@ -22,8 +23,9 @@ const empty: Omit<WalkthroughItem, 'id' | 'eventId'> = {
 
 export function AdminWalkthrough() {
   const qc = useQueryClient();
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
   const [filter, setFilter] = useState<WalkthroughType>('booth_info');
-  const { data: items = [] } = useQuery({ queryKey: ['walkthrough', filter], queryFn: () => listWalkthrough(filter) });
+  const { data: items = [] } = useQuery({ queryKey: ['walkthrough', filter, selectedEventId], queryFn: () => listWalkthrough(filter) });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<WalkthroughItem | null>(null);
   const [draft, setDraft] = useState<Omit<WalkthroughItem, 'id' | 'eventId'>>(empty);

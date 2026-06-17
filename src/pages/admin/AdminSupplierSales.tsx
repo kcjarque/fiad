@@ -8,6 +8,7 @@ import { listGuests } from '../../services/guestService';
 import { allStamps } from '../../services/passportService';
 import { Modal } from '../../components/shared/Modal';
 import { peso } from '../../utils/id';
+import { useEventStore } from '../../stores/eventStore';
 
 type SortKey = 'alpha' | 'sales' | 'scans';
 
@@ -23,10 +24,11 @@ type Row = {
 };
 
 export function AdminSupplierSales() {
-  const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
-  const { data: transactions = [] } = useQuery({ queryKey: ['transactions'], queryFn: () => listTransactions() });
-  const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
-  const { data: stamps = [] } = useQuery({ queryKey: ['allStamps'], queryFn: allStamps });
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
+  const { data: stores = [] } = useQuery({ queryKey: ['stores', selectedEventId], queryFn: listStores });
+  const { data: transactions = [] } = useQuery({ queryKey: ['transactions', selectedEventId], queryFn: () => listTransactions() });
+  const { data: guests = [] } = useQuery({ queryKey: ['guests', selectedEventId], queryFn: listGuests });
+  const { data: stamps = [] } = useQuery({ queryKey: ['allStamps', selectedEventId], queryFn: allStamps });
 
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
 

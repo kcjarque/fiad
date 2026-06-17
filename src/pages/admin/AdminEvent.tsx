@@ -6,10 +6,12 @@ import { toast } from '../../stores/toastStore';
 import { resetDb } from '../../data/mockDb';
 import { useAuth } from '../../stores/authStore';
 import type { EventInfo } from '../../types';
+import { useEventStore } from '../../stores/eventStore';
 
 export function AdminEvent() {
   const queryClient = useQueryClient();
-  const { data: active } = useQuery({ queryKey: ['activeEvent'], queryFn: getActiveEvent });
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
+  const { data: active } = useQuery({ queryKey: ['activeEvent', selectedEventId], queryFn: getActiveEvent });
   const [event, setEvent] = useState<EventInfo | null>(null);
   const [dirty, setDirty] = useState(false);
   const logout = useAuth((s) => s.logout);
@@ -33,7 +35,7 @@ export function AdminEvent() {
     if (!event.venue.trim()) return toast.error('Venue is required.');
     try {
       await updateEvent(event);
-      await queryClient.invalidateQueries({ queryKey: ['activeEvent'] });
+      await queryClient.invalidateQueries({ queryKey: ['activeEvent'] }); // prefix match — invalidates all events
       setDirty(false);
       toast.success('Event settings saved.');
     } catch (err) {

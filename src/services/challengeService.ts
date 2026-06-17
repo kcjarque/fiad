@@ -2,8 +2,7 @@ import { supabase } from '../lib/supabase';
 import type { Challenge, ChallengeCompletion, PassportStamp } from '../types';
 import { uid } from '../utils/id';
 import { HIDDEN_STORE_IDS } from '../constants/hidden';
-
-const ACTIVE_EVENT_ID = 'evt_fiad_dec25';
+import { getSelectedEventId } from '../stores/eventStore';
 
 type ChallengeRow = {
   id: string;
@@ -44,7 +43,11 @@ const rowToCompletion = (r: CompletionRow): ChallengeCompletion => ({
 });
 
 export const listChallenges = async (): Promise<Challenge[]> => {
-  const { data, error } = await supabase.from('challenges').select('*').order('id');
+  const { data, error } = await supabase
+    .from('challenges')
+    .select('*')
+    .eq('event_id', getSelectedEventId())
+    .order('id');
   if (error) throw error;
   // Hide quests linked to a no-show supplier so guests don't see a quest
   // they can't physically complete.
@@ -53,10 +56,12 @@ export const listChallenges = async (): Promise<Challenge[]> => {
     .map(rowToChallenge);
 };
 
-export const createChallenge = async (c: Omit<Challenge, 'id'>): Promise<Challenge> => {
+export const createChallenge = async (
+  c: Omit<Challenge, 'id' | 'eventId'> & { eventId?: string },
+): Promise<Challenge> => {
   const row: ChallengeRow = {
     id: uid('ch'),
-    event_id: c.eventId || ACTIVE_EVENT_ID,
+    event_id: c.eventId || getSelectedEventId(),
     type: c.type,
     name: c.name,
     description: c.description,

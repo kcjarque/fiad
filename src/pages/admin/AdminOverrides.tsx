@@ -9,9 +9,11 @@ import { useAuth } from '../../stores/authStore';
 import { toast } from '../../stores/toastStore';
 import { formatDate, peso } from '../../utils/id';
 import { EmptyState } from '../../components/shared/EmptyState';
+import { useEventStore } from '../../stores/eventStore';
 
 export function AdminOverrides() {
   const queryClient = useQueryClient();
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
   const session = useAuth((s) => s.session);
   const adminId = session.role === 'admin' ? session.adminId : 'unknown';
   const { data: pending = [] } = useQuery({
@@ -27,9 +29,9 @@ export function AdminOverrides() {
     },
   });
 
-  const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
-  const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
-  const { data: transactions = [] } = useQuery({ queryKey: ['transactions'], queryFn: () => listTransactions() });
+  const { data: guests = [] } = useQuery({ queryKey: ['guests', selectedEventId], queryFn: listGuests });
+  const { data: stores = [] } = useQuery({ queryKey: ['stores', selectedEventId], queryFn: listStores });
+  const { data: transactions = [] } = useQuery({ queryKey: ['transactions', selectedEventId], queryFn: () => listTransactions() });
 
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const storesById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);

@@ -8,6 +8,7 @@ import { listStores } from '../../services/storeService';
 import { Confetti } from '../../components/shared/Confetti';
 import { Trophy, MonitorPlay } from 'lucide-react';
 import { openChannel, postMessage, type StageMsg, type Prize as ChannelPrize } from '../../utils/drawChannel';
+import { useEventStore } from '../../stores/eventStore';
 
 const ROW_HEIGHT = 64;
 const VISIBLE_ROWS = 5;
@@ -15,14 +16,15 @@ const CENTER_INDEX = Math.floor(VISIBLE_ROWS / 2);
 
 export function AdminDraw() {
   const queryClient = useQueryClient();
-  const { data: prizes = [] } = useQuery({ queryKey: ['prizes'], queryFn: listPrizes });
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
+  const { data: prizes = [] } = useQuery({ queryKey: ['prizes', selectedEventId], queryFn: listPrizes });
   // Full pool (incl. tickets that already won) + the won-ticket set, so we
   // can apply the won-exclusion only for hourly prizes — the grand prize has
   // no past-winner limitation.
-  const { data: allPool = [] } = useQuery({ queryKey: ['raffle', 'all'], queryFn: allEntries });
-  const { data: wonTickets = new Set<string>() } = useQuery({ queryKey: ['raffle', 'won'], queryFn: wonTicketNumbers });
-  const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
-  const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
+  const { data: allPool = [] } = useQuery({ queryKey: ['raffle', 'all', selectedEventId], queryFn: allEntries });
+  const { data: wonTickets = new Set<string>() } = useQuery({ queryKey: ['raffle', 'won', selectedEventId], queryFn: wonTicketNumbers });
+  const { data: guests = [] } = useQuery({ queryKey: ['guests', selectedEventId], queryFn: listGuests });
+  const { data: stores = [] } = useQuery({ queryKey: ['stores', selectedEventId], queryFn: listStores });
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const storesById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
 

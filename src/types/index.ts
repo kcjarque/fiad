@@ -6,6 +6,8 @@ export type Guest = {
   qrToken: string;
   registeredAt: string;
   eventId: string;
+  /** Which day the guest plans to attend ('day1' | 'day2'). Set by the RSVP funnel. */
+  preferredDay?: string;
   /**
    * Plaintext 6-char access code. Only included in admin-facing queries so admins
    * can read it back to guests who lost their welcome email. Never sent to
@@ -47,6 +49,18 @@ export type EventInfo = {
   raffleRate: number;
   dailyCapPerGuestPerStore: number;
   status: EventStatus;
+};
+
+/** A lead captured from the "Need help organizing your event?" form. */
+export type EventInquiry = {
+  id: string;
+  eventId?: string;
+  name: string;
+  email: string;
+  phone: string;
+  eventType?: string;
+  message?: string;
+  createdAt: string;
 };
 
 export type TransactionStatus = 'approved' | 'pending_override' | 'rejected';

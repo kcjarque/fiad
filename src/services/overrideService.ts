@@ -27,6 +27,12 @@ const rowToOverride = (r: Row): OverrideRequest => ({
   respondedBy: r.responded_by ?? undefined,
 });
 
+// NOTE: override_requests has no event_id column and is intentionally NOT
+// event-scoped. Overrides are only ever created by booth transactions
+// (a spend exceeding the daily cap), which is Season-1 bazaar behavior;
+// the Season 2 page is registration-only and produces no transactions, so
+// this queue can't be polluted across events. Revisit if Season 2 ever
+// becomes a transacting event.
 export const listOverrides = async (filter?: {
   storeId?: string;
   status?: OverrideRequest['status'];

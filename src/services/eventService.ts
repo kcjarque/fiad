@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { EventInfo } from '../types';
+import { getSelectedEventId } from '../stores/eventStore';
 
 const rowToEvent = (r: {
   id: string;
@@ -19,7 +20,52 @@ const rowToEvent = (r: {
   status: r.status,
 });
 
+/** Fetch a single event by id (used by the public RSVP funnel for Season 2). */
+export const getEventById = async (id: string): Promise<EventInfo | undefined> => {
+  const { data, error } = await supabase.from('events').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data ? rowToEvent(data) : undefined;
+};
+
+/** Every event, newest first — used by the admin event switcher. */
+export const listEvents = async (): Promise<EventInfo[]> => {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .order('date', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(rowToEvent);
+};
+
+/**
+ * The "current" event = whichever event this browser has selected
+ * (multi-tenant). Defaults to Season 1, so live/guest behavior is unchanged.
+ * Falls back to the LIVE event if the selected id isn't found (e.g. stale
+ * localStorage pointing at a deleted event) — never to a future/draft event,
+ * so guest-facing pages can't accidentally render a draft Season 2.
+ */
 export const getActiveEvent = async (): Promise<EventInfo> => {
+  const selectedId = getSelectedEventId();
+  const { data: selected, error: selErr } = await supabase
+    .from('events')
+    .select('*')
+    .eq('id', selectedId)
+    .maybeSingle();
+  if (selErr) throw selErr;
+  if (selected) return rowToEvent(selected);
+
+  // Fallback 1: the live event.
+  const { data: live, error: liveErr } = await supabase
+    .from('events')
+    .select('*')
+    .eq('status', 'live')
+    .order('date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (liveErr) throw liveErr;
+  if (live) return rowToEvent(live);
+
+  // Fallback 2 (no live event exists): newest event by date.
   const { data, error } = await supabase
     .from('events')
     .select('*')

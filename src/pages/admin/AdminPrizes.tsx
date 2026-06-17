@@ -6,13 +6,15 @@ import { listGuests } from '../../services/guestService';
 import { Modal } from '../../components/shared/Modal';
 import { toast } from '../../stores/toastStore';
 import type { Prize } from '../../types';
+import { useEventStore } from '../../stores/eventStore';
 
 const empty = { name: '', description: '', imageUrl: '', quantity: 1 };
 
 export function AdminPrizes() {
   const qc = useQueryClient();
-  const { data: prizes = [] } = useQuery({ queryKey: ['prizes'], queryFn: listPrizes });
-  const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
+  const { data: prizes = [] } = useQuery({ queryKey: ['prizes', selectedEventId], queryFn: listPrizes });
+  const { data: guests = [] } = useQuery({ queryKey: ['guests', selectedEventId], queryFn: listGuests });
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
 
   const [open, setOpen] = useState(false);

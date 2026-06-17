@@ -7,6 +7,7 @@ import { listGuests } from '../../services/guestService';
 import { Modal } from '../../components/shared/Modal';
 import { formatDate, peso } from '../../utils/id';
 import type { Transaction, TransactionStatus } from '../../types';
+import { useEventStore } from '../../stores/eventStore';
 
 const statusClass: Record<TransactionStatus, string> = {
   approved: 'bg-emerald-100 text-emerald-800',
@@ -15,13 +16,14 @@ const statusClass: Record<TransactionStatus, string> = {
 };
 
 export function AdminTransactions() {
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
   const [storeFilter, setStoreFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<TransactionStatus | ''>('');
   const [selected, setSelected] = useState<Transaction | null>(null);
 
-  const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
-  const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
-  const { data: allTx = [] } = useQuery({ queryKey: ['transactions'], queryFn: () => listTransactions() });
+  const { data: stores = [] } = useQuery({ queryKey: ['stores', selectedEventId], queryFn: listStores });
+  const { data: guests = [] } = useQuery({ queryKey: ['guests', selectedEventId], queryFn: listGuests });
+  const { data: allTx = [] } = useQuery({ queryKey: ['transactions', selectedEventId], queryFn: () => listTransactions() });
 
   // The list query omits the heavy receipt blob; fetch it only for the
   // transaction the admin actually opens.

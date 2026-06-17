@@ -1,8 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { PassportStamp } from '../types';
 import { uid } from '../utils/id';
-
-const ACTIVE_EVENT_ID = 'evt_fiad_dec25';
+import { getSelectedEventId } from '../stores/eventStore';
 
 type Row = {
   id: string;
@@ -25,12 +24,14 @@ const rowToStamp = (r: Row): PassportStamp => ({
  * sales report to count scans per booth + list who scanned.
  */
 export const allStamps = async (): Promise<{ storeId: string; guestId: string }[]> => {
+  const eventId = getSelectedEventId();
   const PAGE = 1000;
   const out: { storeId: string; guestId: string }[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from('passport_stamps')
       .select('store_id,guest_id')
+      .eq('event_id', eventId)
       .range(from, from + PAGE - 1);
     if (error) throw error;
     const batch = data ?? [];
@@ -47,6 +48,7 @@ export const allStamps = async (): Promise<{ storeId: string; guestId: string }[
  * booth QR). Paginated so it stays accurate past 1000 stamps.
  */
 export const stampActivity = async (): Promise<{ guestIds: Set<string>; totalStamps: number }> => {
+  const eventId = getSelectedEventId();
   const PAGE = 1000;
   const guestIds = new Set<string>();
   let total = 0;
@@ -54,6 +56,7 @@ export const stampActivity = async (): Promise<{ guestIds: Set<string>; totalSta
     const { data, error } = await supabase
       .from('passport_stamps')
       .select('guest_id')
+      .eq('event_id', eventId)
       .range(from, from + PAGE - 1);
     if (error) throw error;
     const batch = data ?? [];
@@ -91,7 +94,7 @@ export const stampPassport = async (
     id: uid('stamp'),
     guest_id: guestId,
     store_id: storeId,
-    event_id: ACTIVE_EVENT_ID,
+    event_id: getSelectedEventId(),
     stamped_at: new Date().toISOString(),
   };
   const { data, error } = await supabase

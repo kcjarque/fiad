@@ -8,6 +8,7 @@ import { totalEntries } from '../../services/raffleService';
 import { listOverrides } from '../../services/overrideService';
 import { stampActivity } from '../../services/passportService';
 import { peso } from '../../utils/id';
+import { useEventStore } from '../../stores/eventStore';
 
 function Stat({
   label,
@@ -31,16 +32,17 @@ function Stat({
 }
 
 export function AdminDashboard() {
-  const { data: guests = [] } = useQuery({ queryKey: ['guests'], queryFn: listGuests });
-  const { data: transactions = [] } = useQuery({ queryKey: ['transactions'], queryFn: () => listTransactions() });
-  const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
-  const { data: entries = 0 } = useQuery({ queryKey: ['raffle', 'total'], queryFn: totalEntries });
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
+  const { data: guests = [] } = useQuery({ queryKey: ['guests', selectedEventId], queryFn: listGuests });
+  const { data: transactions = [] } = useQuery({ queryKey: ['transactions', selectedEventId], queryFn: () => listTransactions() });
+  const { data: stores = [] } = useQuery({ queryKey: ['stores', selectedEventId], queryFn: listStores });
+  const { data: entries = 0 } = useQuery({ queryKey: ['raffle', 'total', selectedEventId], queryFn: totalEntries });
   const { data: pendingOverrides = [] } = useQuery({
     queryKey: ['overrides', 'pending'],
     queryFn: () => listOverrides({ status: 'pending' }),
   });
   const { data: stamps = { guestIds: new Set<string>(), totalStamps: 0 } } = useQuery({
-    queryKey: ['stampActivity'],
+    queryKey: ['stampActivity', selectedEventId],
     queryFn: stampActivity,
   });
 

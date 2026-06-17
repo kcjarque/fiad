@@ -1,8 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { WalkthroughItem, WalkthroughType } from '../types';
 import { uid } from '../utils/id';
-
-const ACTIVE_EVENT_ID = 'evt_fiad_dec25';
+import { getSelectedEventId } from '../stores/eventStore';
 
 type Row = {
   id: string;
@@ -29,7 +28,11 @@ const rowToItem = (r: Row): WalkthroughItem => ({
 });
 
 export const listWalkthrough = async (type?: WalkthroughType): Promise<WalkthroughItem[]> => {
-  let q = supabase.from('walkthrough_items').select('*').order('sort_order');
+  let q = supabase
+    .from('walkthrough_items')
+    .select('*')
+    .eq('event_id', getSelectedEventId())
+    .order('sort_order');
   if (type) q = q.eq('type', type);
   const { data, error } = await q;
   if (error) throw error;
@@ -41,7 +44,7 @@ export const createWalkthrough = async (
 ): Promise<WalkthroughItem> => {
   const row: Row = {
     id: uid('wt'),
-    event_id: ACTIVE_EVENT_ID,
+    event_id: getSelectedEventId(),
     type: w.type,
     title: w.title,
     content: w.content,

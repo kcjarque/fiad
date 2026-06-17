@@ -7,6 +7,7 @@ import { Modal } from '../../components/shared/Modal';
 import { toast } from '../../stores/toastStore';
 import { QRDisplay } from '../../components/shared/QRDisplay';
 import type { Store } from '../../types';
+import { useEventStore } from '../../stores/eventStore';
 
 const empty = { name: '', category: '', description: '', logoUrl: '', boothNumber: '', passcode: '' };
 
@@ -31,7 +32,8 @@ const copyToClipboard = async (text: string, label: string) => {
 
 export function AdminStores() {
   const queryClient = useQueryClient();
-  const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
+  const { data: stores = [] } = useQuery({ queryKey: ['stores', selectedEventId], queryFn: listStores });
   const [editing, setEditing] = useState<Store | null>(null);
   const [draft, setDraft] = useState(empty);
   const [showQr, setShowQr] = useState<Store | null>(null);
