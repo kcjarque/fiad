@@ -22,6 +22,7 @@ import { registerGuest } from '../services/guestService';
 import { createInquiry } from '../services/inquiryService';
 import { getEventById } from '../services/eventService';
 import { initMetaPixel, trackLead } from '../lib/meta';
+import { notifyRsvp, notifyInquiry } from '../lib/notify';
 import { toast } from '../stores/toastStore';
 
 // Season 2 runs at TWO venues on overlapping dates. Each venue is its own
@@ -184,14 +185,21 @@ export function InviteFunnel() {
     }
     setBusy(true);
     try {
-      await registerGuest(
+      const guest = await registerGuest(
         { name: form.name, email: form.email, mobile: form.mobile, preferredDay: form.day },
         selected.eventId,
       );
-      // Fire the deduplicated Meta Lead (Pixel + CAPI) fire-and-forget — it must
-      // never block the thank-you transition or surface a false "Registration
-      // failed" if tracking hiccups. trackLead swallows its own errors.
+      // Fire-and-forget: Meta Lead tracking + RSVP confirmation email/SMS.
+      // Both helpers swallow their own errors — neither must block the funnel.
       void trackLead({ email: form.email, phone: form.mobile, name: form.name, preferredDay: form.day });
+      void notifyRsvp({
+        name: form.name,
+        email: form.email,
+        mobile: form.mobile,
+        accessCode: guest.accessCode ?? '',
+        venue: venueLabel,
+        date: chosenDate,
+      });
       setStep('help');
       window.scrollTo({ top: 0 });
     } catch (err) {
@@ -673,6 +681,14 @@ function HelpStep({
         },
         eventId,
       );
+      // Fire-and-forget: alert admin of new planning inquiry.
+      void notifyInquiry({
+        name: prefill.name,
+        email: prefill.email,
+        phone: prefill.mobile,
+        eventType: inq.eventType,
+        message: inq.message,
+      });
       toast.success('Thanks! Our team will reach out.');
       onDone();
     } catch (err) {
