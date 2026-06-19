@@ -1,0 +1,70 @@
+<!-- Registration welcome email (sequence engine template).
+     Lean + spam-safe: table layout, inline styles only, hosted images by URL
+     (NO base64), good text-to-image ratio. Variables: {{firstName}} {{eventName}}
+     {{venue}} {{eventDate}} {{dayLabel}} {{accessCode}} {{qrImageUrl}}
+     {{appLink}} {{shareLink}}. Logo is the live www.fiad.app/logo.png. -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4eee8;margin:0;padding:0;">
+  <tr><td align="center" style="padding:28px 12px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid #ece3d8;border-radius:16px;">
+
+      <!-- Logo -->
+      <tr><td align="center" style="padding:30px 36px 14px;">
+        <img src="https://www.fiad.app/logo.png" alt="Forever in a Day" width="148" style="width:148px;height:auto;display:block;border:0;" />
+      </td></tr>
+      <tr><td style="padding:0 36px;"><div style="height:1px;background:#ece3d8;"></div></td></tr>
+
+      <!-- Greeting -->
+      <tr><td style="padding:24px 36px 4px;">
+        <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-weight:normal;font-size:25px;line-height:1.25;color:#3c1e32;">You're on the list, {{firstName}}.</h1>
+        <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#6b5563;">Your spot at <strong style="color:#3c1e32;">{{eventName}}</strong> is confirmed. Here's everything you need for the day.</p>
+      </td></tr>
+
+      <!-- Event details -->
+      <tr><td style="padding:20px 36px 4px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#faf6f1;border-radius:12px;">
+          <tr><td style="padding:16px 18px;">
+            <p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#b08a52;">Venue</p>
+            <p style="margin:0 0 12px;font-family:Georgia,serif;font-size:16px;color:#3c1e32;">{{venue}}</p>
+            <p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#b08a52;">When</p>
+            <p style="margin:0;font-family:Georgia,serif;font-size:16px;color:#3c1e32;">{{eventDate}} &middot; {{dayLabel}}</p>
+          </td></tr>
+        </table>
+      </td></tr>
+
+      <!-- Check-in QR -->
+      <tr><td align="center" style="padding:24px 36px 6px;">
+        <p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#b08a52;">Your check-in pass</p>
+        <img src="{{qrImageUrl}}" alt="Check-in QR code" width="190" style="width:190px;height:190px;display:block;border:8px solid #faf6f1;border-radius:14px;" />
+        <p style="margin:12px 0 0;font-family:Arial,sans-serif;font-size:13px;line-height:1.5;color:#6b5563;">Show this at the entrance for a fast check-in.</p>
+      </td></tr>
+
+      <!-- App passcode -->
+      <tr><td style="padding:18px 36px 4px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #efd9c9;border-radius:12px;">
+          <tr><td align="center" style="padding:16px;">
+            <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#e06b52;">Your app passcode</p>
+            <p style="margin:0;font-family:'Courier New',monospace;font-size:26px;letter-spacing:6px;font-weight:bold;color:#3c1e32;">{{accessCode}}</p>
+          </td></tr>
+        </table>
+      </td></tr>
+
+      <!-- App CTA + lock note -->
+      <tr><td align="center" style="padding:18px 36px 4px;">
+        <a href="{{appLink}}" style="display:inline-block;background:#3c1e32;color:#ffffff;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;text-decoration:none;padding:13px 30px;border-radius:999px;">Open the event app</a>
+        <p style="margin:12px 0 0;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;color:#9a8576;">Your app unlocks once your QR is scanned at check-in on event day.</p>
+      </td></tr>
+
+      <!-- Share -->
+      <tr><td style="padding:18px 36px 8px;">
+        <div style="height:1px;background:#ece3d8;"></div>
+        <p style="margin:16px 0 0;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#6b5563;text-align:center;">Know someone planning a wedding or debut?<br/><a href="{{shareLink}}" style="color:#e06b52;font-weight:bold;text-decoration:none;">Invite them to FIAD &rarr;</a></p>
+      </td></tr>
+
+      <!-- Footer -->
+      <tr><td align="center" style="padding:18px 36px 28px;">
+        <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#b3a597;">Forever in a Day &middot; <a href="https://www.fiad.app" style="color:#b3a597;text-decoration:underline;">fiad.app</a></p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
