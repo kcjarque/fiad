@@ -27,7 +27,9 @@ REF=cjhnsyldnzdedgianzsj
 : "${CONEXMAIL_API_KEY:?set CONEXMAIL_API_KEY in .env.local}"
 
 echo "▸ Deploying notify function to $REF…"
-supabase functions deploy notify --project-ref "$REF" --no-verify-jwt
+# JWT verification ON: the funnel calls it with the project anon key, so this
+# requires a valid key and avoids leaving an open email/SMS relay.
+supabase functions deploy notify --project-ref "$REF"
 
 echo "▸ Setting secrets…"
 args=(
