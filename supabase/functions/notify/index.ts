@@ -8,11 +8,11 @@
 // { ok: true, skipped: '...' } so the funnel is never blocked.
 //
 // Secrets (Supabase dashboard → Edge Functions → notify):
-//   CONEXMAIL_BASE_URL        e.g. https://mail.conexmedia.ph
-//   CONEXMAIL_API_KEY         cm_live_…
-//   ONEWAYSMS_BASE_URL        e.g. https://gateway.onewaysms.ph/api.aspx
-//   ONEWAYSMS_USERNAME
-//   ONEWAYSMS_PASSWORD
+//   CONEXMAIL_BASE_URL        https://conexmail.vercel.app (or custom domain)
+//   CONEXMAIL_API_KEY         cm_live_…  (Conex Media workspace key)
+//   ONEWAYSMS_BASE_URL        optional — defaults to gateway80.onewaysms.ph/api2.aspx
+//   ONEWAYSMS_USERNAME        OneWaySMS account API username
+//   ONEWAYSMS_PASSWORD        OneWaySMS account API password
 //   ONEWAYSMS_SENDER          default: FIAD
 //   FIAD_ADMIN_EMAIL          default: admin@fiad.app
 //   FIAD_ADMIN_MOBILE         e.g. 09171234567 (optional — skip SMS if absent)
@@ -64,25 +64,46 @@ async function sendEmail(opts: {
   }
 }
 
+/** Normalize a PH mobile to OneWaySMS format (63XXXXXXXXXX, no '+'). */
+function normalizePhMobile(input: string): string | null {
+  const digits = input.replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('63') && digits.length >= 12) return digits;
+  if (digits.startsWith('09') && digits.length === 11) return `63${digits.slice(1)}`;
+  if (digits.startsWith('9') && digits.length === 10) return `63${digits}`;
+  return null;
+}
+
 async function sendSms(opts: {
   to: string;
   message: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const base = Deno.env.get('ONEWAYSMS_BASE_URL');
+  // Gateway is fixed for OneWaySMS PH; only the account creds vary. Override
+  // with ONEWAYSMS_BASE_URL only if provisioned on a different gateway.
+  const base = Deno.env.get('ONEWAYSMS_BASE_URL') ?? 'http://gateway80.onewaysms.ph/api2.aspx';
   const user = Deno.env.get('ONEWAYSMS_USERNAME');
   const pass = Deno.env.get('ONEWAYSMS_PASSWORD');
   const sender = Deno.env.get('ONEWAYSMS_SENDER') ?? 'FIAD';
-  if (!base || !user || !pass) return { sent: false, error: 'not_configured' };
+  if (!user || !pass) return { sent: false, error: 'not_configured' };
+
+  const mobile = normalizePhMobile(opts.to);
+  if (!mobile) return { sent: false, error: 'invalid_mobile' };
 
   try {
     const url = new URL(base);
     url.searchParams.set('apiusername', user);
     url.searchParams.set('apipassword', pass);
     url.searchParams.set('senderid', sender);
-    url.searchParams.set('mobileno', opts.to.replace(/[^0-9]/g, ''));
+    url.searchParams.set('mobileno', mobile);
+    url.searchParams.set('languagetype', '1');
     url.searchParams.set('message', opts.message);
     const res = await fetch(url.toString());
-    return { sent: res.ok, error: res.ok ? undefined : `status_${res.status}` };
+    // OneWaySMS replies HTTP 200 with a signed integer body: a positive
+    // transaction id means accepted, a negative number is an error code.
+    const text = (await res.text()).trim();
+    const num = parseInt(text, 10);
+    const ok = !Number.isNaN(num) && num > 0;
+    return { sent: ok, error: ok ? undefined : `gateway_${text.slice(0, 40)}` };
   } catch (e) {
     return { sent: false, error: String(e) };
   }
