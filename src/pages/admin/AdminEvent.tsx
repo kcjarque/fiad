@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { getActiveEvent, updateEvent } from '../../services/eventService';
+import { getSmsUsage } from '../../services/smsService';
 import { toast } from '../../stores/toastStore';
 import { resetDb } from '../../data/mockDb';
 import { useAuth } from '../../stores/authStore';
@@ -12,6 +13,7 @@ export function AdminEvent() {
   const queryClient = useQueryClient();
   const selectedEventId = useEventStore((s) => s.selectedEventId);
   const { data: active } = useQuery({ queryKey: ['activeEvent', selectedEventId], queryFn: getActiveEvent });
+  const { data: sms } = useQuery({ queryKey: ['smsUsage'], queryFn: getSmsUsage });
   const [event, setEvent] = useState<EventInfo | null>(null);
   const [dirty, setDirty] = useState(false);
   const logout = useAuth((s) => s.logout);
@@ -95,6 +97,25 @@ export function AdminEvent() {
           </select>
         </div>
         <button className="btn-primary" onClick={save}>Save</button>
+      </div>
+
+      <div className="mt-10 max-w-2xl border-t border-plum/10 pt-6">
+        <div className="font-display text-xl text-plum">Text Messages</div>
+        <p className="text-sm text-plum/60 mt-1">
+          SMS sent to guests (RSVP confirmations) and to admin (inquiry alerts), across all events.
+        </p>
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="card bg-cream/60 text-center py-5">
+            <div className="text-3xl font-display text-plum">{(sms?.texts ?? 0).toLocaleString('en-PH')}</div>
+            <div className="text-sm text-plum/60 mt-1">Texts sent</div>
+          </div>
+          <div className="card bg-cream/60 text-center py-5">
+            <div className="text-3xl font-display text-coral">
+              ₱{(sms?.costPhp ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="text-sm text-plum/60 mt-1">Total cost</div>
+          </div>
+        </div>
       </div>
 
       <div className="mt-10 max-w-2xl border-t border-plum/10 pt-6">

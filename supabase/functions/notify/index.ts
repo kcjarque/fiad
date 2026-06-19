@@ -17,8 +17,42 @@
 //   FIAD_ADMIN_EMAIL          default: admin@fiad.app
 //   FIAD_ADMIN_MOBILE         e.g. 09171234567 (optional — skip SMS if absent)
 
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
 // deno-lint-ignore no-explicit-any
 const Deno: any = (globalThis as any).Deno;
+
+// Service-role client for writing the SMS usage log (bypasses RLS). The URL +
+// key are injected into every edge function automatically.
+const db = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+);
+
+/** Billable SMS segments for a GSM-7 (plain ASCII) message: 160 chars each. */
+function smsSegments(message: string): number {
+  return Math.max(1, Math.ceil(message.length / 160));
+}
+
+/** Best-effort row in sms_log — never throws into the send path. */
+async function logSms(row: {
+  kind: string;
+  to: string;
+  segments: number;
+  status: 'sent' | 'failed';
+}): Promise<void> {
+  try {
+    await db.from('sms_log').insert({
+      id: `sms_${crypto.randomUUID()}`,
+      kind: row.kind,
+      to_phone: row.to,
+      segments: row.segments,
+      status: row.status,
+    });
+  } catch {
+    /* logging must never break notifications */
+  }
+}
 
 const CORS = {
   'access-control-allow-origin': '*',
@@ -77,6 +111,7 @@ function normalizePhMobile(input: string): string | null {
 async function sendSms(opts: {
   to: string;
   message: string;
+  kind: string;
 }): Promise<{ sent: boolean; error?: string }> {
   // Gateway is fixed for OneWaySMS PH; only the account creds vary. Override
   // with ONEWAYSMS_BASE_URL only if provisioned on a different gateway.
@@ -89,6 +124,7 @@ async function sendSms(opts: {
   const mobile = normalizePhMobile(opts.to);
   if (!mobile) return { sent: false, error: 'invalid_mobile' };
 
+  const segments = smsSegments(opts.message);
   try {
     const url = new URL(base);
     url.searchParams.set('apiusername', user);
@@ -103,8 +139,10 @@ async function sendSms(opts: {
     const text = (await res.text()).trim();
     const num = parseInt(text, 10);
     const ok = !Number.isNaN(num) && num > 0;
+    await logSms({ kind: opts.kind, to: mobile, segments, status: ok ? 'sent' : 'failed' });
     return { sent: ok, error: ok ? undefined : `gateway_${text.slice(0, 40)}` };
   } catch (e) {
+    await logSms({ kind: opts.kind, to: mobile, segments, status: 'failed' });
     return { sent: false, error: String(e) };
   }
 }
@@ -266,7 +304,7 @@ Deno.serve(async (req: Request) => {
     // SMS to guest — keep under 160 chars
     if (mobile) {
       const smsText = `FIAD S2: You're in, ${firstName}! Access code: ${accessCode}. Venue: ${shortVenue}, ${date}. Keep this for event check-in. See you there!`;
-      results.sms = await sendSms({ to: mobile, message: smsText });
+      results.sms = await sendSms({ to: mobile, message: smsText, kind: 'rsvp_confirmation' });
     }
   }
 
@@ -289,7 +327,7 @@ Deno.serve(async (req: Request) => {
     // SMS to admin (optional)
     if (adminMobile) {
       const parts = [`FIAD Inquiry: ${name}`, phone, eventType].filter(Boolean).join(' | ');
-      results.sms = await sendSms({ to: adminMobile, message: parts });
+      results.sms = await sendSms({ to: adminMobile, message: parts, kind: 'inquiry_lead' });
     }
   }
 
