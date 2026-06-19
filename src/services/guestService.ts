@@ -13,6 +13,7 @@ type Row = {
   registered_at: string;
   access_code?: string | null;
   preferred_day?: string | null;
+  checked_in_at?: string | null;
 };
 
 const rowToGuest = (r: Row): Guest => ({
@@ -25,6 +26,7 @@ const rowToGuest = (r: Row): Guest => ({
   registeredAt: r.registered_at,
   accessCode: r.access_code ?? undefined,
   preferredDay: r.preferred_day ?? undefined,
+  checkedInAt: r.checked_in_at ?? undefined,
 });
 
 const CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -171,6 +173,23 @@ export const getGuestByQr = async (qrToken: string): Promise<Guest | undefined> 
     .maybeSingle();
   if (error) throw error;
   return data ? rowToGuest(data) : undefined;
+};
+
+/**
+ * Admin door check-in: look up the guest by their QR token and stamp
+ * checked_in_at. Returns null if the QR doesn't match a guest. If they were
+ * already checked in, the existing timestamp is preserved and flagged.
+ */
+export const checkInGuestByQr = async (
+  qrToken: string,
+): Promise<{ guest: Guest; alreadyCheckedIn: boolean } | null> => {
+  const guest = await getGuestByQr(qrToken);
+  if (!guest) return null;
+  if (guest.checkedInAt) return { guest, alreadyCheckedIn: true };
+  const at = new Date().toISOString();
+  const { error } = await supabase.from('guests').update({ checked_in_at: at }).eq('id', guest.id);
+  if (error) throw error;
+  return { guest: { ...guest, checkedInAt: at }, alreadyCheckedIn: false };
 };
 
 export const findGuestByEmail = async (

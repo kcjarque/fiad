@@ -10,6 +10,7 @@ const sections = [
   { to: '/admin/stores', label: 'Vendors' },
   { to: '/admin/supplier-sales', label: 'Supplier Sales' },
   { to: '/admin/guests', label: 'Guests' },
+  { to: '/admin/checkin', label: 'Check-in' },
   { to: '/admin/inquiries', label: 'Inquiries' },
   { to: '/admin/transactions', label: 'Transactions' },
   { to: '/admin/overrides', label: 'Overrides' },

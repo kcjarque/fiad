@@ -14,6 +14,8 @@ export type Guest = {
    * non-admin clients (the login Edge Function compares server-side).
    */
   accessCode?: string;
+  /** Set when an admin scans the guest in at the door. */
+  checkedInAt?: string;
 };
 
 export type Store = {
