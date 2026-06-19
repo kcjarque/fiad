@@ -289,7 +289,7 @@ function Landing({
           className="reveal text-plum/75 text-lg mt-5 max-w-xl mx-auto"
           style={{ animationDelay: '160ms' }}
         >
-          Meet the country’s most-loved suppliers, try on gowns, taste the cakes, and watch a live
+          Meet the country's most-loved suppliers, try on gowns, taste the cakes, and watch a live
           runway show — a Fil-Korean celebration fair made for couples like you.
         </p>
 
@@ -328,11 +328,11 @@ function Landing({
             onClick={() => document.getElementById('experience')?.scrollIntoView({ behavior: 'smooth' })}
             className="btn-ghost w-full sm:w-auto text-plum/70"
           >
-            See what’s inside <ChevronDown size={16} className="ml-1" aria-hidden="true" />
+            See what's inside <ChevronDown size={16} className="ml-1" aria-hidden="true" />
           </button>
         </div>
         <p className="reveal text-xs text-plum/60 mt-4" style={{ animationDelay: '380ms' }}>
-          Limited slots per day — reserve before they’re gone.
+          Limited slots per day — reserve before they're gone.
         </p>
       </section>
 
@@ -388,7 +388,7 @@ function Landing({
       {/* ── Experience grid ── */}
       <section id="experience" className="max-w-5xl mx-auto px-5 pb-14 scroll-mt-20">
         <div className="text-center max-w-xl mx-auto">
-          <div className="text-[11px] uppercase tracking-[0.2em] text-coral">What’s inside</div>
+          <div className="text-[11px] uppercase tracking-[0.2em] text-coral">What's inside</div>
           <h2 className="font-display text-3xl sm:text-4xl text-plum mt-2">
             Everything for your big day
           </h2>
@@ -438,7 +438,7 @@ function Landing({
           <div className="text-[11px] uppercase tracking-[0.2em] text-coral">Reserve your spot</div>
           <h2 className="font-display text-3xl sm:text-4xl text-plum mt-2">Save your free seat</h2>
           <p className="text-plum/75 mt-2">
-            Takes 20 seconds. We’ll send your confirmation and event reminders.
+            Takes 20 seconds. We'll send your confirmation and event reminders.
           </p>
         </div>
 
@@ -625,7 +625,7 @@ function Landing({
           <Heart size={26} className="mx-auto" aria-hidden="true" />
           <h2 className="font-display text-3xl sm:text-4xl mt-3">Your forever starts here.</h2>
           <p className="text-white/90 mt-2 max-w-md mx-auto">
-            Reserve your free spot and step into the wedding planning day couples can’t stop talking about.
+            Reserve your free spot and step into the wedding planning day couples can't stop talking about.
           </p>
           <button
             onClick={scrollToForm}
@@ -651,27 +651,27 @@ function Landing({
 }
 
 const SUPPLIERS = [
-  ‘Reception/Hotel’,
-  ‘Photo & Video’,
-  ‘Wedding Planner/Coordinator’,
-  ‘Caterer’,
-  ‘Event Stylist/Florist’,
-  ‘Couturier/Gown rentals’,
-  ‘Sounds & Lights’,
-  ‘Photo Booths’,
-  ‘Mobile Bar / Coffee Bar / Wines’,
-  ‘Food Stations’,
-  ‘Cakes’,
-  ‘Printed Invitations/Website’,
-  ‘Souvenirs/Bar’,
-  ‘Hair & Make Up Artist’,
-  ‘Jeweler’,
-  ‘Shoes’,
-  ‘Host’,
-  ‘Home Service Nail & Massage/Skincare’,
-  ‘House & Lot/Real Estate’,
-  ‘Insurance’,
-  ‘Others’,
+  'Reception/Hotel',
+  'Photo & Video',
+  'Wedding Planner/Coordinator',
+  'Caterer',
+  'Event Stylist/Florist',
+  'Couturier/Gown rentals',
+  'Sounds & Lights',
+  'Photo Booths',
+  'Mobile Bar / Coffee Bar / Wines',
+  'Food Stations',
+  'Cakes',
+  'Printed Invitations/Website',
+  'Souvenirs/Bar',
+  'Hair & Make Up Artist',
+  'Jeweler',
+  'Shoes',
+  'Host',
+  'Home Service Nail & Massage/Skincare',
+  'House & Lot/Real Estate',
+  'Insurance',
+  'Others',
 ] as const;
 
 function HelpStep({
@@ -685,14 +685,14 @@ function HelpStep({
   eventId: string;
   onDone: () => void;
 }) {
-  const firstName = name.trim().split(‘ ‘)[0] || ‘there’;
+  const firstName = name.trim().split(' ')[0] || 'there';
   const [showForm, setShowForm] = useState(false);
   const [inq, setInq] = useState({
-    partnerName: ‘’,
-    eventDate: ‘’,
+    partnerName: '',
+    eventDate: '',
     suppliers: [] as string[],
-    suppliersOther: ‘’,
-    message: ‘’,
+    suppliersOther: '',
+    message: '',
   });
   const [busy, setBusy] = useState(false);
 
@@ -709,8 +709,8 @@ function HelpStep({
     if (busy) return;
     setBusy(true);
     const supplierList = inq.suppliers
-      .map((s) => (s === ‘Others’ && inq.suppliersOther ? `Others: ${inq.suppliersOther}` : s))
-      .join(‘, ‘);
+      .map((s) => (s === 'Others' && inq.suppliersOther ? `Others: ${inq.suppliersOther}` : s))
+      .join(', ');
     try {
       await createInquiry(
         {
@@ -729,9 +729,9 @@ function HelpStep({
         email: prefill.email,
         phone: prefill.mobile,
         eventType: supplierList,
-        message: [inq.partnerName && `Partner: ${inq.partnerName}`, inq.eventDate && `Date: ${inq.eventDate}`, inq.message].filter(Boolean).join(‘ · ‘),
+        message: [inq.partnerName && `Partner: ${inq.partnerName}`, inq.eventDate && `Date: ${inq.eventDate}`, inq.message].filter(Boolean).join(' · '),
       });
-      toast.success(‘Thanks! Our team will reach out.’);
+      toast.success('Thanks! Our team will reach out.');
       onDone();
     } catch (err) {
       toast.error(`Could not send: ${(err as Error).message}`);
@@ -746,7 +746,7 @@ function HelpStep({
           <div className="h-16 w-16 rounded-full bg-coral/15 text-coral flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 size={34} aria-hidden="true" />
           </div>
-          <h1 className="font-display text-3xl text-plum">You’re registered, {firstName}!</h1>
+          <h1 className="font-display text-3xl text-plum">You're registered, {firstName}!</h1>
           <p className="text-plum/75 mt-2">One more thing before you go —</p>
         </div>
 
@@ -761,7 +761,7 @@ function HelpStep({
             </p>
             <div className="grid sm:grid-cols-2 gap-2.5 mt-5">
               <button onClick={() => setShowForm(true)} className="btn-primary w-full">
-                Yes, I’d love help
+                Yes, I'd love help
               </button>
               <button onClick={onDone} className="btn-ghost w-full border border-plum/15 text-plum">
                 No, thanks
@@ -812,8 +812,8 @@ function HelpStep({
                       key={s}
                       className={`flex items-center gap-3 rounded-xl border px-3.5 py-2.5 cursor-pointer text-sm transition ${
                         checked
-                          ? ‘border-coral bg-coral/8 text-plum’
-                          : ‘border-plum/12 text-plum/80 hover:border-plum/25’
+                          ? 'border-coral bg-coral/8 text-plum'
+                          : 'border-plum/12 text-plum/80 hover:border-plum/25'
                       }`}
                     >
                       <input
@@ -827,7 +827,7 @@ function HelpStep({
                   );
                 })}
               </div>
-              {inq.suppliers.includes(‘Others’) && (
+              {inq.suppliers.includes('Others') && (
                 <input
                   className="input mt-2"
                   value={inq.suppliersOther}
@@ -852,7 +852,7 @@ function HelpStep({
 
             <div className="grid sm:grid-cols-2 gap-2.5">
               <button type="submit" disabled={busy} className="btn-primary w-full">
-                {busy ? ‘Sending…’ : ‘Send request’}
+                {busy ? 'Sending…' : 'Send request'}
               </button>
               <button type="button" onClick={onDone} className="btn-ghost w-full border border-plum/15 text-plum">
                 Skip
@@ -882,14 +882,14 @@ function DoneStep({
         </div>
         <h1 className="font-display text-4xl text-plum">See you at the fair!</h1>
         <p className="text-plum/75 mt-2">
-          Your spot is reserved. We’ll send your details and reminders before the event.
+          Your spot is reserved. We'll send your details and reminders before the event.
         </p>
 
         <div className="mt-7 bg-white rounded-2xl shadow-card p-6 inline-block text-left">
           <div className="flex items-center gap-2.5 text-plum">
             <CalendarDays size={16} className="text-coral" aria-hidden="true" />
             <span className="font-medium">
-              You’re coming on {day === 'day1' ? 'Day 1' : 'Day 2'}
+              You're coming on {day === 'day1' ? 'Day 1' : 'Day 2'}
             </span>
           </div>
           <div className="text-sm text-plum/70 mt-1 ml-[26px]">{chosenDate}</div>
