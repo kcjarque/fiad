@@ -66,7 +66,40 @@ const json = (body: unknown, status = 200) =>
     headers: { 'content-type': 'application/json', ...CORS },
   });
 
+// The deployed ConexMail renders email bodies from a stored TEMPLATE; inline
+// HTML is not delivered (arrives blank). So transactional email goes through a
+// ConexMail template + per-recipient render_data that fills its {{variables}}.
+const WELCOME_TEMPLATE_ID =
+  Deno.env.get('FIAD_WELCOME_TEMPLATE_ID') ?? '878ea841-6e22-483f-830e-cdb9ae0be601';
+
+const dayLabel = (d?: string | null) => (d === 'day1' ? 'Day 1' : d === 'day2' ? 'Day 2' : d ?? '');
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+async function sendTemplateEmail(opts: {
+  to: string;
+  templateId: string;
+  renderData: Record<string, string>;
+  fromName?: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const base = Deno.env.get('CONEXMAIL_BASE_URL');
+  const key = Deno.env.get('CONEXMAIL_API_KEY');
+  if (!base || !key) return { sent: false, error: 'not_configured' };
+  try {
+    const res = await fetch(`${base.replace(/\/$/, '')}/v1/mail/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        from: { email: 'hello@fiad.app', name: opts.fromName ?? 'Forever in a Day' },
+        template_id: opts.templateId,
+        personalizations: [{ to: [{ email: opts.to }], dynamic_template_data: opts.renderData }],
+      }),
+    });
+    return { sent: res.ok, error: res.ok ? undefined : `status_${res.status}` };
+  } catch (e) {
+    return { sent: false, error: String(e) };
+  }
+}
 
 async function sendEmail(opts: {
   to: string;
@@ -294,11 +327,41 @@ Deno.serve(async (req: Request) => {
     const firstName = (name ?? '').trim().split(' ')[0] || 'there';
     const shortVenue = (venue ?? 'the venue').split(',')[0]; // "Brittany Hotel"
 
-    // Email to guest
-    results.email = await sendEmail({
+    // The just-registered guest's QR token + chosen day drive the email's
+    // check-in QR and day label. Best-effort: the email still sends without it.
+    let qrToken = '';
+    let prefDay: string | null = null;
+    try {
+      const { data: g } = await db
+        .from('guests')
+        .select('qr_token, preferred_day')
+        .eq('email', email)
+        .eq('access_code', accessCode)
+        .maybeSingle();
+      if (g) {
+        qrToken = g.qr_token ?? '';
+        prefDay = g.preferred_day ?? null;
+      }
+    } catch {
+      /* fall through — render without the QR rather than block the email */
+    }
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+
+    // Email to guest — via the ConexMail welcome template.
+    results.email = await sendTemplateEmail({
       to: email,
-      subject: `You're on the list — FIAD Season 2 🎉`,
-      html: rsvpEmailHtml({ name, accessCode, venue, date }),
+      templateId: WELCOME_TEMPLATE_ID,
+      renderData: {
+        firstName,
+        eventName: 'Forever in a Day',
+        venue: venue ?? '',
+        eventDate: date ?? '',
+        dayLabel: dayLabel(prefDay),
+        accessCode,
+        qrImageUrl: qrToken ? `${supabaseUrl}/functions/v1/qr?token=${encodeURIComponent(qrToken)}` : '',
+        appLink: 'https://www.fiad.app/app/login',
+        shareLink: 'https://www.fiad.app/rsvp',
+      },
     });
 
     // SMS to guest — keep under 160 chars
