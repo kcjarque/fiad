@@ -18,7 +18,8 @@ import {
   ChevronDown,
   Check,
 } from 'lucide-react';
-import { registerGuest } from '../services/guestService';
+import { registerGuest, findGuestByEmail } from '../services/guestService';
+import type { Guest } from '../types';
 import { createInquiry } from '../services/inquiryService';
 import { getEventById } from '../services/eventService';
 import { initMetaPixel, trackLead } from '../lib/meta';
@@ -112,7 +113,7 @@ const shortDate = (iso: string | undefined, addDays = 0): string => {
 const scrollToForm = () =>
   document.getElementById('register')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-type Step = 'landing' | 'help' | 'done';
+type Step = 'landing' | 'help' | 'done' | 'already';
 
 type VenueOption = {
   key: VenueKey;
@@ -152,6 +153,7 @@ export function InviteFunnel() {
   });
   const [busy, setBusy] = useState(false);
   const [consentError, setConsentError] = useState(false);
+  const [alreadyGuest, setAlreadyGuest] = useState<Guest | null>(null);
 
   // Enrich each venue with its dates from the matching event row, so dates
   // stay editable from the admin Event tab.
@@ -186,6 +188,17 @@ export function InviteFunnel() {
     }
     setBusy(true);
     try {
+      // Dedup guard: if this email is already registered for the chosen event,
+      // don't create another row or re-send — show the "already on the list"
+      // screen instead. (registerGuest is idempotent per event too, but this
+      // tells the registrant rather than silently re-registering them.)
+      const existing = await findGuestByEmail(form.email, selected.eventId);
+      if (existing) {
+        setAlreadyGuest(existing);
+        setStep('already');
+        window.scrollTo({ top: 0 });
+        return;
+      }
       const guest = await registerGuest(
         { name: form.name, email: form.email, mobile: form.mobile, preferredDay: form.day },
         selected.eventId,
@@ -210,6 +223,14 @@ export function InviteFunnel() {
     }
   };
 
+  if (step === 'already' && alreadyGuest)
+    return (
+      <AlreadyStep
+        guest={alreadyGuest}
+        venueLabel={venueLabel}
+        regDate={alreadyGuest.preferredDay === 'day2' ? selected.day2 : selected.day1}
+      />
+    );
   if (step === 'help')
     return (
       <HelpStep
@@ -861,6 +882,68 @@ function HelpStep({
             </div>
           </form>
         )}
+      </div>
+    </div>
+  );
+}
+
+function AlreadyStep({
+  guest,
+  venueLabel,
+  regDate,
+}: {
+  guest: Guest;
+  venueLabel: string;
+  regDate: string;
+}) {
+  const firstName = guest.name.trim().split(' ')[0] || 'there';
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+
+  const resend = async () => {
+    if (resending || resent) return;
+    setResending(true);
+    await notifyRsvp({
+      name: guest.name,
+      email: guest.email,
+      mobile: guest.mobile,
+      accessCode: guest.accessCode ?? '',
+      venue: venueLabel,
+      date: regDate,
+    });
+    setResent(true);
+    setResending(false);
+    toast.success('We re-sent your confirmation.');
+  };
+
+  return (
+    <div className="min-h-[100svh] bg-gradient-to-b from-cream via-rose/15 to-rose/35">
+      <div className="max-w-xl mx-auto px-5 py-14 text-center">
+        <div className="h-16 w-16 rounded-full bg-champagne/40 text-plum flex items-center justify-center mx-auto mb-5">
+          <CheckCircle2 size={34} aria-hidden="true" />
+        </div>
+        <h1 className="font-display text-3xl text-plum">You're already on the list, {firstName}!</h1>
+        <p className="text-plum/75 mt-3">
+          <strong className="text-plum">{guest.email}</strong> is already registered for {venueLabel}
+          {regDate ? ` · ${regDate}` : ''}. No need to register again.
+        </p>
+        <div className="mt-6 bg-white rounded-2xl shadow-card p-6 text-left">
+          <p className="text-sm text-plum/70">
+            Your access code and check-in QR were sent to your email. Lost it? Resend it below, or open
+            the app to view your ticket.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-2.5 mt-4">
+            <button onClick={resend} disabled={resending || resent} className="btn-primary w-full">
+              {resent ? 'Sent ✓' : resending ? 'Sending…' : 'Resend my confirmation'}
+            </button>
+            <a
+              href="https://www.fiad.app/app/login"
+              className="btn-ghost w-full border border-plum/15 text-plum text-center"
+            >
+              Open the event app
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );
