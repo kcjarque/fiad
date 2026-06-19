@@ -650,6 +650,30 @@ function Landing({
   );
 }
 
+const SUPPLIERS = [
+  ‘Reception/Hotel’,
+  ‘Photo & Video’,
+  ‘Wedding Planner/Coordinator’,
+  ‘Caterer’,
+  ‘Event Stylist/Florist’,
+  ‘Couturier/Gown rentals’,
+  ‘Sounds & Lights’,
+  ‘Photo Booths’,
+  ‘Mobile Bar / Coffee Bar / Wines’,
+  ‘Food Stations’,
+  ‘Cakes’,
+  ‘Printed Invitations/Website’,
+  ‘Souvenirs/Bar’,
+  ‘Hair & Make Up Artist’,
+  ‘Jeweler’,
+  ‘Shoes’,
+  ‘Host’,
+  ‘Home Service Nail & Massage/Skincare’,
+  ‘House & Lot/Real Estate’,
+  ‘Insurance’,
+  ‘Others’,
+] as const;
+
 function HelpStep({
   name,
   prefill,
@@ -661,35 +685,53 @@ function HelpStep({
   eventId: string;
   onDone: () => void;
 }) {
-  const firstName = name.trim().split(' ')[0] || 'there';
+  const firstName = name.trim().split(‘ ‘)[0] || ‘there’;
   const [showForm, setShowForm] = useState(false);
-  const [inq, setInq] = useState({ eventType: '', message: '' });
+  const [inq, setInq] = useState({
+    partnerName: ‘’,
+    eventDate: ‘’,
+    suppliers: [] as string[],
+    suppliersOther: ‘’,
+    message: ‘’,
+  });
   const [busy, setBusy] = useState(false);
+
+  const toggleSupplier = (s: string) =>
+    setInq((f) => ({
+      ...f,
+      suppliers: f.suppliers.includes(s)
+        ? f.suppliers.filter((x) => x !== s)
+        : [...f.suppliers, s],
+    }));
 
   const sendInquiry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
     setBusy(true);
+    const supplierList = inq.suppliers
+      .map((s) => (s === ‘Others’ && inq.suppliersOther ? `Others: ${inq.suppliersOther}` : s))
+      .join(‘, ‘);
     try {
       await createInquiry(
         {
           name: prefill.name,
           email: prefill.email,
           phone: prefill.mobile,
-          eventType: inq.eventType,
+          partnerName: inq.partnerName,
+          eventDate: inq.eventDate,
+          eventType: supplierList,
           message: inq.message,
         },
         eventId,
       );
-      // Fire-and-forget: alert admin of new planning inquiry.
       void notifyInquiry({
         name: prefill.name,
         email: prefill.email,
         phone: prefill.mobile,
-        eventType: inq.eventType,
-        message: inq.message,
+        eventType: supplierList,
+        message: [inq.partnerName && `Partner: ${inq.partnerName}`, inq.eventDate && `Date: ${inq.eventDate}`, inq.message].filter(Boolean).join(‘ · ‘),
       });
-      toast.success('Thanks! Our team will reach out.');
+      toast.success(‘Thanks! Our team will reach out.’);
       onDone();
     } catch (err) {
       toast.error(`Could not send: ${(err as Error).message}`);
@@ -727,31 +769,90 @@ function HelpStep({
             </div>
           </div>
         ) : (
-          <form onSubmit={sendInquiry} className="mt-6 bg-white rounded-2xl shadow-card p-6 space-y-4">
+          <form onSubmit={sendInquiry} className="mt-6 bg-white rounded-2xl shadow-card p-6 space-y-5">
             <div className="font-display text-xl text-plum">Tell us about your event</div>
+
+            {/* Partner / debutant name */}
             <div>
-              <label htmlFor="inq-type" className="label">What type of event?</label>
+              <label htmlFor="inq-partner" className="label">
+                Name of Fiancé / Debutant <span className="text-coral" aria-hidden="true">*</span>
+              </label>
               <input
-                id="inq-type"
+                id="inq-partner"
+                required
                 className="input"
-                value={inq.eventType}
-                onChange={(e) => setInq({ ...inq, eventType: e.target.value })}
-                placeholder="Wedding, debut, corporate…"
+                value={inq.partnerName}
+                onChange={(e) => setInq((f) => ({ ...f, partnerName: e.target.value }))}
+                placeholder="First & Last Name"
+                autoComplete="off"
               />
             </div>
+
+            {/* Event date */}
             <div>
-              <label htmlFor="inq-msg" className="label">Tell us more (optional)</label>
+              <label htmlFor="inq-date" className="label">Date of Event</label>
+              <input
+                id="inq-date"
+                className="input"
+                value={inq.eventDate}
+                onChange={(e) => setInq((f) => ({ ...f, eventDate: e.target.value }))}
+                placeholder="MM-DD-YY"
+                autoComplete="off"
+              />
+            </div>
+
+            {/* Supplier checkboxes */}
+            <div>
+              <div className="label mb-2">Looking for what supplier?</div>
+              <div className="grid grid-cols-1 gap-1.5">
+                {SUPPLIERS.map((s) => {
+                  const checked = inq.suppliers.includes(s);
+                  return (
+                    <label
+                      key={s}
+                      className={`flex items-center gap-3 rounded-xl border px-3.5 py-2.5 cursor-pointer text-sm transition ${
+                        checked
+                          ? ‘border-coral bg-coral/8 text-plum’
+                          : ‘border-plum/12 text-plum/80 hover:border-plum/25’
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="accent-coral h-4 w-4 shrink-0"
+                        checked={checked}
+                        onChange={() => toggleSupplier(s)}
+                      />
+                      {s}
+                    </label>
+                  );
+                })}
+              </div>
+              {inq.suppliers.includes(‘Others’) && (
+                <input
+                  className="input mt-2"
+                  value={inq.suppliersOther}
+                  onChange={(e) => setInq((f) => ({ ...f, suppliersOther: e.target.value }))}
+                  placeholder="Please specify…"
+                  autoComplete="off"
+                />
+              )}
+            </div>
+
+            {/* Questions */}
+            <div>
+              <label htmlFor="inq-msg" className="label">Any questions or inquiries? (optional)</label>
               <textarea
                 id="inq-msg"
                 className="input min-h-[90px]"
                 value={inq.message}
-                onChange={(e) => setInq({ ...inq, message: e.target.value })}
-                placeholder="Target date, guest count, what you need help with…"
+                onChange={(e) => setInq((f) => ({ ...f, message: e.target.value }))}
+                placeholder="Guest count, budget, anything else…"
               />
             </div>
+
             <div className="grid sm:grid-cols-2 gap-2.5">
               <button type="submit" disabled={busy} className="btn-primary w-full">
-                {busy ? 'Sending…' : 'Send request'}
+                {busy ? ‘Sending…’ : ‘Send request’}
               </button>
               <button type="button" onClick={onDone} className="btn-ghost w-full border border-plum/15 text-plum">
                 Skip

@@ -9,6 +9,8 @@ type Row = {
   name: string;
   email: string;
   phone: string;
+  partner_name: string | null;
+  event_date: string | null;
   event_type: string | null;
   message: string | null;
   created_at: string;
@@ -20,6 +22,8 @@ const rowToInquiry = (r: Row): EventInquiry => ({
   name: r.name,
   email: r.email,
   phone: r.phone,
+  partnerName: r.partner_name ?? undefined,
+  eventDate: r.event_date ?? undefined,
   eventType: r.event_type ?? undefined,
   message: r.message ?? undefined,
   createdAt: r.created_at,
@@ -30,6 +34,8 @@ export const createInquiry = async (
     name: string;
     email: string;
     phone: string;
+    partnerName?: string;
+    eventDate?: string;
     eventType?: string;
     message?: string;
   },
@@ -44,6 +50,8 @@ export const createInquiry = async (
     name: data.name.trim(),
     email: data.email.trim(),
     phone: data.phone.trim(),
+    partner_name: data.partnerName?.trim() || null,
+    event_date: data.eventDate?.trim() || null,
     event_type: data.eventType?.trim() || null,
     message: data.message?.trim() || null,
     created_at: new Date().toISOString(),

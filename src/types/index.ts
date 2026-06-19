@@ -58,6 +58,8 @@ export type EventInquiry = {
   name: string;
   email: string;
   phone: string;
+  partnerName?: string;
+  eventDate?: string;
   eventType?: string;
   message?: string;
   createdAt: string;
