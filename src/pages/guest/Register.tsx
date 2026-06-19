@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { registerGuest } from '../../services/guestService';
 import { useAuth } from '../../stores/authStore';
 import { toast } from '../../stores/toastStore';
+import { toPhE164 } from '../../utils/phone';
 
 export function Register() {
   const navigate = useNavigate();
@@ -52,7 +53,7 @@ export function Register() {
         </div>
         <div>
           <label className="label">Mobile number</label>
-          <input required className="input" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} placeholder="+63 9xx xxx xxxx" />
+          <input required type="tel" inputMode="numeric" className="input" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: toPhE164(e.target.value) })} placeholder="+63 9XX XXX XXXX" />
         </div>
 
         <label className="flex items-start gap-3 text-sm text-plum/80 bg-white rounded-xl p-4 shadow-card">

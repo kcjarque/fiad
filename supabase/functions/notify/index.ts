@@ -366,7 +366,7 @@ Deno.serve(async (req: Request) => {
 
     // SMS to guest — keep under 160 chars
     if (mobile) {
-      const smsText = `FIAD S2: You're in, ${firstName}! Access code: ${accessCode}. Venue: ${shortVenue}, ${date}. Keep this for event check-in. See you there!`;
+      const smsText = `Forever in a Day S2: You're in, ${firstName}! Code: ${accessCode}. ${shortVenue}, ${date}. Open the app for your check-in QR: fiad.app/app/login`;
       results.sms = await sendSms({ to: mobile, message: smsText, kind: 'rsvp_confirmation' });
     }
   }

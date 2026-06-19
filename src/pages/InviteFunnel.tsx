@@ -23,6 +23,7 @@ import { createInquiry } from '../services/inquiryService';
 import { getEventById } from '../services/eventService';
 import { initMetaPixel, trackLead } from '../lib/meta';
 import { notifyRsvp, notifyInquiry } from '../lib/notify';
+import { toPhE164 } from '../utils/phone';
 import { toast } from '../stores/toastStore';
 
 // Season 2 runs at TWO venues on overlapping dates. Each venue is its own
@@ -473,8 +474,8 @@ function Landing({
               aria-required="true"
               className="input"
               value={form.mobile}
-              onChange={(e) => setForm((f) => ({ ...f, mobile: e.target.value }))}
-              placeholder="+63 9xx xxx xxxx"
+              onChange={(e) => setForm((f) => ({ ...f, mobile: toPhE164(e.target.value) }))}
+              placeholder="+63 9XX XXX XXXX"
             />
           </div>
           <div>
