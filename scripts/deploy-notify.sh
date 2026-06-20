@@ -38,8 +38,9 @@ args=(
   "ONEWAYSMS_USERNAME=${ONEWAYSMS_USERNAME:-}"
   "ONEWAYSMS_PASSWORD=${ONEWAYSMS_PASSWORD:-}"
   "ONEWAYSMS_SENDER=${ONEWAYSMS_SENDER:-CONEX}"
-  "FIAD_ADMIN_EMAIL=${FIAD_ADMIN_EMAIL:-admin@fiad.app}"
 )
+# Admin inquiry alerts are opt-in — only set the address if you want them.
+[ -n "${FIAD_ADMIN_EMAIL:-}" ] && args+=("FIAD_ADMIN_EMAIL=${FIAD_ADMIN_EMAIL}")
 [ -n "${FIAD_ADMIN_MOBILE:-}" ] && args+=("FIAD_ADMIN_MOBILE=${FIAD_ADMIN_MOBILE}")
 supabase secrets set --project-ref "$REF" "${args[@]}"
 

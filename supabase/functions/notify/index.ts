@@ -376,16 +376,20 @@ Deno.serve(async (req: Request) => {
     const { name, email, phone, eventType, message } = body.inquiry ?? {};
     if (!name || !phone) return json({ error: 'missing_fields' }, 400);
 
-    const adminEmail = Deno.env.get('FIAD_ADMIN_EMAIL') ?? 'admin@fiad.app';
+    // Admin alert is opt-in: it only fires when FIAD_ADMIN_EMAIL is set. Left
+    // unset on purpose so inquiry submissions don't email anyone — the team
+    // reviews them in Admin → Inquiries. Set the secret to re-enable.
+    const adminEmail = Deno.env.get('FIAD_ADMIN_EMAIL');
     const adminMobile = Deno.env.get('FIAD_ADMIN_MOBILE');
 
-    // Email to admin
-    results.email = await sendEmail({
-      to: adminEmail,
-      subject: `New FIAD inquiry — ${name}`,
-      html: inquiryEmailHtml({ name, email: email ?? '', phone, eventType, message }),
-      fromName: 'FIAD Inquiries',
-    });
+    if (adminEmail) {
+      results.email = await sendEmail({
+        to: adminEmail,
+        subject: `New FIAD inquiry — ${name}`,
+        html: inquiryEmailHtml({ name, email: email ?? '', phone, eventType, message }),
+        fromName: 'FIAD Inquiries',
+      });
+    }
 
     // SMS to admin (optional)
     if (adminMobile) {
