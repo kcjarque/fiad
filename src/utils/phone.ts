@@ -11,3 +11,6 @@ export function toPhE164(raw: string): string {
   d = d.slice(0, 10); // 9XXXXXXXXX
   return d ? `+63${d}` : '';
 }
+
+/** Digits shown after the fixed "+63" prefix in the registration input. */
+export const phLocal = (e164: string): string => e164.replace(/^\+63/, '');

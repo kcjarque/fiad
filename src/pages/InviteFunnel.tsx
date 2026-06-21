@@ -24,7 +24,7 @@ import { createInquiry } from '../services/inquiryService';
 import { getEventById } from '../services/eventService';
 import { initMetaPixel, trackLead } from '../lib/meta';
 import { notifyRsvp, notifyInquiry } from '../lib/notify';
-import { toPhE164 } from '../utils/phone';
+import { toPhE164, phLocal } from '../utils/phone';
 import { toast } from '../stores/toastStore';
 
 // Season 2 runs at TWO venues on overlapping dates. Each venue is its own
@@ -485,19 +485,24 @@ function Landing({
             <label htmlFor="rsvp-mobile" className="label">
               Mobile number <span className="text-coral" aria-hidden="true">*</span>
             </label>
-            <input
-              id="rsvp-mobile"
-              name="mobile"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              required
-              aria-required="true"
-              className="input"
-              value={form.mobile}
-              onChange={(e) => setForm((f) => ({ ...f, mobile: toPhE164(e.target.value) }))}
-              placeholder="+63 9XX XXX XXXX"
-            />
+            <div className="relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-plum/70 select-none">
+                +63
+              </span>
+              <input
+                id="rsvp-mobile"
+                name="mobile"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                required
+                aria-required="true"
+                className="input pl-12"
+                value={phLocal(form.mobile)}
+                onChange={(e) => setForm((f) => ({ ...f, mobile: toPhE164(e.target.value) }))}
+                placeholder="9XX XXX XXXX"
+              />
+            </div>
           </div>
           <div>
             <label htmlFor="rsvp-email" className="label">
