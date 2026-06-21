@@ -663,6 +663,27 @@ function Landing({
         </div>
       </section>
 
+      {/* ── Organizers ── */}
+      <section className="max-w-3xl mx-auto px-5 pt-4 pb-2 text-center">
+        <p className="text-[11px] uppercase tracking-[0.28em] text-plum/45">Organized by</p>
+        <div className="mt-4 flex items-center justify-center gap-4">
+          <div className="bg-white rounded-2xl shadow-soft h-24 w-44 flex items-center justify-center p-4">
+            <img
+              src="/Suppliers%20Carousel%20FIAD/12.png"
+              alt="Peridot Studios"
+              className="max-h-16 max-w-full w-auto object-contain"
+            />
+          </div>
+          <div className="bg-white rounded-2xl shadow-soft h-24 w-44 flex items-center justify-center p-3">
+            <img
+              src="/Suppliers%20Carousel%20FIAD/7.png"
+              alt="88 Powerhouse Event Mgt. Inc."
+              className="max-h-16 max-w-full w-auto object-contain"
+            />
+          </div>
+        </div>
+      </section>
+
       <footer className="text-center py-8 px-5">
         <div className="text-[10px] text-plum/60">Forever in a Day © 2026 · A Fil-Korean Wedding &amp; Debut Fair</div>
       </footer>
