@@ -23,6 +23,17 @@ const DayBadge = ({ day }: { day?: string }) => {
   );
 };
 
+const CheckinBadge = ({ at }: { at?: string }) =>
+  at ? (
+    <span className="text-[10px] uppercase tracking-wider bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+      Checked in
+    </span>
+  ) : (
+    <span className="text-[10px] uppercase tracking-wider bg-plum/8 text-plum/40 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+      Not yet
+    </span>
+  );
+
 const copyCode = async (code: string) => {
   try {
     await navigator.clipboard.writeText(code);
@@ -38,6 +49,7 @@ export function AdminGuests() {
   const { data: guests = [] } = useQuery({ queryKey: ['guests', selectedEventId], queryFn: listGuests });
   const { data: entries = [] } = useQuery({ queryKey: ['raffle', 'active', selectedEventId], queryFn: allActiveEntries });
   const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'in' | 'out'>('all');
 
   // Inline name editing — fix wrongly-entered guest names.
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -97,24 +109,47 @@ export function AdminGuests() {
     return m;
   }, [entries]);
 
+  const checkedInCount = useMemo(() => guests.filter((g) => g.checkedInAt).length, [guests]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return guests;
-    return guests.filter(
-      (g) =>
+    return guests.filter((g) => {
+      if (statusFilter === 'in' && !g.checkedInAt) return false;
+      if (statusFilter === 'out' && g.checkedInAt) return false;
+      if (!q) return true;
+      return (
         g.name.toLowerCase().includes(q) ||
         g.email.toLowerCase().includes(q) ||
         g.mobile.toLowerCase().includes(q) ||
-        (g.accessCode ?? '').toLowerCase().includes(q),
-    );
-  }, [guests, query]);
+        (g.accessCode ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [guests, query, statusFilter]);
 
   return (
     <AdminShell>
       <div className="flex items-end justify-between mb-4 md:mb-6 gap-3 flex-wrap">
         <div>
           <h1 className="font-display text-2xl md:text-3xl">Guests</h1>
-          <p className="text-sm text-plum/60 mt-1">{guests.length} registered</p>
+          <div className="flex items-center gap-1.5 mt-2 flex-wrap text-xs">
+            {([
+              ['all', `All ${guests.length}`],
+              ['in', `Checked in ${checkedInCount}`],
+              ['out', `No-show ${guests.length - checkedInCount}`],
+            ] as const).map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => setStatusFilter(k)}
+                className={`px-3 py-1 rounded-full border transition ${
+                  statusFilter === k
+                    ? 'bg-coral text-white border-coral'
+                    : 'border-plum/15 text-plum/70 hover:border-plum/30'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="relative w-full sm:w-72">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-plum/40" />
@@ -176,6 +211,7 @@ export function AdminGuests() {
                           <Pencil size={12} className="text-plum/30 group-hover:text-plum/60 shrink-0" />
                         </button>
                         <DayBadge day={g.preferredDay} />
+                        <CheckinBadge at={g.checkedInAt} />
                       </div>
                     )}
                     <div className="text-xs text-plum/60 truncate">{g.email}</div>
@@ -222,6 +258,7 @@ export function AdminGuests() {
                   <th className="py-2 pr-4">Access code</th>
                   <th className="py-2 pr-4">Entries</th>
                   <th className="py-2 pr-4">Registered</th>
+                  <th className="py-2 pr-4">Status</th>
                   <th className="py-2"></th>
                 </tr>
               </thead>
@@ -280,6 +317,7 @@ export function AdminGuests() {
                     </td>
                     <td className="py-2 pr-4 text-coral font-medium">{entriesByGuest.get(g.id) ?? 0}</td>
                     <td className="py-2 pr-4 text-plum/60">{formatDate(g.registeredAt)}</td>
+                    <td className="py-2 pr-4"><CheckinBadge at={g.checkedInAt} /></td>
                     <td className="py-2">
                       <button
                         onClick={() => setToDelete(g)}
