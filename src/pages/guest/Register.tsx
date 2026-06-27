@@ -17,6 +17,10 @@ export function Register() {
     // Re-entry guard — a double-tap during the network roundtrip would
     // otherwise queue two registerGuest calls with the same email.
     if (busy) return;
+    if (form.name.trim().split(/\s+/).filter(Boolean).length < 2) {
+      toast.error('Please enter your full name (first and last name).');
+      return;
+    }
     if (!form.consent) {
       toast.error('Please accept the data privacy notice to continue.');
       return;

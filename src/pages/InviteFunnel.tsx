@@ -181,6 +181,10 @@ export function InviteFunnel() {
   const submitRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
+    if (form.name.trim().split(/\s+/).filter(Boolean).length < 2) {
+      toast.error('Please enter your full name (first and last name).');
+      return;
+    }
     if (!form.consent) {
       setConsentError(true);
       toast.error('Please accept the data privacy notice to continue.');

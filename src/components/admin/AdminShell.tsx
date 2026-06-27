@@ -8,6 +8,7 @@ const sections = [
   { to: '/admin/dashboard', label: 'Dashboard' },
   { to: '/admin/event', label: 'Event' },
   { to: '/admin/stores', label: 'Vendors' },
+  { to: '/admin/qr-generator', label: 'QR Generator' },
   { to: '/admin/supplier-sales', label: 'Supplier Sales' },
   { to: '/admin/guests', label: 'Guests' },
   { to: '/admin/checkin', label: 'Check-in' },
