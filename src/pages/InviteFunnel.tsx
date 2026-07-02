@@ -144,11 +144,14 @@ export function InviteFunnel() {
 
   const [step, setStep] = useState<Step>('landing');
   const [form, setForm] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     mobile: '',
     venue: 'brittany' as VenueKey,
     day: 'day1' as 'day1' | 'day2',
+    referredBy: '',
+    invitedFriend: '',
     consent: false,
   });
   const [busy, setBusy] = useState(false);
@@ -177,12 +180,13 @@ export function InviteFunnel() {
   const selected = venueOptions.find((v) => v.key === form.venue) ?? venueOptions[0];
   const chosenDate = form.day === 'day1' ? selected.day1 : selected.day2;
   const venueLabel = `${selected.hotel}, ${selected.area}`;
+  const fullName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
 
   const submitRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
-    if (form.name.trim().split(/\s+/).filter(Boolean).length < 2) {
-      toast.error('Please enter your full name (first and last name).');
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      toast.error('Please enter both your first and last name.');
       return;
     }
     if (!form.consent) {
@@ -204,14 +208,21 @@ export function InviteFunnel() {
         return;
       }
       const guest = await registerGuest(
-        { name: form.name, email: form.email, mobile: form.mobile, preferredDay: form.day },
+        {
+          name: fullName,
+          email: form.email,
+          mobile: form.mobile,
+          preferredDay: form.day,
+          referredBy: form.referredBy,
+          invitedFriend: form.invitedFriend,
+        },
         selected.eventId,
       );
       // Fire-and-forget: Meta Lead tracking + RSVP confirmation email/SMS.
       // Both helpers swallow their own errors — neither must block the funnel.
-      void trackLead({ email: form.email, phone: form.mobile, name: form.name, preferredDay: form.day });
+      void trackLead({ email: form.email, phone: form.mobile, name: fullName, preferredDay: form.day });
       void notifyRsvp({
-        name: form.name,
+        name: fullName,
         email: form.email,
         mobile: form.mobile,
         accessCode: guest.accessCode ?? '',
@@ -238,8 +249,8 @@ export function InviteFunnel() {
   if (step === 'help')
     return (
       <HelpStep
-        name={form.name}
-        prefill={form}
+        name={fullName}
+        prefill={{ name: fullName, email: form.email, mobile: form.mobile }}
         eventId={selected.eventId}
         onDone={() => setStep('done')}
       />
@@ -274,11 +285,14 @@ function Landing({
   venueOptions: VenueOption[];
   selected: VenueOption;
   form: {
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
     mobile: string;
     venue: VenueKey;
     day: 'day1' | 'day2';
+    referredBy: string;
+    invitedFriend: string;
     consent: boolean;
   };
   setForm: React.Dispatch<React.SetStateAction<typeof form>>;
@@ -469,21 +483,39 @@ function Landing({
         </div>
 
         <form onSubmit={onSubmit} className="bg-white rounded-2xl shadow-soft p-6 space-y-4">
-          <div>
-            <label htmlFor="rsvp-name" className="label">
-              Full name <span className="text-coral" aria-hidden="true">*</span>
-            </label>
-            <input
-              id="rsvp-name"
-              name="name"
-              required
-              aria-required="true"
-              autoComplete="name"
-              className="input"
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Juana Dela Cruz"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="rsvp-first" className="label">
+                First name <span className="text-coral" aria-hidden="true">*</span>
+              </label>
+              <input
+                id="rsvp-first"
+                name="given-name"
+                required
+                aria-required="true"
+                autoComplete="given-name"
+                className="input"
+                value={form.firstName}
+                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                placeholder="Juana"
+              />
+            </div>
+            <div>
+              <label htmlFor="rsvp-last" className="label">
+                Last name <span className="text-coral" aria-hidden="true">*</span>
+              </label>
+              <input
+                id="rsvp-last"
+                name="family-name"
+                required
+                aria-required="true"
+                autoComplete="family-name"
+                className="input"
+                value={form.lastName}
+                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                placeholder="Dela Cruz"
+              />
+            </div>
           </div>
           <div>
             <label htmlFor="rsvp-mobile" className="label">
@@ -598,6 +630,36 @@ function Landing({
                 );
               })}
             </div>
+          </div>
+
+          {/* Referral fields — asked to sit at the end of the form */}
+          <div>
+            <label htmlFor="rsvp-referred" className="label">
+              Supplier who referred you <span className="text-plum/40 font-normal">(optional)</span>
+            </label>
+            <input
+              id="rsvp-referred"
+              name="referred-by"
+              autoComplete="off"
+              className="input"
+              value={form.referredBy}
+              onChange={(e) => setForm((f) => ({ ...f, referredBy: e.target.value }))}
+              placeholder="e.g. Peridot Studios"
+            />
+          </div>
+          <div>
+            <label htmlFor="rsvp-invite" className="label">
+              Invite a friend <span className="text-plum/40 font-normal">(optional)</span>
+            </label>
+            <input
+              id="rsvp-invite"
+              name="invite-friend"
+              autoComplete="off"
+              className="input"
+              value={form.invitedFriend}
+              onChange={(e) => setForm((f) => ({ ...f, invitedFriend: e.target.value }))}
+              placeholder="Friend's name & mobile"
+            />
           </div>
 
           <div>

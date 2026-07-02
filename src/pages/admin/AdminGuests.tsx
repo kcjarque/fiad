@@ -216,6 +216,12 @@ export function AdminGuests() {
                     )}
                     <div className="text-xs text-plum/60 truncate">{g.email}</div>
                     <div className="text-xs text-plum/60">{g.mobile}</div>
+                    {(g.referredBy || g.invitedFriend) && (
+                      <div className="text-[11px] text-plum/45 mt-1 space-y-0.5">
+                        {g.referredBy && <div>Referred by: <span className="text-plum/70">{g.referredBy}</span></div>}
+                        {g.invitedFriend && <div>Invited: <span className="text-plum/70">{g.invitedFriend}</span></div>}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-coral font-display text-xl leading-none">{entriesByGuest.get(g.id) ?? 0}</div>
@@ -255,6 +261,7 @@ export function AdminGuests() {
                   <th className="py-2 pr-4">Name</th>
                   <th className="py-2 pr-4">Email</th>
                   <th className="py-2 pr-4">Mobile</th>
+                  <th className="py-2 pr-4">Referral</th>
                   <th className="py-2 pr-4">Access code</th>
                   <th className="py-2 pr-4">Entries</th>
                   <th className="py-2 pr-4">Registered</th>
@@ -301,6 +308,16 @@ export function AdminGuests() {
                     </td>
                     <td className="py-2 pr-4 text-plum/70">{g.email}</td>
                     <td className="py-2 pr-4 text-plum/70">{g.mobile}</td>
+                    <td className="py-2 pr-4 text-xs text-plum/60">
+                      {g.referredBy || g.invitedFriend ? (
+                        <div className="space-y-0.5">
+                          {g.referredBy && <div>Ref: <span className="text-plum/80">{g.referredBy}</span></div>}
+                          {g.invitedFriend && <div>Inv: <span className="text-plum/80">{g.invitedFriend}</span></div>}
+                        </div>
+                      ) : (
+                        <span className="text-plum/25">—</span>
+                      )}
+                    </td>
                     <td className="py-2 pr-4">
                       {g.accessCode ? (
                         <button

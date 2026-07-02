@@ -16,6 +16,10 @@ export type Guest = {
   accessCode?: string;
   /** Set when an admin scans the guest in at the door. */
   checkedInAt?: string;
+  /** Which supplier referred this registrant (optional, RSVP funnel). */
+  referredBy?: string;
+  /** A friend the registrant wants to invite (optional, RSVP funnel). */
+  invitedFriend?: string;
 };
 
 export type Store = {

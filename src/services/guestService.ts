@@ -14,6 +14,8 @@ type Row = {
   access_code?: string | null;
   preferred_day?: string | null;
   checked_in_at?: string | null;
+  referred_by?: string | null;
+  invited_friend?: string | null;
 };
 
 const rowToGuest = (r: Row): Guest => ({
@@ -27,6 +29,8 @@ const rowToGuest = (r: Row): Guest => ({
   accessCode: r.access_code ?? undefined,
   preferredDay: r.preferred_day ?? undefined,
   checkedInAt: r.checked_in_at ?? undefined,
+  referredBy: r.referred_by ?? undefined,
+  invitedFriend: r.invited_friend ?? undefined,
 });
 
 const CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -61,6 +65,9 @@ export const registerGuest = async (
     mobile: string;
     /** Day 1 / Day 2 choice from the RSVP funnel. */
     preferredDay?: string;
+    /** Optional referral fields captured at the end of the RSVP funnel. */
+    referredBy?: string;
+    invitedFriend?: string;
   },
   // Which event this registration belongs to. Defaults to the currently
   // selected event (Season 1 on the live admin/booth browsers); the /rsvp
@@ -117,6 +124,8 @@ export const registerGuest = async (
     registered_at: guest.registeredAt,
     access_code: accessCode,
     preferred_day: guest.preferredDay ?? null,
+    referred_by: data.referredBy?.trim() || null,
+    invited_friend: data.invitedFriend?.trim() || null,
   });
   if (error) {
     // ── Race: two concurrent registrations with the same email both passed

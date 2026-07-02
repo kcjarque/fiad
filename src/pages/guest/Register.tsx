@@ -9,7 +9,7 @@ import { toPhE164, phLocal } from '../../utils/phone';
 export function Register() {
   const navigate = useNavigate();
   const setGuest = useAuth((s) => s.setGuest);
-  const [form, setForm] = useState({ name: '', email: '', mobile: '', consent: false });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', mobile: '', consent: false });
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -17,8 +17,8 @@ export function Register() {
     // Re-entry guard — a double-tap during the network roundtrip would
     // otherwise queue two registerGuest calls with the same email.
     if (busy) return;
-    if (form.name.trim().split(/\s+/).filter(Boolean).length < 2) {
-      toast.error('Please enter your full name (first and last name).');
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      toast.error('Please enter both your first and last name.');
       return;
     }
     if (!form.consent) {
@@ -27,7 +27,11 @@ export function Register() {
     }
     setBusy(true);
     try {
-      const guest = await registerGuest(form);
+      const guest = await registerGuest({
+        name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+        email: form.email,
+        mobile: form.mobile,
+      });
       setGuest(guest.id);
       toast.success('You are registered! Your ticket is ready.');
       navigate('/app/ticket');
@@ -47,9 +51,15 @@ export function Register() {
         <p className="text-plum/60 text-sm mt-1">Register to get your digital ticket and start collecting raffle entries.</p>
       </div>
       <form onSubmit={submit} className="flex-1 px-6 pb-10 space-y-4">
-        <div>
-          <label className="label">Full name</label>
-          <input required className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Juana Dela Cruz" />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">First name</label>
+            <input required className="input" autoComplete="given-name" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="Juana" />
+          </div>
+          <div>
+            <label className="label">Last name</label>
+            <input required className="input" autoComplete="family-name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="Dela Cruz" />
+          </div>
         </div>
         <div>
           <label className="label">Email</label>
