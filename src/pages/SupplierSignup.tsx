@@ -9,8 +9,11 @@ import {
   Send,
   ArrowRight,
   CalendarDays,
+  Upload,
+  FileText,
+  X,
 } from 'lucide-react';
-import { createSupplierSignup } from '../services/supplierService';
+import { createSupplierSignup, uploadSupplierDocs } from '../services/supplierService';
 import { SUPPLIERS } from '../constants/suppliers';
 import { toPhE164, phLocal } from '../utils/phone';
 import { toast } from '../stores/toastStore';
@@ -38,6 +41,9 @@ const BENEFITS = [
   },
 ];
 
+const MAX_FILES = 5;
+const MAX_SIZE = 100 * 1024 * 1024; // 100 MB per file, matching the client's form
+
 const scrollToForm = () =>
   document.getElementById('apply')?.scrollIntoView({ behavior: 'smooth' });
 
@@ -47,14 +53,47 @@ export function SupplierSignup() {
     contactPerson: '',
     email: '',
     mobile: '',
-    category: '',
-    categoryOther: '',
+    industries: [] as string[],
+    industriesOther: '',
     social: '',
     products: '',
     message: '',
   });
+  const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+
+  const toggleIndustry = (s: string) =>
+    setForm((f) => ({
+      ...f,
+      industries: f.industries.includes(s)
+        ? f.industries.filter((x) => x !== s)
+        : [...f.industries, s],
+    }));
+
+  const addFiles = (list: FileList | null) => {
+    if (!list) return;
+    setFiles((prev) => {
+      const next = [...prev];
+      for (const f of Array.from(list)) {
+        if (next.length >= MAX_FILES) {
+          toast.error('You can upload up to 5 files.');
+          break;
+        }
+        if (!/\.(pdf|jpe?g|png)$/i.test(f.name)) {
+          toast.error(`${f.name}: PDF, JPG or PNG only.`);
+          continue;
+        }
+        if (f.size > MAX_SIZE) {
+          toast.error(`${f.name} is over 100 MB.`);
+          continue;
+        }
+        if (next.some((x) => x.name === f.name && x.size === f.size)) continue;
+        next.push(f);
+      }
+      return next;
+    });
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,24 +102,29 @@ export function SupplierSignup() {
       toast.error('Please enter your business name and contact person.');
       return;
     }
-    if (!form.category) {
-      toast.error('Please choose a supplier category.');
+    if (form.industries.length === 0) {
+      toast.error('Please choose at least one industry / service.');
+      return;
+    }
+    if (files.length === 0) {
+      toast.error('Please upload your DTI & BIR requirements.');
       return;
     }
     setBusy(true);
-    const category =
-      form.category === 'Others' && form.categoryOther.trim()
-        ? `Others: ${form.categoryOther.trim()}`
-        : form.category;
+    const industries = form.industries
+      .map((s) => (s === 'Others' && form.industriesOther.trim() ? `Others: ${form.industriesOther.trim()}` : s))
+      .join(', ');
     try {
+      const documentUrls = await uploadSupplierDocs(files);
       await createSupplierSignup({
         businessName: form.businessName,
         contactPerson: form.contactPerson,
         email: form.email,
         mobile: form.mobile,
-        category,
+        category: industries,
         social: form.social,
         products: form.products,
+        documentUrls,
         message: form.message,
       });
       setDone(true);
@@ -101,8 +145,8 @@ export function SupplierSignup() {
           <h1 className="font-display text-4xl text-plum">Application received!</h1>
           <p className="text-plum/75 mt-3">
             Thanks, <span className="font-medium text-plum">{form.businessName.trim()}</span>. Our
-            team will review your details and reach out with booth options and packages for
-            Forever in a Day Season 2.
+            team will review your details and requirements and reach out with booth options and
+            packages for Forever in a Day Season 2.
           </p>
           <div className="mt-8 flex items-center justify-center gap-1.5 text-sm text-plum/60">
             <Sparkles size={14} className="text-champagne" aria-hidden="true" /> Forever in a Day © 2026
@@ -270,31 +314,41 @@ export function SupplierSignup() {
             </div>
           </div>
 
+          {/* Industry / Services — multi-select */}
           <div>
-            <label htmlFor="sup-category" className="label">
-              Supplier category <span className="text-coral" aria-hidden="true">*</span>
-            </label>
-            <select
-              id="sup-category"
-              required
-              aria-required="true"
-              className="input"
-              value={form.category}
-              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-            >
-              <option value="">Select a category…</option>
-              {SUPPLIERS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-            {form.category === 'Others' && (
+            <div className="label mb-1.5">
+              Industry / Services <span className="text-coral" aria-hidden="true">*</span>
+              <span className="text-plum/40 font-normal"> — select all that apply</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {SUPPLIERS.map((s) => {
+                const checked = form.industries.includes(s);
+                return (
+                  <label
+                    key={s}
+                    className={`flex items-center gap-3 rounded-xl border px-3.5 py-2.5 cursor-pointer text-sm transition ${
+                      checked
+                        ? 'border-coral bg-coral/8 text-plum'
+                        : 'border-plum/12 text-plum/80 hover:border-plum/25'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="accent-coral h-4 w-4 shrink-0"
+                      checked={checked}
+                      onChange={() => toggleIndustry(s)}
+                    />
+                    {s}
+                  </label>
+                );
+              })}
+            </div>
+            {form.industries.includes('Others') && (
               <input
                 className="input mt-2"
-                value={form.categoryOther}
-                onChange={(e) => setForm((f) => ({ ...f, categoryOther: e.target.value }))}
-                placeholder="Please specify your category…"
+                value={form.industriesOther}
+                onChange={(e) => setForm((f) => ({ ...f, industriesOther: e.target.value }))}
+                placeholder="Please specify…"
                 autoComplete="off"
               />
             )}
@@ -320,27 +374,81 @@ export function SupplierSignup() {
             </label>
             <textarea
               id="sup-products"
-              className="input min-h-[80px]"
+              className="input min-h-[70px]"
               value={form.products}
               onChange={(e) => setForm((f) => ({ ...f, products: e.target.value }))}
               placeholder="What do you offer? e.g. wedding gowns, catering packages, photo & video…"
             />
           </div>
 
+          {/* Basic Requirements — DTI & BIR file upload */}
+          <div>
+            <div className="label mb-1">
+              Basic Requirements: DTI &amp; BIR <span className="text-coral" aria-hidden="true">*</span>
+            </div>
+            <p className="text-xs text-plum/60 mb-2 leading-relaxed">
+              Sole Proprietorship: DTI Certificate · Corporations/Partnerships: SEC Registration ·
+              For all: updated BIR Form 2303 and latest Tax Clearance. PDF or JPEG/PNG, up to 5 files.
+            </p>
+            <label className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-plum/25 bg-cream/40 px-4 py-4 cursor-pointer hover:border-coral text-plum/70 text-sm transition">
+              <Upload size={16} aria-hidden="true" /> Add file(s)
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                className="hidden"
+                onChange={(e) => {
+                  addFiles(e.target.files);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+            {files.length > 0 && (
+              <ul className="mt-2 space-y-1.5">
+                {files.map((f, i) => (
+                  <li
+                    key={`${f.name}-${i}`}
+                    className="flex items-center justify-between gap-2 text-sm bg-cream/60 rounded-lg px-3 py-2"
+                  >
+                    <span className="inline-flex items-center gap-2 min-w-0">
+                      <FileText size={14} className="text-coral shrink-0" aria-hidden="true" />
+                      <span className="truncate">{f.name}</span>
+                      <span className="text-plum/40 text-xs shrink-0">
+                        {(f.size / 1024 / 1024).toFixed(1)}MB
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFiles((prev) => prev.filter((_, x) => x !== i))}
+                      className="text-plum/40 hover:text-coral shrink-0"
+                      aria-label={`Remove ${f.name}`}
+                    >
+                      <X size={15} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           <div>
             <label htmlFor="sup-message" className="label">
-              Anything else? <span className="text-plum/40 font-normal">(optional)</span>
+              Any questions or inquiries? <span className="text-plum/40 font-normal">(optional)</span>
             </label>
             <textarea
               id="sup-message"
-              className="input min-h-[80px]"
+              className="input min-h-[70px]"
               value={form.message}
               onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
               placeholder="Booth size, which venue you prefer, questions…"
             />
           </div>
 
-          <button type="submit" disabled={busy} className="btn-primary w-full text-base inline-flex items-center justify-center gap-2">
+          <button
+            type="submit"
+            disabled={busy}
+            className="btn-primary w-full text-base inline-flex items-center justify-center gap-2"
+          >
             {busy ? 'Submitting…' : (<>Submit application <Send size={16} aria-hidden="true" /></>)}
           </button>
           <p className="text-center text-xs text-plum/60">

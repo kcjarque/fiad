@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Mail, Phone, Store, Globe } from 'lucide-react';
+import { Search, Mail, Phone, Store, Globe, FileText } from 'lucide-react';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { listSupplierSignups } from '../../services/supplierService';
 import { formatDate } from '../../utils/id';
@@ -84,8 +84,25 @@ export function AdminSupplierSignups() {
                 <div className="text-xs text-plum/50 shrink-0">{formatDate(s.createdAt)}</div>
               </div>
               {s.category && (
-                <div className="mt-2">
-                  <span className="chip">{s.category}</span>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {s.category.split(', ').map((c) => (
+                    <span key={c} className="chip">{c}</span>
+                  ))}
+                </div>
+              )}
+              {s.documentUrls && s.documentUrls.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {s.documentUrls.map((url, i) => (
+                    <a
+                      key={url}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs bg-plum/5 hover:bg-plum/10 text-plum px-2.5 py-1.5 rounded-lg transition"
+                    >
+                      <FileText size={13} className="text-coral" /> DTI/BIR doc {i + 1}
+                    </a>
+                  ))}
                 </div>
               )}
               {s.products && (

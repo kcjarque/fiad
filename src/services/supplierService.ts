@@ -12,6 +12,7 @@ type Row = {
   social: string | null;
   products: string | null;
   message: string | null;
+  document_urls: string[] | null;
   created_at: string;
 };
 
@@ -25,8 +26,30 @@ const rowToSignup = (r: Row): SupplierSignup => ({
   social: r.social ?? undefined,
   products: r.products ?? undefined,
   message: r.message ?? undefined,
+  documentUrls: r.document_urls ?? undefined,
   createdAt: r.created_at,
 });
+
+const DOCS_BUCKET = 'supplier-docs';
+
+/**
+ * Upload the DTI/SEC/BIR requirement files to Supabase Storage and return
+ * their public URLs. Called before createSupplierSignup so the URLs can be
+ * stored on the row. Each file gets a random prefix so names never collide.
+ */
+export const uploadSupplierDocs = async (files: File[]): Promise<string[]> => {
+  const urls: string[] = [];
+  for (const file of files) {
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${uid('doc')}-${safe}`;
+    const { error } = await supabase.storage
+      .from(DOCS_BUCKET)
+      .upload(path, file, { contentType: file.type || undefined, upsert: false });
+    if (error) throw error;
+    urls.push(supabase.storage.from(DOCS_BUCKET).getPublicUrl(path).data.publicUrl);
+  }
+  return urls;
+};
 
 export const createSupplierSignup = async (data: {
   businessName: string;
@@ -37,6 +60,7 @@ export const createSupplierSignup = async (data: {
   social?: string;
   products?: string;
   message?: string;
+  documentUrls?: string[];
 }): Promise<SupplierSignup> => {
   const row: Row = {
     id: uid('sup'),
@@ -48,6 +72,7 @@ export const createSupplierSignup = async (data: {
     social: data.social?.trim() || null,
     products: data.products?.trim() || null,
     message: data.message?.trim() || null,
+    document_urls: data.documentUrls && data.documentUrls.length > 0 ? data.documentUrls : null,
     created_at: new Date().toISOString(),
   };
   const { error } = await supabase.from('supplier_signups').insert(row);

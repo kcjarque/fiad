@@ -1,28 +1,29 @@
 /**
- * Canonical FIAD supplier categories. Used by the "need help organizing your
- * event?" inquiry form (which supplier are you looking for?) and the public
- * /suppliers application form (what kind of supplier are you?).
+ * Canonical FIAD supplier categories, matching the client's official
+ * "Industry / Services" list. Used by the /suppliers application form
+ * (what do you provide?) and the "need help organizing your event?" inquiry
+ * form (which supplier are you looking for?). 'Others' stays last as the
+ * sentinel that reveals a "please specify" field in both forms.
  */
 export const SUPPLIERS = [
-  'Reception/Hotel',
+  'Reception/ Hotel',
   'Photo & Video',
-  'Wedding Planner/Coordinator',
+  'Wedding Planner/ Coordinator',
   'Caterer',
-  'Event Stylist/Florist',
-  'Couturier/Gown rentals',
+  'Event Stylist/ Florist',
+  'Couturier/ Gown Rentals',
   'Sounds & Lights',
   'Photo Booths',
-  'Mobile Bar / Coffee Bar / Wines',
+  'Mobile Bar/ Coffee Bar/ Wines',
   'Food Stations',
   'Cakes',
-  'Printed Invitations/Website',
-  'Souvenirs/Bar',
+  'Printed Invitations/ Website',
+  'Souvenirs & Favors',
   'Hair & Make Up Artist',
   'Jeweler',
   'Shoes',
   'Host',
-  'Home Service Nail & Massage/Skincare',
-  'House & Lot/Real Estate',
+  'Home Service Nail & Massage/ Skincare',
   'Insurance',
   'Others',
 ] as const;
