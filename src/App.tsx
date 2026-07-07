@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Landing } from './pages/Landing';
 import { InviteFunnel } from './pages/InviteFunnel';
+import { SupplierSignup } from './pages/SupplierSignup';
 import { Register } from './pages/guest/Register';
 import { GuestLogin } from './pages/guest/Login';
 import { Ticket } from './pages/guest/Ticket';
@@ -28,6 +29,7 @@ import { AdminGuests } from './pages/admin/AdminGuests';
 import { AdminCheckin } from './pages/admin/AdminCheckin';
 import { AdminQrGenerator } from './pages/admin/AdminQrGenerator';
 import { AdminInquiries } from './pages/admin/AdminInquiries';
+import { AdminSupplierSignups } from './pages/admin/AdminSupplierSignups';
 import { AdminTransactions } from './pages/admin/AdminTransactions';
 import { AdminOverrides } from './pages/admin/AdminOverrides';
 import { AdminChallenges } from './pages/admin/AdminChallenges';
@@ -83,6 +85,9 @@ export default function App() {
 
         {/* Ads funnel — marketing landing → RSVP → "need help?" → thank-you */}
         <Route path="/rsvp" element={<InviteFunnel />} />
+
+        {/* Public supplier application — mini landing page → supplier_signups */}
+        <Route path="/suppliers" element={<SupplierSignup />} />
         {/* Retired: the older /season2 page is superseded by /rsvp (which routes
             to the per-venue Season 2 events). Redirect so old links still work. */}
         <Route path="/season2" element={<Navigate to="/rsvp" replace />} />
@@ -122,6 +127,7 @@ export default function App() {
         <Route path="/admin/checkin" element={<RequireAdmin><AdminCheckin /></RequireAdmin>} />
         <Route path="/admin/qr-generator" element={<RequireAdmin><AdminQrGenerator /></RequireAdmin>} />
         <Route path="/admin/inquiries" element={<RequireAdmin><AdminInquiries /></RequireAdmin>} />
+        <Route path="/admin/supplier-signups" element={<RequireAdmin><AdminSupplierSignups /></RequireAdmin>} />
         <Route path="/admin/transactions" element={<RequireAdmin><AdminTransactions /></RequireAdmin>} />
         <Route path="/admin/overrides" element={<RequireAdmin><AdminOverrides /></RequireAdmin>} />
         <Route path="/admin/challenges" element={<RequireAdmin><AdminChallenges /></RequireAdmin>} />

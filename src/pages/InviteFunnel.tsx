@@ -26,6 +26,7 @@ import { initMetaPixel, trackLead } from '../lib/meta';
 import { notifyRsvp, notifyInquiry } from '../lib/notify';
 import { toPhE164, phLocal } from '../utils/phone';
 import { toast } from '../stores/toastStore';
+import { SUPPLIERS } from '../constants/suppliers';
 
 // Season 2 runs at TWO venues on overlapping dates. Each venue is its own
 // event, so the admin gets a clean, separate registrant list per location
@@ -763,30 +764,6 @@ function Landing({
     </div>
   );
 }
-
-const SUPPLIERS = [
-  'Reception/Hotel',
-  'Photo & Video',
-  'Wedding Planner/Coordinator',
-  'Caterer',
-  'Event Stylist/Florist',
-  'Couturier/Gown rentals',
-  'Sounds & Lights',
-  'Photo Booths',
-  'Mobile Bar / Coffee Bar / Wines',
-  'Food Stations',
-  'Cakes',
-  'Printed Invitations/Website',
-  'Souvenirs/Bar',
-  'Hair & Make Up Artist',
-  'Jeweler',
-  'Shoes',
-  'Host',
-  'Home Service Nail & Massage/Skincare',
-  'House & Lot/Real Estate',
-  'Insurance',
-  'Others',
-] as const;
 
 function HelpStep({
   name,

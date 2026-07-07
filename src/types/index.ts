@@ -57,6 +57,20 @@ export type EventInfo = {
   status: EventStatus;
 };
 
+/** A vendor application from the public /suppliers sign-up landing page. */
+export type SupplierSignup = {
+  id: string;
+  businessName: string;
+  contactPerson: string;
+  email: string;
+  mobile: string;
+  category?: string;
+  social?: string;
+  products?: string;
+  message?: string;
+  createdAt: string;
+};
+
 /** A lead captured from the "Need help organizing your event?" form. */
 export type EventInquiry = {
   id: string;
