@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Store,
   Users,
@@ -62,6 +62,7 @@ export function SupplierSignup() {
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const toggleIndustry = (s: string) =>
     setForm((f) => ({
@@ -80,8 +81,12 @@ export function SupplierSignup() {
           toast.error('You can upload up to 5 files.');
           break;
         }
-        if (!/\.(pdf|jpe?g|png)$/i.test(f.name)) {
-          toast.error(`${f.name}: PDF, JPG or PNG only.`);
+        const okType =
+          f.type === 'application/pdf' ||
+          f.type.startsWith('image/') ||
+          /\.(pdf|jpe?g|png|heic|heif|webp|gif)$/i.test(f.name);
+        if (!okType) {
+          toast.error(`${f.name}: upload a PDF or a photo (JPG / PNG / HEIC).`);
           continue;
         }
         if (f.size > MAX_SIZE) {
@@ -388,21 +393,27 @@ export function SupplierSignup() {
             </div>
             <p className="text-xs text-plum/60 mb-2 leading-relaxed">
               Sole Proprietorship: DTI Certificate · Corporations/Partnerships: SEC Registration ·
-              For all: updated BIR Form 2303 and latest Tax Clearance. PDF or JPEG/PNG, up to 5 files.
+              For all: updated BIR Form 2303 and latest Tax Clearance. Upload a PDF or take a clear
+              photo of each document — up to 5 files.
             </p>
-            <label className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-plum/25 bg-cream/40 px-4 py-4 cursor-pointer hover:border-coral text-plum/70 text-sm transition">
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.heic,.heif,.webp"
+              className="hidden"
+              onChange={(e) => {
+                addFiles(e.target.files);
+                e.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-plum/25 bg-cream/40 px-4 py-4 cursor-pointer hover:border-coral text-plum/70 text-sm transition"
+            >
               <Upload size={16} aria-hidden="true" /> Add file(s)
-              <input
-                type="file"
-                multiple
-                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-                className="hidden"
-                onChange={(e) => {
-                  addFiles(e.target.files);
-                  e.target.value = '';
-                }}
-              />
-            </label>
+            </button>
             {files.length > 0 && (
               <ul className="mt-2 space-y-1.5">
                 {files.map((f, i) => (
