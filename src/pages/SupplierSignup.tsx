@@ -73,31 +73,34 @@ export function SupplierSignup() {
     }));
 
   const addFiles = (list: FileList | null) => {
-    if (!list) return;
-    setFiles((prev) => {
-      const next = [...prev];
-      for (const f of Array.from(list)) {
-        if (next.length >= MAX_FILES) {
-          toast.error('You can upload up to 5 files.');
-          break;
-        }
-        const okType =
-          f.type === 'application/pdf' ||
-          f.type.startsWith('image/') ||
-          /\.(pdf|jpe?g|png|heic|heif|webp|gif)$/i.test(f.name);
-        if (!okType) {
-          toast.error(`${f.name}: upload a PDF or a photo (JPG / PNG / HEIC).`);
-          continue;
-        }
-        if (f.size > MAX_SIZE) {
-          toast.error(`${f.name} is over 100 MB.`);
-          continue;
-        }
-        if (next.some((x) => x.name === f.name && x.size === f.size)) continue;
-        next.push(f);
+    if (!list || list.length === 0) return;
+    // Materialise the FileList to a real array NOW, synchronously — the caller
+    // resets the <input> value right after this returns, which empties the
+    // live FileList. Reading it later (e.g. inside a deferred state updater)
+    // would see zero files, so the upload silently never attached.
+    const picked = Array.from(list);
+    const next = [...files];
+    for (const f of picked) {
+      if (next.length >= MAX_FILES) {
+        toast.error('You can upload up to 5 files.');
+        break;
       }
-      return next;
-    });
+      const okType =
+        f.type === 'application/pdf' ||
+        f.type.startsWith('image/') ||
+        /\.(pdf|jpe?g|png|heic|heif|webp|gif)$/i.test(f.name);
+      if (!okType) {
+        toast.error(`${f.name}: upload a PDF or a photo (JPG / PNG / HEIC).`);
+        continue;
+      }
+      if (f.size > MAX_SIZE) {
+        toast.error(`${f.name} is over 100 MB.`);
+        continue;
+      }
+      if (next.some((x) => x.name === f.name && x.size === f.size)) continue;
+      next.push(f);
+    }
+    setFiles(next);
   };
 
   const submit = async (e: React.FormEvent) => {
