@@ -72,35 +72,36 @@ export function SupplierSignup() {
         : [...f.industries, s],
     }));
 
-  const addFiles = (list: FileList | null) => {
-    if (!list || list.length === 0) return;
-    // Materialise the FileList to a real array NOW, synchronously — the caller
-    // resets the <input> value right after this returns, which empties the
-    // live FileList. Reading it later (e.g. inside a deferred state updater)
-    // would see zero files, so the upload silently never attached.
-    const picked = Array.from(list);
-    const next = [...files];
-    for (const f of picked) {
-      if (next.length >= MAX_FILES) {
-        toast.error('You can upload up to 5 files.');
-        break;
+  // `picked` is already a real array (snapshotted in the input's onChange
+  // before the value is reset). We merge with a FUNCTIONAL updater so we always
+  // build on the LATEST files state — never a stale closure — which means the
+  // order the supplier fills the form vs. attaches files cannot matter.
+  const addFiles = (picked: File[]) => {
+    if (picked.length === 0) return;
+    setFiles((prev) => {
+      const next = [...prev];
+      for (const f of picked) {
+        if (next.length >= MAX_FILES) {
+          toast.error('You can upload up to 5 files.');
+          break;
+        }
+        const okType =
+          f.type === 'application/pdf' ||
+          f.type.startsWith('image/') ||
+          /\.(pdf|jpe?g|png|heic|heif|webp|gif)$/i.test(f.name);
+        if (!okType) {
+          toast.error(`${f.name}: upload a PDF or a photo (JPG / PNG / HEIC).`);
+          continue;
+        }
+        if (f.size > MAX_SIZE) {
+          toast.error(`${f.name} is over 100 MB.`);
+          continue;
+        }
+        if (next.some((x) => x.name === f.name && x.size === f.size)) continue;
+        next.push(f);
       }
-      const okType =
-        f.type === 'application/pdf' ||
-        f.type.startsWith('image/') ||
-        /\.(pdf|jpe?g|png|heic|heif|webp|gif)$/i.test(f.name);
-      if (!okType) {
-        toast.error(`${f.name}: upload a PDF or a photo (JPG / PNG / HEIC).`);
-        continue;
-      }
-      if (f.size > MAX_SIZE) {
-        toast.error(`${f.name} is over 100 MB.`);
-        continue;
-      }
-      if (next.some((x) => x.name === f.name && x.size === f.size)) continue;
-      next.push(f);
-    }
-    setFiles(next);
+      return next;
+    });
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -406,8 +407,11 @@ export function SupplierSignup() {
               accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.heic,.heif,.webp"
               className="hidden"
               onChange={(e) => {
-                addFiles(e.target.files);
+                // Snapshot the FileList to a real array NOW — resetting value
+                // (to allow re-picking the same file) empties the live list.
+                const picked = Array.from(e.target.files ?? []);
                 e.target.value = '';
+                addFiles(picked);
               }}
             />
             <button
