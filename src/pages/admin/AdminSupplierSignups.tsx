@@ -100,7 +100,7 @@ export function AdminSupplierSignups() {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-xs bg-plum/5 hover:bg-plum/10 text-plum px-2.5 py-1.5 rounded-lg transition"
                     >
-                      <FileText size={13} className="text-coral" /> DTI/BIR doc {i + 1}
+                      <FileText size={13} className="text-coral" /> DTI doc {i + 1}
                     </a>
                   ))}
                 </div>

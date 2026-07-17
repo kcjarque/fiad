@@ -68,7 +68,7 @@ export type SupplierSignup = {
   social?: string;
   products?: string;
   message?: string;
-  /** Public URLs of uploaded DTI/SEC/BIR requirement documents. */
+  /** Public URLs of uploaded DTI (or SEC) registration documents. */
   documentUrls?: string[];
   createdAt: string;
 };

@@ -33,7 +33,7 @@ const rowToSignup = (r: Row): SupplierSignup => ({
 const DOCS_BUCKET = 'supplier-docs';
 
 /**
- * Upload the DTI/SEC/BIR requirement files to Supabase Storage and return
+ * Upload the DTI (or SEC) registration files to Supabase Storage and return
  * their public URLs. Called before createSupplierSignup so the URLs can be
  * stored on the row. Each file gets a random prefix so names never collide.
  */

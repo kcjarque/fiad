@@ -116,7 +116,7 @@ export function SupplierSignup() {
       return;
     }
     if (files.length === 0) {
-      toast.error('Please upload your DTI & BIR requirements.');
+      toast.error('Please upload your DTI registration.');
       return;
     }
     setBusy(true);
@@ -390,15 +390,14 @@ export function SupplierSignup() {
             />
           </div>
 
-          {/* Basic Requirements — DTI & BIR file upload */}
+          {/* DTI registration file upload */}
           <div>
             <div className="label mb-1">
-              Basic Requirements: DTI &amp; BIR <span className="text-coral" aria-hidden="true">*</span>
+              DTI Registration <span className="text-coral" aria-hidden="true">*</span>
             </div>
             <p className="text-xs text-plum/60 mb-2 leading-relaxed">
-              Sole Proprietorship: DTI Certificate · Corporations/Partnerships: SEC Registration ·
-              For all: updated BIR Form 2303 and latest Tax Clearance. Upload a PDF or take a clear
-              photo of each document — up to 5 files.
+              Sole Proprietorship: DTI Certificate · Corporations / Partnerships: SEC Registration.
+              Upload a PDF or take a clear photo — up to 5 files.
             </p>
             <input
               ref={fileRef}
