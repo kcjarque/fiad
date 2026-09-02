@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, LogOut, Download, Lock, Mail, Phone, Users } from 'lucide-react';
+import { Search, LogOut, Download, Lock, Mail, Phone, Users, ClipboardList } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from '../stores/toastStore';
 
-type Contact = { name: string; email: string; mobile: string; venue: string };
+type Contact = {
+  name: string;
+  email: string;
+  mobile: string;
+  venue: string;
+  lookingFor: string;
+  partnerName: string;
+  eventDate: string;
+  note: string;
+};
+
+const hasSurvey = (c: Contact) => !!(c.lookingFor || c.partnerName || c.eventDate || c.note);
 const TOKEN_KEY = 'fiad.staff.token';
 const NAME_KEY = 'fiad.staff.name';
 
@@ -20,6 +31,7 @@ export function StaffPortal() {
   const [loading, setLoading] = useState(false);
   const [creds, setCreds] = useState({ username: '', password: '' });
   const [query, setQuery] = useState('');
+  const [surveyOnly, setSurveyOnly] = useState(false);
 
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
@@ -69,23 +81,39 @@ export function StaffPortal() {
     void loadContacts(data.token);
   };
 
+  const surveyCount = useMemo(() => (contacts || []).filter(hasSurvey).length, [contacts]);
+
   const filtered = useMemo(() => {
     if (!contacts) return [];
     const q = query.trim().toLowerCase();
-    if (!q) return contacts;
-    return contacts.filter(
-      (c) =>
+    return contacts.filter((c) => {
+      if (surveyOnly && !hasSurvey(c)) return false;
+      if (!q) return true;
+      return (
         c.name.toLowerCase().includes(q) ||
         c.email.toLowerCase().includes(q) ||
-        c.mobile.toLowerCase().includes(q),
-    );
-  }, [contacts, query]);
+        c.mobile.toLowerCase().includes(q) ||
+        c.lookingFor.toLowerCase().includes(q) ||
+        c.partnerName.toLowerCase().includes(q) ||
+        c.note.toLowerCase().includes(q)
+      );
+    });
+  }, [contacts, query, surveyOnly]);
 
   const exportCsv = () => {
     if (!contacts || contacts.length === 0) return;
     const rows = [
-      ['Name', 'Email', 'Mobile', 'Venue'],
-      ...contacts.map((c) => [c.name, c.email, c.mobile, c.venue]),
+      ['Name', 'Email', 'Mobile', 'Venue', 'Looking for', 'Partner/Debutant', 'Event date', 'Note'],
+      ...contacts.map((c) => [
+        c.name,
+        c.email,
+        c.mobile,
+        c.venue,
+        c.lookingFor,
+        c.partnerName,
+        c.eventDate,
+        c.note,
+      ]),
     ];
     const csv = rows
       .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
@@ -168,9 +196,25 @@ export function StaffPortal() {
         <div className="flex items-end justify-between gap-3 flex-wrap mb-4">
           <div>
             <h1 className="font-display text-2xl md:text-3xl text-plum">Your contacts</h1>
-            <p className="text-sm text-plum/60 mt-1 inline-flex items-center gap-1.5">
+            <p className="text-sm text-plum/60 mt-1 inline-flex items-center gap-1.5 flex-wrap">
               <Users size={14} aria-hidden="true" /> {contacts?.length ?? 0} registrants
+              {surveyCount > 0 && (
+                <span className="text-plum/40">· {surveyCount} answered the survey</span>
+              )}
             </p>
+            {surveyCount > 0 && (
+              <button
+                onClick={() => setSurveyOnly((v) => !v)}
+                className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${
+                  surveyOnly
+                    ? 'bg-coral text-white border-coral'
+                    : 'border-plum/15 text-plum/70 hover:border-plum/30'
+                }`}
+              >
+                <ClipboardList size={13} aria-hidden="true" />
+                {surveyOnly ? 'Showing survey responses only' : 'Show survey responses only'}
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
@@ -202,12 +246,22 @@ export function StaffPortal() {
                   <th className="py-2.5 px-4">Email</th>
                   <th className="py-2.5 px-4">Mobile</th>
                   <th className="py-2.5 px-4">Venue</th>
+                  <th className="py-2.5 px-4">Looking for (survey)</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((c, i) => (
-                  <tr key={`${c.email}-${i}`} className="border-b border-plum/5 last:border-0">
-                    <td className="py-2.5 px-4 font-medium text-plum whitespace-nowrap">{c.name}</td>
+                  <tr key={`${c.email}-${i}`} className="border-b border-plum/5 last:border-0 align-top">
+                    <td className="py-2.5 px-4">
+                      <div className="font-medium text-plum whitespace-nowrap">{c.name}</div>
+                      {(c.partnerName || c.eventDate) && (
+                        <div className="text-[11px] text-plum/50 mt-0.5">
+                          {[c.partnerName && `with ${c.partnerName}`, c.eventDate]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </div>
+                      )}
+                    </td>
                     <td className="py-2.5 px-4">
                       <a href={`mailto:${c.email}`} className="text-plum/75 hover:text-coral inline-flex items-center gap-1.5">
                         <Mail size={13} className="text-plum/40 shrink-0" aria-hidden="true" /> {c.email}
@@ -219,11 +273,25 @@ export function StaffPortal() {
                       </a>
                     </td>
                     <td className="py-2.5 px-4 text-plum/60 whitespace-nowrap">{c.venue}</td>
+                    <td className="py-2.5 px-4 max-w-[300px]">
+                      {c.lookingFor ? (
+                        <div className="text-xs text-plum/70 leading-snug" title={c.lookingFor}>
+                          {c.lookingFor}
+                          {c.note && (
+                            <div className="text-[11px] text-plum/50 italic mt-1">“{c.note}”</div>
+                          )}
+                        </div>
+                      ) : c.note ? (
+                        <div className="text-[11px] text-plum/50 italic">“{c.note}”</div>
+                      ) : (
+                        <span className="text-plum/25">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-plum/50">No matches.</td>
+                    <td colSpan={5} className="py-8 text-center text-plum/50">No matches.</td>
                   </tr>
                 )}
               </tbody>

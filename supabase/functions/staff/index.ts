@@ -89,15 +89,49 @@ Deno.serve(async (req) => {
       .in('event_id', acc.event_ids)
       .order('name', { ascending: true });
     if (error) return json({ ok: false, error: error.message }, 500);
+
+    // Survey responses — the post-registration "need help organizing your
+    // event?" form (event_inquiries). Matched to a registrant by email; the
+    // most recent response wins.
+    const { data: inquiries } = await supabase
+      .from('event_inquiries')
+      .select('email, event_type, partner_name, event_date, message, created_at')
+      .in('event_id', acc.event_ids)
+      .order('created_at', { ascending: true });
+    const survey = new Map<
+      string,
+      { lookingFor: string; partnerName: string; eventDate: string; note: string }
+    >();
+    for (const q of inquiries || []) {
+      const key = String(q.email || '').toLowerCase().trim();
+      if (!key) continue;
+      survey.set(key, {
+        lookingFor: q.event_type || '',
+        partnerName: q.partner_name || '',
+        eventDate: q.event_date || '',
+        note: q.message || '',
+      });
+    }
+
     const contacts = (guests || [])
       .filter((g: { name: string; email: string }) => !isTest(g.name, g.email))
-      .map((g: { name: string; email: string; mobile: string; event_id: string }) => ({
-        name: g.name || '',
-        email: g.email || '',
-        mobile: g.mobile || '',
-        venue: VENUE[g.event_id] || g.event_id,
-      }));
-    return json({ ok: true, businessName: acc.business_name, count: contacts.length, contacts });
+      .map((g: { name: string; email: string; mobile: string; event_id: string }) => {
+        const s = survey.get(String(g.email || '').toLowerCase().trim());
+        return {
+          name: g.name || '',
+          email: g.email || '',
+          mobile: g.mobile || '',
+          venue: VENUE[g.event_id] || g.event_id,
+          lookingFor: s?.lookingFor || '',
+          partnerName: s?.partnerName || '',
+          eventDate: s?.eventDate || '',
+          note: s?.note || '',
+        };
+      });
+    const withSurvey = contacts.filter(
+      (c) => c.lookingFor || c.partnerName || c.eventDate || c.note,
+    ).length;
+    return json({ ok: true, businessName: acc.business_name, count: contacts.length, withSurvey, contacts });
   }
 
   return json({ ok: false, error: 'Unknown request.' }, 400);
