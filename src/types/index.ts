@@ -222,3 +222,46 @@ export type DealClaim = {
   guestId: string;
   claimedAt: string;
 };
+
+// ── Email Marketing (broadcast campaigns) ────────────────────────────────────
+export type CampaignStatus = 'draft' | 'active' | 'paused';
+export type CampaignTrack = 'visitor' | 'supplier';
+export type CampaignEmailStatus = 'scheduled' | 'sending' | 'sent' | 'paused';
+
+export type EmailCampaign = {
+  id: string;
+  name: string;
+  status: CampaignStatus;
+  /** Merge defaults filled into every email's {{tokens}}. */
+  fromName: string;
+  registerLink: string;
+  fbPage: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CampaignEmail = {
+  id: string;
+  campaignId: string;
+  track: CampaignTrack;
+  seqNo: number;
+  label?: string;
+  subject: string;
+  preview?: string;
+  bodyHtml: string;
+  /** Timestamptz — when to blast (stored UTC, authored Asia/Manila). */
+  scheduledAt: string;
+  status: CampaignEmailStatus;
+  sentCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CampaignRecipient = {
+  id: string;
+  campaignId: string;
+  track: CampaignTrack;
+  email: string;
+  firstName?: string;
+  createdAt: string;
+};
