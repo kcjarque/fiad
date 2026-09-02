@@ -419,13 +419,13 @@ function Landing({
       {/* ── Ring raffle hook (photo split) ── */}
       <section className="max-w-5xl mx-auto px-5">
         <div className="overflow-hidden rounded-3xl shadow-soft grid md:grid-cols-2 bg-plum">
-          <div className="relative min-h-[240px] md:min-h-[380px]">
+          <div className="relative min-h-[280px] md:min-h-[420px]">
             <img
-              src="/img/wedding/rings.jpg"
-              alt="A couple's hands with wedding rings resting on a blush bridal bouquet"
-              className="absolute inset-0 h-full w-full object-cover"
-              width="1400"
-              height="933"
+              src="/img/wedding/fiad-ring.jpg"
+              alt="The Forever in a Day grand-prize gold wedding rings resting on a white bridal bouquet"
+              className="absolute inset-0 h-full w-full object-cover object-center"
+              width="852"
+              height="1280"
               loading="lazy"
             />
           </div>
