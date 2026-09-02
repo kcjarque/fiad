@@ -43,6 +43,13 @@ body::before {
   .font-display {
     font-family: 'Playfair Display', ui-serif, serif;
   }
+  /* Editorial wedding display + script accent (used by the /rsvp funnel). */
+  .font-cormorant {
+    font-family: 'Cormorant Garamond', 'Playfair Display', ui-serif, serif;
+  }
+  .font-script {
+    font-family: 'Great Vibes', 'Cormorant Garamond', cursive;
+  }
   .btn {
     @apply inline-flex items-center justify-center rounded-full px-5 py-3 font-medium transition active:scale-[0.98] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 focus-visible:ring-offset-cream disabled:opacity-50 disabled:cursor-not-allowed;
   }

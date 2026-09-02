@@ -314,67 +314,89 @@ function Landing({
         </div>
       </header>
 
-      {/* ── Hero ── */}
-      <section className="relative max-w-3xl mx-auto px-5 pt-12 sm:pt-16 pb-10 text-center">
-        <div className="reveal chip" style={{ animationDelay: '0ms' }}>
-          FIAD Season 2 · Wedding, Events &amp; Debut Fair
-        </div>
-        <h1
-          className="reveal font-display text-[2.5rem] leading-[1.05] sm:text-6xl text-plum mt-5"
-          style={{ animationDelay: '80ms' }}
-        >
-          Plan your dream wedding in&nbsp;one{' '}
-          <span className="foil-gold-text foil-shimmer">magical day.</span>
-        </h1>
-        <p
-          className="reveal text-plum/75 text-lg mt-5 max-w-xl mx-auto"
-          style={{ animationDelay: '160ms' }}
-        >
-          Meet the country's most-loved suppliers, try on gowns, taste the cakes, and watch a live
-          runway show — a Fil-Korean celebration fair made for couples like you.
-        </p>
-
-        {/* Two locations — pick the one nearest you */}
-        <div
-          className="reveal mt-7 grid sm:grid-cols-2 gap-2.5 max-w-lg mx-auto"
-          style={{ animationDelay: '240ms' }}
-        >
-          {venueOptions.map((v) => (
-            <div key={v.key} className="bg-white/70 rounded-xl px-4 py-3 text-left shadow-card">
-              <div className="font-medium text-plum inline-flex items-center gap-1.5">
-                <MapPin size={15} className="text-coral" aria-hidden="true" /> {v.hotel}
+      {/* ── Hero (photographic) ── */}
+      <section className="relative">
+        <div className="relative h-[82vh] min-h-[540px] w-full overflow-hidden">
+          <img
+            src="/img/wedding/hero-couple.jpg"
+            alt="A bride and groom on their wedding day holding a bridal bouquet in warm golden light"
+            className="absolute inset-0 h-full w-full object-cover object-center"
+            width="1920"
+            height="1280"
+            fetchPriority="high"
+          />
+          <div
+            className="absolute inset-0 bg-gradient-to-t from-plum via-plum/55 to-plum/20"
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 flex items-end">
+            <div className="w-full max-w-3xl mx-auto px-5 pb-14 sm:pb-16 text-center text-cream">
+              <div
+                className="reveal font-script text-champagne text-[2.6rem] sm:text-[3.4rem] leading-none drop-shadow-[0_2px_10px_rgba(62,42,62,0.4)]"
+                style={{ animationDelay: '0ms' }}
+              >
+                Forever in a Day
               </div>
-              <div className="text-xs text-plum/70 mt-0.5 ml-[22px]">
-                {v.area} · {v.rangeShort}
+              <div
+                className="reveal text-[11px] uppercase tracking-[0.28em] text-cream/70 mt-3"
+                style={{ animationDelay: '80ms' }}
+              >
+                Season 2 · Wedding, Events &amp; Debut Fair
+              </div>
+              <h1
+                className="reveal font-cormorant font-medium text-[2.9rem] leading-[1.02] sm:text-[4.5rem] mt-3"
+                style={{ animationDelay: '150ms' }}
+              >
+                Plan your dream wedding in one{' '}
+                <span className="italic text-champagne">magical day.</span>
+              </h1>
+              <p
+                className="reveal text-cream/85 text-base sm:text-lg mt-4 max-w-xl mx-auto leading-relaxed"
+                style={{ animationDelay: '230ms' }}
+              >
+                Meet the country's most-loved suppliers, try on gowns, taste the cakes, and watch a
+                live runway show — a Fil-Korean celebration made for couples like you.
+              </p>
+              <div
+                className="reveal flex flex-col sm:flex-row items-center justify-center gap-3 mt-7"
+                style={{ animationDelay: '310ms' }}
+              >
+                <button onClick={scrollToForm} className="btn-primary w-full sm:w-auto !px-8 text-base shadow-soft">
+                  Reserve my free spot
+                </button>
+                <button
+                  onClick={() => document.getElementById('experience')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="btn w-full sm:w-auto bg-cream/10 text-cream border border-cream/30 hover:bg-cream/20 backdrop-blur-sm"
+                >
+                  See what's inside <ChevronDown size={16} className="ml-1" aria-hidden="true" />
+                </button>
               </div>
             </div>
-          ))}
-        </div>
-        <div
-          className="reveal inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-plum"
-          style={{ animationDelay: '280ms' }}
-        >
-          <CheckCircle2 size={16} className="text-coral" aria-hidden="true" /> Free admission · both
-          locations
+          </div>
         </div>
 
-        <div
-          className="reveal flex flex-col sm:flex-row items-center justify-center gap-3 mt-8"
-          style={{ animationDelay: '320ms' }}
-        >
-          <button onClick={scrollToForm} className="btn-primary w-full sm:w-auto !px-8 text-base">
-            Reserve my free spot
-          </button>
-          <button
-            onClick={() => document.getElementById('experience')?.scrollIntoView({ behavior: 'smooth' })}
-            className="btn-ghost w-full sm:w-auto text-plum/70"
-          >
-            See what's inside <ChevronDown size={16} className="ml-1" aria-hidden="true" />
-          </button>
+        {/* Two locations + free admission — floating card */}
+        <div className="max-w-3xl mx-auto px-5 -mt-9 relative z-10">
+          <div className="bg-white rounded-2xl shadow-soft border border-champagne/25 p-4 sm:p-5">
+            <div className="grid sm:grid-cols-2 gap-3">
+              {venueOptions.map((v) => (
+                <div key={v.key} className="flex items-start gap-2.5 rounded-xl bg-cream/50 px-4 py-3">
+                  <MapPin size={16} className="text-coral shrink-0 mt-0.5" aria-hidden="true" />
+                  <div>
+                    <div className="font-medium text-plum">{v.hotel}</div>
+                    <div className="text-xs text-plum/70 mt-0.5">
+                      {v.area} · {v.rangeShort}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-center gap-1.5 mt-3 pt-3 border-t border-champagne/20 text-sm font-medium text-plum text-center">
+              <CheckCircle2 size={16} className="text-coral shrink-0" aria-hidden="true" /> Free
+              admission at both locations · limited daily slots
+            </div>
+          </div>
         </div>
-        <p className="reveal text-xs text-plum/60 mt-4" style={{ animationDelay: '380ms' }}>
-          Limited slots per day — reserve before they're gone.
-        </p>
       </section>
 
       {/* ── Social proof / trust band ── */}
@@ -387,27 +409,39 @@ function Landing({
             { stat: '1', label: 'Couple wins rings' },
           ].map((s) => (
             <div key={s.label} className="bg-white/70 rounded-2xl py-4 px-2 shadow-card">
-              <div className="font-display text-2xl sm:text-3xl text-coral leading-none">{s.stat}</div>
+              <div className="font-cormorant text-2xl sm:text-3xl text-coral leading-none">{s.stat}</div>
               <div className="text-xs text-plum/70 mt-1.5 leading-tight">{s.label}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── Ring raffle hook ── */}
+      {/* ── Ring raffle hook (photo split) ── */}
       <section className="max-w-5xl mx-auto px-5">
-        <div className="relative overflow-hidden rounded-3xl bg-plum text-cream px-6 py-10 sm:py-12 text-center shadow-soft">
-          <Gem size={28} className="mx-auto text-champagne animate-floaty" aria-hidden="true" />
-          <div className="text-[11px] uppercase tracking-[0.2em] text-champagne mt-3">
-            The grand moment
+        <div className="overflow-hidden rounded-3xl shadow-soft grid md:grid-cols-2 bg-plum">
+          <div className="relative min-h-[240px] md:min-h-[380px]">
+            <img
+              src="/img/wedding/rings.jpg"
+              alt="A couple's hands with wedding rings resting on a blush bridal bouquet"
+              className="absolute inset-0 h-full w-full object-cover"
+              width="1400"
+              height="933"
+              loading="lazy"
+            />
           </div>
-          <h2 className="font-display text-3xl sm:text-4xl mt-2">
-            Win <span className="foil-gold-text foil-shimmer">your wedding rings</span>
-          </h2>
-          <p className="text-cream/75 mt-3 max-w-md mx-auto">
-            Every registered couple is entered to win a wedding ring set, drawn live on stage.
-            Your forever could begin right here.
-          </p>
+          <div className="text-cream px-7 py-10 sm:px-10 sm:py-14 text-center md:text-left flex flex-col justify-center">
+            <Gem size={26} className="text-champagne animate-floaty mx-auto md:mx-0" aria-hidden="true" />
+            <div className="text-[11px] uppercase tracking-[0.24em] text-champagne mt-3">
+              The grand moment
+            </div>
+            <h2 className="font-cormorant text-4xl sm:text-5xl mt-2 leading-tight">
+              Win <span className="foil-gold-text foil-shimmer italic">your wedding rings</span>
+            </h2>
+            <p className="text-cream/80 mt-3 max-w-md mx-auto md:mx-0 leading-relaxed">
+              Every registered couple is entered to win a wedding ring set, drawn live on stage. Your
+              forever could begin right here.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -419,10 +453,40 @@ function Landing({
               <div className="h-11 w-11 rounded-xl bg-coral/10 text-coral flex items-center justify-center">
                 <v.icon size={20} aria-hidden="true" />
               </div>
-              <h3 className="font-display text-xl text-plum mt-4">{v.title}</h3>
+              <h3 className="font-cormorant text-xl text-plum mt-4">{v.title}</h3>
               <p className="text-sm text-plum/75 mt-1.5 leading-relaxed">{v.body}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── Editorial band: the promise ── */}
+      <section className="max-w-6xl mx-auto px-5 pb-14">
+        <div className="relative overflow-hidden rounded-3xl shadow-soft">
+          <img
+            src="/img/wedding/forever-always.jpg"
+            alt="Two ceremony chairs draped with roses and 'Forever' and 'Always' signs by the water"
+            className="h-[360px] sm:h-[440px] w-full object-cover object-center"
+            width="1400"
+            height="933"
+            loading="lazy"
+          />
+          <div
+            className="absolute inset-0 bg-gradient-to-r from-plum/80 via-plum/40 to-plum/5"
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 flex items-center">
+            <div className="px-7 sm:px-12 max-w-md text-cream">
+              <div className="text-[11px] uppercase tracking-[0.24em] text-champagne">The FIAD promise</div>
+              <p className="font-cormorant text-3xl sm:text-[2.75rem] leading-tight mt-2">
+                Every great love story deserves a beautiful beginning.
+              </p>
+              <p className="mt-3 text-cream/85 leading-relaxed">
+                Real gowns to try on, cakes to taste, and the country's finest suppliers — all in
+                one curated day.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -430,7 +494,7 @@ function Landing({
       <section id="experience" className="max-w-5xl mx-auto px-5 pb-14 scroll-mt-20">
         <div className="text-center max-w-xl mx-auto">
           <div className="text-[11px] uppercase tracking-[0.2em] text-coral">What's inside</div>
-          <h2 className="font-display text-3xl sm:text-4xl text-plum mt-2">
+          <h2 className="font-cormorant text-3xl sm:text-4xl text-plum mt-2">
             Everything for your big day
           </h2>
           <p className="text-plum/75 mt-2">
@@ -456,7 +520,7 @@ function Landing({
             { tag: 'Day 2', items: ['Doors open · interactive booths', 'Q&A with a celebrity wedding planner', 'Wine & spirits basics', 'Supplier awards night', 'Wedding ring raffle & Season 3 reveal'] },
           ].map((d) => (
             <div key={d.tag} className="card !p-6">
-              <div className="font-display text-2xl text-plum">{d.tag}</div>
+              <div className="font-cormorant text-2xl text-plum">{d.tag}</div>
               <ul className="mt-4 space-y-2.5">
                 {d.items.map((it) => (
                   <li key={it} className="flex items-start gap-2.5 text-sm text-plum/75">
@@ -473,11 +537,54 @@ function Landing({
         </p>
       </section>
 
+      {/* ── Editorial band: the setting ── */}
+      <section className="max-w-6xl mx-auto px-5 pb-12">
+        <div className="relative overflow-hidden rounded-3xl shadow-soft">
+          <img
+            src="/img/wedding/ballroom.jpg"
+            alt="An elegant hotel ballroom with crystal chandeliers, gold chairs and ivory-dressed tables"
+            className="h-[300px] sm:h-[380px] w-full object-cover object-center"
+            width="1400"
+            height="875"
+            loading="lazy"
+          />
+          <div
+            className="absolute inset-0 bg-gradient-to-t from-plum/85 via-plum/35 to-plum/10"
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 flex items-end justify-center">
+            <div className="px-7 pb-8 text-cream text-center w-full max-w-lg">
+              <div className="font-script text-champagne text-3xl sm:text-4xl leading-none">
+                two beautiful venues
+              </div>
+              <p className="mt-2 text-cream/90">
+                Brittany Hotel, BGC and Mella Hotel, Las Piñas — pick the day and place closest to
+                you.
+              </p>
+              <button
+                onClick={scrollToForm}
+                className="btn-primary mt-4 inline-flex items-center gap-2 shadow-soft"
+              >
+                Reserve my free spot <ArrowRight size={16} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Registration form ── */}
       <section id="register" className="max-w-xl mx-auto px-5 py-10 scroll-mt-20">
         <div className="text-center mb-6">
+          <img
+            src="/img/wedding/bouquet.jpg"
+            alt="A lush bridal bouquet of roses and eucalyptus"
+            className="mx-auto mb-4 h-24 w-24 rounded-full object-cover shadow-card ring-2 ring-champagne/40"
+            width="300"
+            height="300"
+            loading="lazy"
+          />
           <div className="text-[11px] uppercase tracking-[0.2em] text-coral">Reserve your spot</div>
-          <h2 className="font-display text-3xl sm:text-4xl text-plum mt-2">Save your free seat</h2>
+          <h2 className="font-cormorant text-3xl sm:text-4xl text-plum mt-2">Save your free seat</h2>
           <p className="text-plum/75 mt-2">
             Takes 20 seconds. We'll send your confirmation and event reminders.
           </p>
@@ -699,7 +806,7 @@ function Landing({
 
       {/* ── FAQ ── */}
       <section className="max-w-xl mx-auto px-5 py-10">
-        <h2 className="font-display text-2xl text-plum text-center mb-6">Good to know</h2>
+        <h2 className="font-cormorant text-2xl text-plum text-center mb-6">Good to know</h2>
         <div className="space-y-2.5">
           {FAQS.map((f) => (
             <details key={f.q} className="group card !p-0 overflow-hidden">
@@ -713,20 +820,32 @@ function Landing({
         </div>
       </section>
 
-      {/* ── Final CTA ── */}
+      {/* ── Final CTA (photographic) ── */}
       <section className="max-w-5xl mx-auto px-5 py-10">
-        <div className="rounded-3xl bg-gradient-to-br from-coral to-rose text-white text-center px-6 py-12 shadow-soft">
-          <Heart size={26} className="mx-auto" aria-hidden="true" />
-          <h2 className="font-display text-3xl sm:text-4xl mt-3">Your forever starts here.</h2>
-          <p className="text-white/90 mt-2 max-w-md mx-auto">
-            Reserve your free spot and step into the wedding planning day couples can't stop talking about.
-          </p>
-          <button
-            onClick={scrollToForm}
-            className="btn mt-6 bg-white text-coral hover:brightness-95 !px-8 text-base"
-          >
-            Reserve my free spot <ArrowRight size={18} className="ml-1.5" aria-hidden="true" />
-          </button>
+        <div className="relative overflow-hidden rounded-3xl shadow-soft text-white text-center">
+          <img
+            src="/img/wedding/couple-walking.jpg"
+            alt="A joyful newlywed couple walking hand in hand"
+            className="absolute inset-0 h-full w-full object-cover object-top"
+            width="1100"
+            height="1650"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-coral/85 to-plum/85" aria-hidden="true" />
+          <div className="relative px-6 py-14">
+            <Heart size={26} className="mx-auto" aria-hidden="true" />
+            <h2 className="font-cormorant text-4xl sm:text-5xl mt-3">Your forever starts here.</h2>
+            <p className="text-white/90 mt-2 max-w-md mx-auto">
+              Reserve your free spot and step into the wedding planning day couples can't stop
+              talking about.
+            </p>
+            <button
+              onClick={scrollToForm}
+              className="btn mt-6 bg-white text-coral hover:brightness-95 !px-8 text-base shadow-soft"
+            >
+              Reserve my free spot <ArrowRight size={18} className="ml-1.5" aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </section>
 
@@ -837,14 +956,14 @@ function HelpStep({
           <div className="h-16 w-16 rounded-full bg-coral/15 text-coral flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 size={34} aria-hidden="true" />
           </div>
-          <h1 className="font-display text-3xl text-plum">You're registered, {firstName}!</h1>
+          <h1 className="font-cormorant text-3xl text-plum">You're registered, {firstName}!</h1>
           <p className="text-plum/75 mt-2">One more thing before you go —</p>
         </div>
 
         {!showForm ? (
           <div className="mt-6 bg-white rounded-2xl shadow-card p-6 text-center">
             <Sparkles size={22} className="text-champagne mx-auto" aria-hidden="true" />
-            <div className="font-display text-2xl text-plum mt-2">
+            <div className="font-cormorant text-2xl text-plum mt-2">
               Do you need help organizing your event?
             </div>
             <p className="text-sm text-plum/75 mt-1">
@@ -861,7 +980,7 @@ function HelpStep({
           </div>
         ) : (
           <form onSubmit={sendInquiry} className="mt-6 bg-white rounded-2xl shadow-card p-6 space-y-5">
-            <div className="font-display text-xl text-plum">Tell us about your event</div>
+            <div className="font-cormorant text-xl text-plum">Tell us about your event</div>
 
             {/* Partner / debutant name */}
             <div>
@@ -991,7 +1110,7 @@ function AlreadyStep({
         <div className="h-16 w-16 rounded-full bg-champagne/40 text-plum flex items-center justify-center mx-auto mb-5">
           <CheckCircle2 size={34} aria-hidden="true" />
         </div>
-        <h1 className="font-display text-3xl text-plum">You're already on the list, {firstName}!</h1>
+        <h1 className="font-cormorant text-3xl text-plum">You're already on the list, {firstName}!</h1>
         <p className="text-plum/75 mt-3">
           <strong className="text-plum">{guest.email}</strong> is already registered for {venueLabel}
           {regDate ? ` · ${regDate}` : ''}. No need to register again.
@@ -1033,7 +1152,7 @@ function DoneStep({
         <div className="h-16 w-16 rounded-full bg-coral/15 text-coral flex items-center justify-center mx-auto mb-5">
           <CheckCircle2 size={34} aria-hidden="true" />
         </div>
-        <h1 className="font-display text-4xl text-plum">See you at the fair!</h1>
+        <h1 className="font-cormorant text-4xl text-plum">See you at the fair!</h1>
         <p className="text-plum/75 mt-2">
           Your spot is reserved. We'll send your details and reminders before the event.
         </p>
