@@ -24,6 +24,6 @@ export const SUPPLIERS = [
   'Shoes',
   'Host',
   'Home Service Nail & Massage/ Skincare',
-  'Insurance',
+  'Insurance/ Home Investment',
   'Others',
 ] as const;
