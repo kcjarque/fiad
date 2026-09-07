@@ -13,6 +13,9 @@ export const HIDDEN_STORE_IDS: ReadonlySet<string> = new Set([
   'store_18_heinoah_entertainment',
   // Sharon's Delight (BA15) — no-show on Jun 6
   'store_ba15_sharons_delight',
+  // Demo Supplier (Booth DEMO) — supplier-login demo/testing only; keep out
+  // of guest-facing screens but still selectable in the store-login picker.
+  'store_demo2026',
 ]);
 
 /** Prizes hidden from the raffle (also drops their slot from the schedule). */
