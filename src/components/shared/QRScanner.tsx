@@ -23,6 +23,15 @@ export function QRScanner({ onResult, onClose, hint }: Props) {
   const [manual, setManual] = useState('');
   const [mode, setMode] = useState<Mode>('camera');
   const [starting, setStarting] = useState(true);
+  const [reading, setReading] = useState(false);
+
+  // A real scanner appears to "process" a code for a beat; ours decodes so
+  // fast the instant jump reads as a glitch. Show a short reading state before
+  // handing the code up. Used by both the camera and manual-entry paths.
+  const emit = (data: string) => {
+    setReading(true);
+    window.setTimeout(() => onResultRef.current(data), 800);
+  };
 
   useEffect(() => {
     if (mode !== 'camera') return;
@@ -65,7 +74,7 @@ export function QRScanner({ onResult, onClose, hint }: Props) {
       if (code && code.data) {
         cancelled = true;
         stop();
-        onResultRef.current(code.data);
+        emit(code.data);
         return;
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -123,6 +132,16 @@ export function QRScanner({ onResult, onClose, hint }: Props) {
       stop();
     };
   }, [mode]);
+
+  if (reading) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+        <div className="h-11 w-11 rounded-full border-2 border-coral/25 border-t-coral animate-spin" />
+        <div className="font-display text-lg text-plum">Reading QR…</div>
+        <div className="text-plum/55 text-sm">Just a moment</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -187,12 +206,12 @@ export function QRScanner({ onResult, onClose, hint }: Props) {
             placeholder="Paste or type the code"
             value={manual}
             onChange={(e) => setManual(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && manual.trim() && onResult(manual.trim())}
+            onKeyDown={(e) => e.key === 'Enter' && manual.trim() && emit(manual.trim())}
           />
           <button
             type="button"
             className="btn-primary w-full"
-            onClick={() => manual.trim() && onResult(manual.trim())}
+            onClick={() => manual.trim() && emit(manual.trim())}
             disabled={!manual.trim()}
           >
             Submit
