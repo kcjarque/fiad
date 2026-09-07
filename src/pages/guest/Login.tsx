@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { loginGuestWithAccessCode } from '../../services/guestService';
 import { useAuth } from '../../stores/authStore';
+import { useEventStore } from '../../stores/eventStore';
 import { toast } from '../../stores/toastStore';
 import { ArrowLeft } from 'lucide-react';
 
 export function GuestLogin() {
   const navigate = useNavigate();
   const setGuest = useAuth((s) => s.setGuest);
+  const setSelectedEvent = useEventStore((s) => s.setSelectedEvent);
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -24,6 +26,8 @@ export function GuestLogin() {
         return;
       }
       setGuest(guest.id);
+      // Scope the app to the venue this guest registered for.
+      setSelectedEvent(guest.eventId);
       toast.success(`Welcome back, ${guest.name.split(' ')[0]}!`);
       // If the user landed here because they scanned a booth QR before
       // signing in, resume that stamp now.

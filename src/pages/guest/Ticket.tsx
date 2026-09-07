@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
-import { Trophy, Info, Sparkles, Timer, ScanLine } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Trophy, Info, Sparkles, Timer, ScanLine, MapPin } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../stores/authStore';
+import { useEventStore, S2_VENUES } from '../../stores/eventStore';
 import { getGuest } from '../../services/guestService';
 import { entriesForGuest } from '../../services/raffleService';
 import { listPrizes } from '../../services/prizeService';
@@ -27,6 +28,22 @@ export function Ticket() {
   const { data: event } = useQuery({ queryKey: ['activeEvent'], queryFn: getActiveEvent });
   const { data: prizes = [] } = useQuery({ queryKey: ['prizes'], queryFn: listPrizes });
   const [howOpen, setHowOpen] = useState(false);
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
+  const setSelectedEvent = useEventStore((s) => s.setSelectedEvent);
+  const queryClient = useQueryClient();
+
+  // Existing guests may still be pinned to Season 1 — send them to their own
+  // Season 2 venue. (Fresh logins already set this.)
+  useEffect(() => {
+    if (guest && !S2_VENUES.some((v) => v.id === selectedEventId)) {
+      setSelectedEvent(guest.eventId);
+    }
+  }, [guest, selectedEventId, setSelectedEvent]);
+
+  const switchVenue = (id: string) => {
+    setSelectedEvent(id);
+    queryClient.invalidateQueries();
+  };
 
   const schedule = event?.date ? buildSchedule(prizes.map((p) => p.id), event.date) : new Map<string, string>();
   const sortedPrizes = [...prizes].sort((a, b) => getDrawSortKey(schedule, a.id) - getDrawSortKey(schedule, b.id));
@@ -101,6 +118,43 @@ export function Ticket() {
           </div>
         </div>
       </div>
+
+      {/* Venue toggle — your registered venue is the default; switch to browse the other. */}
+      {S2_VENUES.some((v) => v.id === selectedEventId) && (
+        <div className="px-5 mt-5">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-plum/40 mb-1.5 ml-1">
+            Browsing venue
+          </div>
+          <div className="bg-white rounded-2xl shadow-card p-1.5 flex gap-1.5">
+            {S2_VENUES.map((v) => {
+              const active = v.id === selectedEventId;
+              const mine = v.id === guest.eventId;
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => switchVenue(v.id)}
+                  className={`flex-1 rounded-xl py-2 text-sm font-medium transition ${
+                    active ? 'bg-coral text-white shadow-sm' : 'text-plum/70 hover:bg-plum/5'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin size={13} aria-hidden="true" /> {v.label}
+                  </span>
+                  {mine && (
+                    <span
+                      className={`block text-[10px] font-normal mt-0.5 ${
+                        active ? 'text-white/75' : 'text-plum/40'
+                      }`}
+                    >
+                      your venue
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Prominent Scan button — easy to find from the Ticket page. */}
       <div className="px-5 mt-5">

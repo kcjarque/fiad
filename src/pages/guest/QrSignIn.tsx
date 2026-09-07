@@ -3,11 +3,13 @@ import { Navigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getGuestByQr } from '../../services/guestService';
 import { useAuth } from '../../stores/authStore';
+import { useEventStore } from '../../stores/eventStore';
 import { toast } from '../../stores/toastStore';
 
 export function QrSignIn() {
   const { token } = useParams<{ token: string }>();
   const setGuest = useAuth((s) => s.setGuest);
+  const setSelectedEvent = useEventStore((s) => s.setSelectedEvent);
 
   const { data: guest, isLoading, isError } = useQuery({
     queryKey: ['guest', 'byQr', token],
@@ -19,9 +21,10 @@ export function QrSignIn() {
   useEffect(() => {
     if (guest) {
       setGuest(guest.id);
+      setSelectedEvent(guest.eventId);
       toast.success(`Welcome, ${guest.name.split(' ')[0]}!`);
     }
-  }, [guest, setGuest]);
+  }, [guest, setGuest, setSelectedEvent]);
 
   if (!token) return <Navigate to="/" replace />;
   if (isLoading) {
