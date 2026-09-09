@@ -18,6 +18,7 @@ type Row = {
   email?: string | null;
   contact?: string | null;
   social_media?: string | null;
+  packages_url?: string | null;
 };
 
 const rowToStore = (r: Row): Store => ({
@@ -34,6 +35,7 @@ const rowToStore = (r: Row): Store => ({
   email: r.email ?? undefined,
   contact: r.contact ?? undefined,
   socialMedia: r.social_media ?? undefined,
+  packagesUrl: r.packages_url ?? undefined,
 });
 
 const storeToInsert = (s: Store): Row => ({

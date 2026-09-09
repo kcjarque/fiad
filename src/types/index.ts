@@ -36,6 +36,7 @@ export type Store = {
   email?: string;
   contact?: string;
   socialMedia?: string;
+  packagesUrl?: string;
 };
 
 export type Admin = {

@@ -3,6 +3,7 @@ import { Landing } from './pages/Landing';
 import { InviteFunnel } from './pages/InviteFunnel';
 import { SupplierSignup } from './pages/SupplierSignup';
 import { StaffPortal } from './pages/StaffPortal';
+import { CallingCard } from './pages/CallingCard';
 import { Register } from './pages/guest/Register';
 import { GuestLogin } from './pages/guest/Login';
 import { Ticket } from './pages/guest/Ticket';
@@ -93,6 +94,9 @@ export default function App() {
 
         {/* Gated supplier portal — username/password login → their contacts only */}
         <Route path="/staff" element={<StaffPortal />} />
+
+        {/* Public supplier calling card (scanned from the QR calling card). */}
+        <Route path="/card/:token" element={<CallingCard />} />
         {/* Retired: the older /season2 page is superseded by /rsvp (which routes
             to the per-venue Season 2 events). Redirect so old links still work. */}
         <Route path="/season2" element={<Navigate to="/rsvp" replace />} />
