@@ -8,7 +8,8 @@ import { getActiveEvent } from '../../services/eventService';
 import type { WalkthroughItem } from '../../types';
 import { Hero } from '../../components/shared/Hero';
 import { Modal } from '../../components/shared/Modal';
-import { FloorPlan, getCategoryMeta } from '../../components/guest/FloorPlan';
+import { getCategoryMeta } from '../../components/guest/FloorPlan';
+import { FloorPlanImage } from '../../components/guest/FloorPlanImage';
 import type { Store } from '../../types';
 
 const eventTabs = [
@@ -28,7 +29,6 @@ export function Walkthrough({
   const scheduleOnly = initialTab === 'schedule_item';
   const [tab, setTab] = useState<EventTabKey>(scheduleOnly ? 'map' : initialTab);
   const [boothDetail, setBoothDetail] = useState<Store | null>(null);
-  const [mapPreselect, setMapPreselect] = useState<string | null>(null);
 
   const { data: event } = useQuery({ queryKey: ['activeEvent'], queryFn: getActiveEvent });
   const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: listStores });
@@ -84,26 +84,17 @@ export function Walkthrough({
           <ScheduleTab schedule={schedule} />
         ) : (
           <>
-            {tab === 'map' && (
-              <FloorPlan
-                stores={stores}
-                initialSelectedId={mapPreselect}
-                onSelect={(s) => !s && setMapPreselect(null)}
-              />
-            )}
+            {tab === 'map' && <FloorPlanImage />}
 
             {tab === 'booth_info' && (
-              <BoothsTab stores={stores} onOpen={(s) => setBoothDetail(s)} onLocate={(s) => {
-                setMapPreselect(s.id);
-                setTab('map');
-              }} />
+              <BoothsTab stores={stores} onOpen={(s) => setBoothDetail(s)} onLocate={() => setTab('map')} />
             )}
 
             {tab === 'promo' && (
               <PromosTab
                 promos={promos}
                 stores={stores}
-                onLocate={(storeId) => { if (storeId) setMapPreselect(storeId); setTab('map'); }}
+                onLocate={() => setTab('map')}
               />
             )}
           </>
@@ -113,7 +104,6 @@ export function Walkthrough({
       {/* Booth detail sheet (from booths tab) */}
       <Modal open={!!boothDetail} onClose={() => setBoothDetail(null)} title={boothDetail?.name} size="md">
         {boothDetail && <BoothDetail store={boothDetail} onLocate={() => {
-          setMapPreselect(boothDetail.id);
           setBoothDetail(null);
           setTab('map');
         }} />}
