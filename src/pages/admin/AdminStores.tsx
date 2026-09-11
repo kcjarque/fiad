@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy } from 'lucide-react';
 import { AdminShell } from '../../components/admin/AdminShell';
-import { createStore, deleteStore, listStores, updateStore } from '../../services/storeService';
+import { createStore, deleteStore, listStores, updateStore, uploadStoreLogo } from '../../services/storeService';
 import { Modal } from '../../components/shared/Modal';
 import { toast } from '../../stores/toastStore';
 import { QRDisplay } from '../../components/shared/QRDisplay';
@@ -40,6 +40,25 @@ export function AdminStores() {
   const [addOpen, setAddOpen] = useState(false);
   // After a new store is created, show its credentials so the admin can share them.
   const [justCreated, setJustCreated] = useState<Store | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  // Snapshot the File synchronously (before clearing the input) — clearing the
+  // input first would empty the live FileList and drop the file on some browsers.
+  const onLogoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const url = await uploadStoreLogo(file);
+      setDraft((d) => ({ ...d, logoUrl: url }));
+      toast.success('Logo uploaded');
+    } catch (err) {
+      toast.error(`Logo upload failed: ${(err as Error).message}`);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['stores'] });
@@ -164,8 +183,26 @@ export function AdminStores() {
             <textarea className="input" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} rows={3} placeholder="Short blurb shown to guests" />
           </div>
           <div>
-            <label className="label">Logo URL (optional)</label>
-            <input className="input" value={draft.logoUrl} onChange={(e) => setDraft({ ...draft, logoUrl: e.target.value })} placeholder="https://… (leave blank for auto-generated)" />
+            <label className="label">Logo</label>
+            <div className="flex items-center gap-3">
+              {draft.logoUrl ? (
+                <img src={draft.logoUrl} alt="" className="w-16 h-16 rounded-xl object-contain bg-white border border-plum/10 shrink-0" />
+              ) : (
+                <div className="w-16 h-16 rounded-xl bg-plum/5 border border-plum/10 flex items-center justify-center text-[10px] text-plum/40 shrink-0">no logo</div>
+              )}
+              <div className="flex-1">
+                <label className={`inline-flex items-center gap-2 rounded-lg border border-plum/15 px-3 py-2 text-sm cursor-pointer ${uploadingLogo ? 'opacity-60' : 'hover:border-coral hover:text-coral'} text-plum`}>
+                  {uploadingLogo ? 'Uploading…' : 'Upload image'}
+                  <input type="file" accept="image/*" className="hidden" disabled={uploadingLogo} onChange={onLogoFile} />
+                </label>
+                {draft.logoUrl && (
+                  <button type="button" className="ml-2 text-xs text-plum/50 hover:text-plum" onClick={() => setDraft({ ...draft, logoUrl: '' })}>
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+            <input className="input mt-2 text-xs" value={draft.logoUrl} onChange={(e) => setDraft({ ...draft, logoUrl: e.target.value })} placeholder="…or paste an image URL" />
           </div>
 
           {editing && (

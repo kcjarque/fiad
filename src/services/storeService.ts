@@ -54,6 +54,18 @@ const storeToInsert = (s: Store): Row => ({
   social_media: s.socialMedia ?? null,
 });
 
+// Admin logo upload: store the image in the public supplier-docs bucket and
+// return its public URL (used as the store's logoUrl).
+export const uploadStoreLogo = async (file: File): Promise<string> => {
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+  const path = `store-logos/${uid('logo')}.${ext}`;
+  const { error } = await supabase.storage
+    .from('supplier-docs')
+    .upload(path, file, { contentType: file.type || undefined, upsert: false });
+  if (error) throw error;
+  return supabase.storage.from('supplier-docs').getPublicUrl(path).data.publicUrl;
+};
+
 export const listStores = async (): Promise<Store[]> => {
   const { data, error } = await supabase
     .from('stores')
