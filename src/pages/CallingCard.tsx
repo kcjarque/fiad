@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { getStoreByQr } from '../services/storeService';
 import { S2_VENUES } from '../stores/eventStore';
-import type { Store } from '../types';
+import type { Store, ContactEntry } from '../types';
 
 const venueLabel = (eventId: string) =>
   S2_VENUES.find((v) => v.id === eventId)?.label ?? 'Forever in a Day · Season 2';
@@ -15,19 +15,21 @@ const isInstagram = (url?: string) => !!url && /instagram\.com/i.test(url);
 
 // Build a downloadable vCard so a scan → "Save to Contacts" in one tap.
 const vcardHref = (s: Store) => {
-  const lines = [
-    'BEGIN:VCARD',
-    'VERSION:3.0',
-    `FN:${s.name}`,
-    `ORG:${s.name}`,
-    s.category ? `TITLE:${s.category}` : '',
-    s.contact ? `TEL;TYPE=CELL:${s.contact}` : '',
-    s.email ? `EMAIL;TYPE=INTERNET:${s.email}` : '',
-    s.socialMedia ? `URL:${s.socialMedia}` : '',
-    `NOTE:Forever in a Day · Season 2 — Booth ${s.boothNumber}, ${venueLabel(s.eventId)}`,
-    'END:VCARD',
-  ].filter(Boolean);
-  return `data:text/vcard;charset=utf-8,${encodeURIComponent(lines.join('\r\n'))}`;
+  const lines = ['BEGIN:VCARD', 'VERSION:3.0', `FN:${s.name}`, `ORG:${s.name}`, s.category ? `TITLE:${s.category}` : ''];
+  getEntries(s).forEach((c) => {
+    if (c.phone) lines.push(`TEL;TYPE=CELL:${c.phone}`);
+    if (c.email) lines.push(`EMAIL;TYPE=INTERNET:${c.email}`);
+    if (c.social) lines.push(`URL:${c.social}`);
+  });
+  lines.push(`NOTE:Forever in a Day · Season 2 — Booth ${s.boothNumber}, ${venueLabel(s.eventId)}`, 'END:VCARD');
+  return `data:text/vcard;charset=utf-8,${encodeURIComponent(lines.filter(Boolean).join('\r\n'))}`;
+};
+
+// Multi-brand contacts, falling back to the legacy single fields.
+const getEntries = (s: Store): ContactEntry[] => {
+  if (s.contacts && s.contacts.length) return s.contacts.filter((c) => c.phone || c.email || c.social);
+  if (s.contact || s.email || s.socialMedia) return [{ phone: s.contact, email: s.email, social: s.socialMedia }];
+  return [];
 };
 
 export function CallingCard() {
@@ -52,7 +54,7 @@ export function CallingCard() {
     );
   }
 
-  const igSocial = isInstagram(store.socialMedia);
+  const entries = getEntries(store);
   const share = async () => {
     const url = window.location.href;
     try {
@@ -109,25 +111,31 @@ export function CallingCard() {
           <UserPlus size={18} /> Save to Contacts
         </a>
 
-        {/* Quick actions */}
-        <div className="mt-3 grid grid-cols-3 gap-3">
-          {store.contact && (
-            <a href={`tel:${store.contact.replace(/\s/g, '')}`} className="flex flex-col items-center gap-1.5 rounded-2xl bg-white shadow-card py-3.5 text-plum/80 hover:text-coral transition">
-              <Phone size={19} /><span className="text-[11px] font-medium">Call</span>
-            </a>
-          )}
-          {store.email && (
-            <a href={`mailto:${store.email}`} className="flex flex-col items-center gap-1.5 rounded-2xl bg-white shadow-card py-3.5 text-plum/80 hover:text-coral transition">
-              <Mail size={19} /><span className="text-[11px] font-medium">Email</span>
-            </a>
-          )}
-          {store.socialMedia && (
-            <a href={store.socialMedia} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1.5 rounded-2xl bg-white shadow-card py-3.5 text-plum/80 hover:text-coral transition">
-              <Globe size={19} />
-              <span className="text-[11px] font-medium">{igSocial ? 'Instagram' : 'Facebook'}</span>
-            </a>
-          )}
-        </div>
+        {/* Contacts — one block per brand sharing the booth */}
+        {entries.map((c, i) => (
+          <div key={i} className="mt-3 bg-white rounded-2xl shadow-card overflow-hidden">
+            {c.label && (
+              <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-[0.22em] text-champagne font-medium">{c.label}</div>
+            )}
+            <div className="divide-y divide-plum/5">
+              {c.phone && (
+                <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="flex items-center gap-3 px-4 py-3.5">
+                  <Phone size={16} className="text-coral shrink-0" /><span className="text-sm text-plum">{c.phone}</span>
+                </a>
+              )}
+              {c.email && (
+                <a href={`mailto:${c.email}`} className="flex items-center gap-3 px-4 py-3.5">
+                  <Mail size={16} className="text-coral shrink-0" /><span className="text-sm text-plum break-all">{c.email}</span>
+                </a>
+              )}
+              {c.social && (
+                <a href={c.social} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3.5">
+                  <Globe size={16} className="text-coral shrink-0" /><span className="text-sm text-plum truncate">{isInstagram(c.social) ? 'Instagram' : 'Facebook'}</span>
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
 
         {/* Packages / promos */}
         {store.packagesUrl && (
@@ -138,28 +146,6 @@ export function CallingCard() {
             <FileText size={17} className="text-champagne" /> View Packages &amp; Promos
           </button>
         )}
-
-        {/* Details */}
-        <div className="mt-6 bg-white rounded-2xl shadow-card divide-y divide-plum/5">
-          {store.contact && (
-            <a href={`tel:${store.contact.replace(/\s/g, '')}`} className="flex items-center gap-3 px-4 py-3.5">
-              <Phone size={16} className="text-coral shrink-0" />
-              <span className="text-sm text-plum">{store.contact}</span>
-            </a>
-          )}
-          {store.email && (
-            <a href={`mailto:${store.email}`} className="flex items-center gap-3 px-4 py-3.5">
-              <Mail size={16} className="text-coral shrink-0" />
-              <span className="text-sm text-plum break-all">{store.email}</span>
-            </a>
-          )}
-          {store.socialMedia && (
-            <a href={store.socialMedia} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3.5">
-              <Globe size={16} className="text-coral shrink-0" />
-              <span className="text-sm text-plum truncate">{igSocial ? 'Instagram' : 'Facebook'}</span>
-            </a>
-          )}
-        </div>
 
         {/* Share */}
         <button onClick={share} className="mt-4 w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-medium text-plum/70 hover:text-plum transition">

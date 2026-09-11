@@ -5,10 +5,11 @@ import { AdminShell } from '../../components/admin/AdminShell';
 import { createStore, deleteStore, listStores, updateStore, uploadStoreLogo, uploadStorePackages } from '../../services/storeService';
 import { Modal } from '../../components/shared/Modal';
 import { toast } from '../../stores/toastStore';
-import type { Store } from '../../types';
+import type { Store, ContactEntry } from '../../types';
 import { useEventStore } from '../../stores/eventStore';
+import { ContactsEditor, seedContacts, cleanContacts } from '../../components/shared/ContactsEditor';
 
-const empty = { name: '', category: '', description: '', logoUrl: '', boothNumber: '', passcode: '', contact: '', email: '', socialMedia: '', packagesUrl: '' };
+const empty = { name: '', category: '', description: '', logoUrl: '', boothNumber: '', passcode: '', packagesUrl: '', contacts: [] as ContactEntry[] };
 const isPdf = (u?: string) => !!u && /\.pdf(\?|$)/i.test(u);
 
 // 6-char no-confusion alphabet (skips 0/O/1/I/L).
@@ -87,7 +88,7 @@ export function AdminStores() {
     if (!draft.boothNumber.trim()) return toast.error('Booth number is required.');
     try {
       if (editing) {
-        const updated = await updateStore(editing.id, draft);
+        const updated = await updateStore(editing.id, { ...draft, contacts: cleanContacts(draft.contacts) });
         toast.success('Vendor updated');
         setEditing(null);
         setDraft(empty);
@@ -97,7 +98,7 @@ export function AdminStores() {
       const passcode = generatePasscode();
       const logoUrl =
         draft.logoUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(draft.name)}`;
-      const created = await createStore({ ...draft, passcode, logoUrl });
+      const created = await createStore({ ...draft, passcode, logoUrl, contacts: cleanContacts(draft.contacts) });
       setAddOpen(false);
       setDraft(empty);
       setJustCreated(created);
@@ -130,10 +131,8 @@ export function AdminStores() {
       logoUrl: s.logoUrl,
       boothNumber: s.boothNumber,
       passcode: s.passcode,
-      contact: s.contact ?? '',
-      email: s.email ?? '',
-      socialMedia: s.socialMedia ?? '',
       packagesUrl: s.packagesUrl ?? '',
+      contacts: seedContacts(s),
     });
   };
 
@@ -224,19 +223,10 @@ export function AdminStores() {
             </div>
             <input className="input mt-2 text-xs" value={draft.logoUrl} onChange={(e) => setDraft({ ...draft, logoUrl: e.target.value })} placeholder="…or paste an image URL" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Phone</label>
-              <input className="input" value={draft.contact} onChange={(e) => setDraft({ ...draft, contact: e.target.value })} placeholder="0917 000 0000" />
-            </div>
-            <div>
-              <label className="label">Email</label>
-              <input className="input" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder="you@email.com" />
-            </div>
-          </div>
           <div>
-            <label className="label">Facebook / Instagram link</label>
-            <input className="input" value={draft.socialMedia} onChange={(e) => setDraft({ ...draft, socialMedia: e.target.value })} placeholder="https://facebook.com/yourpage" />
+            <label className="label">Contacts</label>
+            <p className="text-xs text-plum/50 mb-2 -mt-1">One per brand sharing the booth (e.g. BossLabs AI + Conex).</p>
+            <ContactsEditor value={draft.contacts} onChange={(contacts) => setDraft({ ...draft, contacts })} />
           </div>
           <div>
             <label className="label">Promos &amp; packages (image or PDF)</label>

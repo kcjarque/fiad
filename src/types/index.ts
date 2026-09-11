@@ -37,6 +37,17 @@ export type Store = {
   contact?: string;
   socialMedia?: string;
   packagesUrl?: string;
+  // Multiple brands can share one booth (e.g. BossLabs AI + Conex), each with
+  // their own contact set. Legacy single email/contact/socialMedia stay as a
+  // fallback when this is empty.
+  contacts?: ContactEntry[];
+};
+
+export type ContactEntry = {
+  label?: string;
+  phone?: string;
+  email?: string;
+  social?: string;
 };
 
 export type Admin = {

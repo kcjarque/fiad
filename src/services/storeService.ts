@@ -19,6 +19,7 @@ type Row = {
   contact?: string | null;
   social_media?: string | null;
   packages_url?: string | null;
+  contacts?: import('../types').ContactEntry[] | null;
 };
 
 const rowToStore = (r: Row): Store => ({
@@ -36,6 +37,7 @@ const rowToStore = (r: Row): Store => ({
   contact: r.contact ?? undefined,
   socialMedia: r.social_media ?? undefined,
   packagesUrl: r.packages_url ?? undefined,
+  contacts: r.contacts ?? undefined,
 });
 
 const storeToInsert = (s: Store): Row => ({
@@ -52,6 +54,7 @@ const storeToInsert = (s: Store): Row => ({
   email: s.email ?? null,
   contact: s.contact ?? null,
   social_media: s.socialMedia ?? null,
+  contacts: s.contacts && s.contacts.length ? s.contacts : null,
 });
 
 // Admin logo upload: store the image in the public supplier-docs bucket and
@@ -160,6 +163,7 @@ export const updateStore = async (
   if (patch.contact !== undefined) dbPatch.contact = patch.contact || null;
   if (patch.socialMedia !== undefined) dbPatch.social_media = patch.socialMedia || null;
   if (patch.packagesUrl !== undefined) dbPatch.packages_url = patch.packagesUrl || null;
+  if (patch.contacts !== undefined) dbPatch.contacts = patch.contacts && patch.contacts.length ? patch.contacts : null;
   const { data, error } = await supabase
     .from('stores')
     .update(dbPatch)

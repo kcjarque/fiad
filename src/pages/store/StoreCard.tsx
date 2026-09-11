@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Printer, Download, ExternalLink, Phone, Mail, Globe, FileText } from 'lucide-react';
+import { Printer, Download, ExternalLink, FileText } from 'lucide-react';
 import { useAuth } from '../../stores/authStore';
 import { getStore, updateStore, uploadStoreLogo, uploadStorePackages } from '../../services/storeService';
 import { PageShell } from '../../components/shared/PageShell';
 import { Card } from '../../components/shared/Card';
+import { ContactsEditor, seedContacts, cleanContacts } from '../../components/shared/ContactsEditor';
+import type { ContactEntry } from '../../types';
 import { toast } from '../../stores/toastStore';
 
 const isPdf = (u?: string) => !!u && /\.pdf(\?|$)/i.test(u);
@@ -20,7 +22,7 @@ export function StoreCard() {
   const { data: store, refetch } = useQuery({ queryKey: ['store', storeId], queryFn: () => getStore(storeId) });
   const wrap = useRef<HTMLDivElement>(null);
 
-  const [draft, setDraft] = useState({ contact: '', email: '', socialMedia: '', logoUrl: '', packagesUrl: '' });
+  const [draft, setDraft] = useState<{ logoUrl: string; packagesUrl: string; contacts: ContactEntry[] }>({ logoUrl: '', packagesUrl: '', contacts: [] });
   const [savedSnapshot, setSavedSnapshot] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -28,10 +30,7 @@ export function StoreCard() {
 
   useEffect(() => {
     if (!store) return;
-    const d = {
-      contact: store.contact ?? '', email: store.email ?? '', socialMedia: store.socialMedia ?? '',
-      logoUrl: store.logoUrl ?? '', packagesUrl: store.packagesUrl ?? '',
-    };
+    const d = { logoUrl: store.logoUrl ?? '', packagesUrl: store.packagesUrl ?? '', contacts: seedContacts(store) };
     setDraft(d);
     setSavedSnapshot(JSON.stringify(d));
   }, [store]);
@@ -77,7 +76,7 @@ export function StoreCard() {
   const save = async () => {
     setSaving(true);
     try {
-      await updateStore(storeId, draft);
+      await updateStore(storeId, { ...draft, contacts: cleanContacts(draft.contacts) });
       toast.success('Your calling card is updated');
       await refetch();
     } catch (err) {
@@ -123,22 +122,10 @@ export function StoreCard() {
           </label>
         </div>
 
-        <label className="label">Phone</label>
-        <div className="relative mb-4">
-          <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-plum/40" />
-          <input className="input pl-9" value={draft.contact} onChange={(e) => setDraft({ ...draft, contact: e.target.value })} placeholder="0917 000 0000" />
-        </div>
-
-        <label className="label">Email</label>
-        <div className="relative mb-4">
-          <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-plum/40" />
-          <input className="input pl-9" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder="you@email.com" />
-        </div>
-
-        <label className="label">Facebook / Instagram link</label>
-        <div className="relative mb-4">
-          <Globe size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-plum/40" />
-          <input className="input pl-9" value={draft.socialMedia} onChange={(e) => setDraft({ ...draft, socialMedia: e.target.value })} placeholder="https://facebook.com/yourpage" />
+        <label className="label">Contacts</label>
+        <p className="text-xs text-plum/55 mb-2 -mt-1">Add one per brand sharing your booth (e.g. BossLabs AI + Conex).</p>
+        <div className="mb-4">
+          <ContactsEditor value={draft.contacts} onChange={(contacts) => setDraft({ ...draft, contacts })} />
         </div>
 
         <label className="label">Promos &amp; packages (image or PDF)</label>
