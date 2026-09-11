@@ -66,6 +66,17 @@ export const uploadStoreLogo = async (file: File): Promise<string> => {
   return supabase.storage.from('supplier-docs').getPublicUrl(path).data.publicUrl;
 };
 
+// Promos/packages upload — accepts an image OR a PDF.
+export const uploadStorePackages = async (file: File): Promise<string> => {
+  const ext = (file.name.split('.').pop() || 'pdf').toLowerCase();
+  const path = `store-packages/${uid('pkg')}.${ext}`;
+  const { error } = await supabase.storage
+    .from('supplier-docs')
+    .upload(path, file, { contentType: file.type || undefined, upsert: false });
+  if (error) throw error;
+  return supabase.storage.from('supplier-docs').getPublicUrl(path).data.publicUrl;
+};
+
 export const listStores = async (): Promise<Store[]> => {
   const { data, error } = await supabase
     .from('stores')
@@ -145,6 +156,10 @@ export const updateStore = async (
   if (patch.imageUrl !== undefined) dbPatch.image_url = patch.imageUrl ?? null;
   if (patch.boothNumber !== undefined) dbPatch.booth_number = patch.boothNumber;
   if (patch.passcode !== undefined) dbPatch.passcode = patch.passcode;
+  if (patch.email !== undefined) dbPatch.email = patch.email || null;
+  if (patch.contact !== undefined) dbPatch.contact = patch.contact || null;
+  if (patch.socialMedia !== undefined) dbPatch.social_media = patch.socialMedia || null;
+  if (patch.packagesUrl !== undefined) dbPatch.packages_url = patch.packagesUrl || null;
   const { data, error } = await supabase
     .from('stores')
     .update(dbPatch)

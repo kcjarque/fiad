@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy } from 'lucide-react';
 import { AdminShell } from '../../components/admin/AdminShell';
-import { createStore, deleteStore, listStores, updateStore, uploadStoreLogo } from '../../services/storeService';
+import { createStore, deleteStore, listStores, updateStore, uploadStoreLogo, uploadStorePackages } from '../../services/storeService';
 import { Modal } from '../../components/shared/Modal';
 import { toast } from '../../stores/toastStore';
-import { QRDisplay } from '../../components/shared/QRDisplay';
 import type { Store } from '../../types';
 import { useEventStore } from '../../stores/eventStore';
 
-const empty = { name: '', category: '', description: '', logoUrl: '', boothNumber: '', passcode: '' };
+const empty = { name: '', category: '', description: '', logoUrl: '', boothNumber: '', passcode: '', contact: '', email: '', socialMedia: '', packagesUrl: '' };
+const isPdf = (u?: string) => !!u && /\.pdf(\?|$)/i.test(u);
 
 // 6-char no-confusion alphabet (skips 0/O/1/I/L).
 const generatePasscode = (): string => {
@@ -36,7 +36,6 @@ export function AdminStores() {
   const { data: stores = [] } = useQuery({ queryKey: ['stores', selectedEventId], queryFn: listStores });
   const [editing, setEditing] = useState<Store | null>(null);
   const [draft, setDraft] = useState(empty);
-  const [showQr, setShowQr] = useState<Store | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   // After a new store is created, show its credentials so the admin can share them.
   const [justCreated, setJustCreated] = useState<Store | null>(null);
@@ -57,6 +56,23 @@ export function AdminStores() {
       toast.error(`Logo upload failed: ${(err as Error).message}`);
     } finally {
       setUploadingLogo(false);
+    }
+  };
+
+  const [uploadingPkg, setUploadingPkg] = useState(false);
+  const onPkgFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadingPkg(true);
+    try {
+      const url = await uploadStorePackages(file);
+      setDraft((d) => ({ ...d, packagesUrl: url }));
+      toast.success('Packages file uploaded');
+    } catch (err) {
+      toast.error(`Upload failed: ${(err as Error).message}`);
+    } finally {
+      setUploadingPkg(false);
     }
   };
 
@@ -114,6 +130,10 @@ export function AdminStores() {
       logoUrl: s.logoUrl,
       boothNumber: s.boothNumber,
       passcode: s.passcode,
+      contact: s.contact ?? '',
+      email: s.email ?? '',
+      socialMedia: s.socialMedia ?? '',
+      packagesUrl: s.packagesUrl ?? '',
     });
   };
 
@@ -149,7 +169,6 @@ export function AdminStores() {
               </div>
               <p className="mt-3 text-sm text-plum/70 line-clamp-3">{s.description}</p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <button className="btn-ghost text-sm" onClick={() => setShowQr(s)}>Booth QR</button>
                 <button className="btn-ghost text-sm text-coral" onClick={() => window.open(`/admin/qr-cards?store=${s.id}`, '_blank')}>Export QR</button>
                 <button className="btn-ghost text-sm" onClick={() => beginEdit(s)}>Edit</button>
                 <button className="btn-ghost text-sm text-red-600" onClick={() => remove(s)}>Delete</button>
@@ -205,6 +224,39 @@ export function AdminStores() {
             </div>
             <input className="input mt-2 text-xs" value={draft.logoUrl} onChange={(e) => setDraft({ ...draft, logoUrl: e.target.value })} placeholder="…or paste an image URL" />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Phone</label>
+              <input className="input" value={draft.contact} onChange={(e) => setDraft({ ...draft, contact: e.target.value })} placeholder="0917 000 0000" />
+            </div>
+            <div>
+              <label className="label">Email</label>
+              <input className="input" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder="you@email.com" />
+            </div>
+          </div>
+          <div>
+            <label className="label">Facebook / Instagram link</label>
+            <input className="input" value={draft.socialMedia} onChange={(e) => setDraft({ ...draft, socialMedia: e.target.value })} placeholder="https://facebook.com/yourpage" />
+          </div>
+          <div>
+            <label className="label">Promos &amp; packages (image or PDF)</label>
+            <div className="flex items-center gap-3">
+              {draft.packagesUrl
+                ? (isPdf(draft.packagesUrl)
+                    ? <div className="w-14 h-14 rounded-lg bg-coral/10 text-coral flex items-center justify-center shrink-0">PDF</div>
+                    : <img src={draft.packagesUrl} alt="" className="w-14 h-14 rounded-lg object-cover bg-white border border-plum/10 shrink-0" />)
+                : <div className="w-14 h-14 rounded-lg bg-plum/5 border border-plum/10 flex items-center justify-center text-[10px] text-plum/40 shrink-0">none</div>}
+              <div className="flex-1">
+                <label className={`inline-flex items-center gap-2 rounded-lg border border-plum/15 px-3 py-2 text-sm cursor-pointer ${uploadingPkg ? 'opacity-60' : 'hover:border-coral hover:text-coral'} text-plum`}>
+                  {uploadingPkg ? 'Uploading…' : 'Upload image / PDF'}
+                  <input type="file" accept="image/*,application/pdf" className="hidden" disabled={uploadingPkg} onChange={onPkgFile} />
+                </label>
+                {draft.packagesUrl && (
+                  <button type="button" className="ml-2 text-xs text-plum/50 hover:text-plum" onClick={() => setDraft({ ...draft, packagesUrl: '' })}>Remove</button>
+                )}
+              </div>
+            </div>
+          </div>
 
           {editing && (
             <div>
@@ -239,19 +291,6 @@ export function AdminStores() {
         </div>
       </Modal>
 
-      <Modal open={!!showQr} onClose={() => setShowQr(null)} title={showQr?.name}>
-        {showQr && (
-          <div className="flex flex-col items-center">
-            <div className="text-xs text-plum/60 mb-2">Booth {showQr.boothNumber} · {showQr.category}</div>
-            <QRDisplay value={showQr.qrToken} size={280} />
-            <div className="mt-4 font-mono text-xs text-plum/60 break-all px-4 text-center">{showQr.qrToken}</div>
-            <div className="mt-3 text-xs text-plum/60 text-center max-w-xs">
-              Print and display this QR at the booth. Guests scan it to stamp their passport.
-            </div>
-          </div>
-        )}
-      </Modal>
-
       <Modal
         open={!!justCreated}
         onClose={() => setJustCreated(null)}
@@ -283,16 +322,16 @@ export function AdminStores() {
               </div>
               <div className="text-xs text-plum/60 mt-2">
                 Share this with the vendor — they enter it at <span className="font-mono">/store/login</span>.
-                You can also see the booth QR they'll print from the card actions.
+                Use "Export QR" to print their passport + calling-card QRs.
               </div>
             </div>
 
             <div className="flex gap-2">
               <button
                 className="btn-ghost flex-1"
-                onClick={() => { setShowQr(justCreated); setJustCreated(null); }}
+                onClick={() => { window.open(`/admin/qr-cards?store=${justCreated.id}`, '_blank'); setJustCreated(null); }}
               >
-                View booth QR
+                Export QR card
               </button>
               <button className="btn-primary flex-1" onClick={() => setJustCreated(null)}>
                 Done

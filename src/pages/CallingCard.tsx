@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Phone, Mail, Globe, UserPlus, Share2, FileText, MapPin, Check, X,
+  Phone, Mail, Globe, UserPlus, Share2, FileText, MapPin, Check, X, ExternalLink,
 } from 'lucide-react';
 import { getStoreByQr } from '../services/storeService';
 import { S2_VENUES } from '../stores/eventStore';
@@ -175,10 +175,17 @@ export function CallingCard() {
         <div className="fixed inset-0 z-50 bg-plum/85 backdrop-blur-sm flex flex-col" onClick={() => setPromoOpen(false)}>
           <div className="flex items-center justify-between px-4 py-3 text-cream shrink-0">
             <div className="text-sm font-medium truncate">{store.name} · Packages &amp; Promos</div>
-            <button onClick={() => setPromoOpen(false)} aria-label="Close" className="p-1 -mr-1"><X size={22} /></button>
+            <div className="flex items-center gap-3">
+              <a href={store.packagesUrl} target="_blank" rel="noopener noreferrer" className="text-cream/80 text-xs inline-flex items-center gap-1"><ExternalLink size={14} /> Open</a>
+              <button onClick={() => setPromoOpen(false)} aria-label="Close" className="p-1 -mr-1"><X size={22} /></button>
+            </div>
           </div>
           <div className="flex-1 overflow-auto px-3 pb-6" onClick={(e) => e.stopPropagation()}>
-            <img src={store.packagesUrl} alt={`${store.name} packages and promos`} className="w-full rounded-xl bg-white shadow-soft" />
+            {/\.pdf(\?|$)/i.test(store.packagesUrl) ? (
+              <iframe title={`${store.name} packages and promos`} src={store.packagesUrl} className="w-full rounded-xl bg-white shadow-soft" style={{ height: '80vh', border: 0 }} />
+            ) : (
+              <img src={store.packagesUrl} alt={`${store.name} packages and promos`} className="w-full rounded-xl bg-white shadow-soft" />
+            )}
           </div>
         </div>
       )}
