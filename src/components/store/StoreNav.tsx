@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Camera, ClipboardList, ShieldCheck, QrCode, LogOut, type LucideIcon } from 'lucide-react';
+import { Camera, ClipboardList, ShieldCheck, QrCode, Contact, LogOut, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../../stores/authStore';
 
 const items: { to: string; label: string; Icon: LucideIcon }[] = [
@@ -7,6 +7,7 @@ const items: { to: string; label: string; Icon: LucideIcon }[] = [
   { to: '/store/history', label: 'History', Icon: ClipboardList },
   { to: '/store/overrides', label: 'Overrides', Icon: ShieldCheck },
   { to: '/store/passport-qr', label: 'Booth QR', Icon: QrCode },
+  { to: '/store/card', label: 'Card', Icon: Contact },
 ];
 
 export function StoreNav() {
