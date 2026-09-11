@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
-import { Trophy, Info, Sparkles, Timer, ScanLine, MapPin } from 'lucide-react';
+import { Trophy, Info, Sparkles, Timer, ScanLine, MapPin, QrCode } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../stores/authStore';
 import { useEventStore, S2_VENUES } from '../../stores/eventStore';
@@ -156,16 +156,29 @@ export function Ticket() {
         </div>
       )}
 
-      {/* Prominent Scan button — easy to find from the Ticket page. */}
-      <div className="px-5 mt-5">
-        <Link
-          to="/app/scan"
-          className="btn-primary w-full flex items-center justify-center gap-2"
-        >
-          <ScanLine size={20} /> Scan a Booth QR
-        </Link>
-        <div className="text-center text-xs text-plum/55 mt-2">
-          Tap to stamp your passport at any booth
+      {/* Prominent Scan buttons — each booth has 2 QRs: passport + calling card. */}
+      <div className="px-5 mt-5 space-y-3">
+        <div>
+          <Link
+            to="/app/scan"
+            className="btn-primary w-full flex items-center justify-center gap-2"
+          >
+            <ScanLine size={20} /> Scan a Booth QR
+          </Link>
+          <div className="text-center text-xs text-plum/55 mt-1.5">
+            Stamp your passport at any booth
+          </div>
+        </div>
+        <div>
+          <Link
+            to="/app/scan-card"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-white border border-coral/30 text-coral font-medium py-3 shadow-card"
+          >
+            <QrCode size={18} /> Scan a Supplier Card
+          </Link>
+          <div className="text-center text-xs text-plum/55 mt-1.5">
+            See a supplier's contact &amp; promos
+          </div>
         </div>
       </div>
 

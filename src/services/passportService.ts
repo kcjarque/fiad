@@ -67,6 +67,22 @@ export const stampActivity = async (): Promise<{ guestIds: Set<string>; totalSta
   return { guestIds, totalStamps: total };
 };
 
+// Guests who stamped their passport at a specific booth — the "visited my
+// booth" side of the store CRM.
+export const stampsForStore = async (
+  storeId: string,
+): Promise<{ guestId: string; stampedAt: string }[]> => {
+  const { data, error } = await supabase
+    .from('passport_stamps')
+    .select('guest_id, stamped_at')
+    .eq('store_id', storeId);
+  if (error) throw error;
+  return (data ?? []).map((r: { guest_id: string; stamped_at: string }) => ({
+    guestId: r.guest_id,
+    stampedAt: r.stamped_at,
+  }));
+};
+
 export const stampsForGuest = async (guestId: string): Promise<PassportStamp[]> => {
   const { data, error } = await supabase
     .from('passport_stamps')

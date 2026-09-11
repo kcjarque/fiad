@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Phone, Mail, Globe, UserPlus, Share2, FileText, MapPin, Check,
+  Phone, Mail, Globe, UserPlus, Share2, FileText, MapPin, Check, X,
 } from 'lucide-react';
 import { getStoreByQr } from '../services/storeService';
 import { S2_VENUES } from '../stores/eventStore';
@@ -38,6 +38,7 @@ export function CallingCard() {
     enabled: !!token,
   });
   const [shared, setShared] = useState(false);
+  const [promoOpen, setPromoOpen] = useState(false);
 
   if (isLoading) {
     return <div className="min-h-[100svh] bg-cream flex items-center justify-center text-plum/50">Loading…</div>;
@@ -130,14 +131,12 @@ export function CallingCard() {
 
         {/* Packages / promos */}
         {store.packagesUrl && (
-          <a
-            href={store.packagesUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => setPromoOpen(true)}
             className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl bg-white border border-champagne/50 text-plum font-medium py-3.5 shadow-card hover:border-champagne transition"
           >
             <FileText size={17} className="text-champagne" /> View Packages &amp; Promos
-          </a>
+          </button>
         )}
 
         {/* Details */}
@@ -171,6 +170,18 @@ export function CallingCard() {
           Forever in a Day · Weddings, Events &amp; Debut Fair
         </div>
       </div>
+
+      {promoOpen && store.packagesUrl && (
+        <div className="fixed inset-0 z-50 bg-plum/85 backdrop-blur-sm flex flex-col" onClick={() => setPromoOpen(false)}>
+          <div className="flex items-center justify-between px-4 py-3 text-cream shrink-0">
+            <div className="text-sm font-medium truncate">{store.name} · Packages &amp; Promos</div>
+            <button onClick={() => setPromoOpen(false)} aria-label="Close" className="p-1 -mr-1"><X size={22} /></button>
+          </div>
+          <div className="flex-1 overflow-auto px-3 pb-6" onClick={(e) => e.stopPropagation()}>
+            <img src={store.packagesUrl} alt={`${store.name} packages and promos`} className="w-full rounded-xl bg-white shadow-soft" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

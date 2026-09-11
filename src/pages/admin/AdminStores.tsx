@@ -150,6 +150,7 @@ export function AdminStores() {
               <p className="mt-3 text-sm text-plum/70 line-clamp-3">{s.description}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button className="btn-ghost text-sm" onClick={() => setShowQr(s)}>Booth QR</button>
+                <button className="btn-ghost text-sm text-coral" onClick={() => window.open(`/admin/qr-cards?store=${s.id}`, '_blank')}>Export QR</button>
                 <button className="btn-ghost text-sm" onClick={() => beginEdit(s)}>Edit</button>
                 <button className="btn-ghost text-sm text-red-600" onClick={() => remove(s)}>Delete</button>
               </div>

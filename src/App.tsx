@@ -14,6 +14,7 @@ import { Walkthrough } from './pages/guest/Walkthrough';
 import { Scan } from './pages/guest/Scan';
 import { QrSignIn } from './pages/guest/QrSignIn';
 import { StampLink } from './pages/guest/StampLink';
+import { CardScan } from './pages/guest/CardScan';
 import { GuestNav } from './components/guest/GuestNav';
 import { StoreLogin } from './pages/store/StoreLogin';
 import { StoreScan } from './pages/store/StoreScan';
@@ -21,6 +22,7 @@ import { StoreHistory } from './pages/store/StoreHistory';
 import { StoreOverrides } from './pages/store/StoreOverrides';
 import { StorePassportQR } from './pages/store/StorePassportQR';
 import { StoreCard } from './pages/store/StoreCard';
+import { StoreCustomers } from './pages/store/StoreCustomers';
 import { StoreNav } from './components/store/StoreNav';
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminSelectEvent } from './pages/admin/AdminSelectEvent';
@@ -32,6 +34,7 @@ import { AdminGuests } from './pages/admin/AdminGuests';
 import { AdminCheckin } from './pages/admin/AdminCheckin';
 import { AdminRaffleScanner } from './pages/admin/AdminRaffleScanner';
 import { AdminQrGenerator } from './pages/admin/AdminQrGenerator';
+import { AdminQrCards } from './pages/admin/AdminQrCards';
 import { AdminInquiries } from './pages/admin/AdminInquiries';
 import { AdminEmailMarketing } from './pages/admin/AdminEmailMarketing';
 import { AdminSupplierSignups } from './pages/admin/AdminSupplierSignups';
@@ -116,6 +119,7 @@ export default function App() {
           <Route path="/app/walkthrough" element={<RequireGuest><Walkthrough /></RequireGuest>} />
           <Route path="/app/schedule" element={<RequireGuest><Walkthrough initialTab="schedule_item" /></RequireGuest>} />
           <Route path="/app/scan" element={<RequireGuest><Scan /></RequireGuest>} />
+          <Route path="/app/scan-card" element={<RequireGuest><CardScan /></RequireGuest>} />
         </Route>
 
         {/* Store */}
@@ -126,6 +130,7 @@ export default function App() {
           <Route path="/store/overrides" element={<RequireStore><StoreOverrides /></RequireStore>} />
           <Route path="/store/passport-qr" element={<RequireStore><StorePassportQR /></RequireStore>} />
           <Route path="/store/card" element={<RequireStore><StoreCard /></RequireStore>} />
+          <Route path="/store/customers" element={<RequireStore><StoreCustomers /></RequireStore>} />
         </Route>
 
         {/* Admin */}
@@ -139,6 +144,7 @@ export default function App() {
         <Route path="/admin/checkin" element={<RequireAdmin><AdminCheckin /></RequireAdmin>} />
         <Route path="/admin/raffle-scan" element={<RequireAdmin><AdminRaffleScanner /></RequireAdmin>} />
         <Route path="/admin/qr-generator" element={<RequireAdmin><AdminQrGenerator /></RequireAdmin>} />
+        <Route path="/admin/qr-cards" element={<RequireAdmin><AdminQrCards /></RequireAdmin>} />
         <Route path="/admin/inquiries" element={<RequireAdmin><AdminInquiries /></RequireAdmin>} />
         <Route path="/admin/email-marketing" element={<RequireAdmin><AdminEmailMarketing /></RequireAdmin>} />
         <Route path="/admin/supplier-signups" element={<RequireAdmin><AdminSupplierSignups /></RequireAdmin>} />
