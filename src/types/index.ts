@@ -140,6 +140,7 @@ export type Prize = {
   winnerGuestId?: string;
   winningTicketNumber?: string;
   sponsoredByStoreId?: string;
+  scheduledAt?: string;
 };
 
 export type ChallengeType = 'booth' | 'activity' | 'visit_all';

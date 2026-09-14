@@ -21,7 +21,7 @@ const sections = [
   { to: '/admin/overrides', label: 'Overrides' },
   { to: '/admin/challenges', label: 'Challenges' },
   { to: '/admin/walkthrough', label: 'Walkthrough' },
-  { to: '/admin/prizes', label: 'Prizes' },
+  { to: '/admin/prizes', label: 'Raffle Prizes' },
   { to: '/admin/draw', label: 'Live Draw' },
 ];
 

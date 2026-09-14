@@ -15,6 +15,7 @@ type Row = {
   winner_guest_id: string | null;
   winning_ticket_number: string | null;
   sponsored_by_store_id: string | null;
+  scheduled_at?: string | null;
 };
 
 const rowToPrize = (r: Row): Prize => ({
@@ -28,7 +29,19 @@ const rowToPrize = (r: Row): Prize => ({
   winnerGuestId: r.winner_guest_id ?? undefined,
   winningTicketNumber: r.winning_ticket_number ?? undefined,
   sponsoredByStoreId: r.sponsored_by_store_id ?? undefined,
+  scheduledAt: r.scheduled_at ?? undefined,
 });
+
+// Prize photo upload (reuses the public supplier-docs bucket).
+export const uploadPrizeImage = async (file: File): Promise<string> => {
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+  const path = `prize-images/${uid('prize')}.${ext}`;
+  const { error } = await supabase.storage
+    .from('supplier-docs')
+    .upload(path, file, { contentType: file.type || undefined, upsert: false });
+  if (error) throw error;
+  return supabase.storage.from('supplier-docs').getPublicUrl(path).data.publicUrl;
+};
 
 export const listPrizes = async (): Promise<Prize[]> => {
   const { data, error } = await supabase
@@ -56,7 +69,8 @@ export const createPrize = async (p: Omit<Prize, 'id' | 'eventId'>): Promise<Pri
     drawn_at: p.drawnAt ?? null,
     winner_guest_id: p.winnerGuestId ?? null,
     winning_ticket_number: p.winningTicketNumber ?? null,
-    sponsored_by_store_id: p.sponsoredByStoreId ?? null,
+    sponsored_by_store_id: p.sponsoredByStoreId || null,
+    scheduled_at: p.scheduledAt || null,
   };
   const { error } = await supabase.from('prizes').insert(row);
   if (error) throw error;
@@ -72,7 +86,8 @@ export const updatePrize = async (id: string, patch: Partial<Prize>): Promise<Pr
   if (patch.drawnAt !== undefined) dbPatch.drawn_at = patch.drawnAt ?? null;
   if (patch.winnerGuestId !== undefined) dbPatch.winner_guest_id = patch.winnerGuestId ?? null;
   if (patch.winningTicketNumber !== undefined) dbPatch.winning_ticket_number = patch.winningTicketNumber ?? null;
-  if (patch.sponsoredByStoreId !== undefined) dbPatch.sponsored_by_store_id = patch.sponsoredByStoreId ?? null;
+  if (patch.sponsoredByStoreId !== undefined) dbPatch.sponsored_by_store_id = patch.sponsoredByStoreId || null;
+  if (patch.scheduledAt !== undefined) dbPatch.scheduled_at = patch.scheduledAt || null;
   const { data, error } = await supabase
     .from('prizes')
     .update(dbPatch)
