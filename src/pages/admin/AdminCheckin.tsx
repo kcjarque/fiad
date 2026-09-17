@@ -1,8 +1,12 @@
-import { useState } from 'react';
-import { Camera, ScanLine, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Camera, ScanLine, CheckCircle2, AlertCircle, Search } from 'lucide-react';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { QRScanner } from '../../components/shared/QRScanner';
-import { checkInGuestByQr } from '../../services/guestService';
+import {
+  checkInGuestByQr,
+  checkInGuestById,
+  searchGuestsForCheckIn,
+} from '../../services/guestService';
 import { toast } from '../../stores/toastStore';
 import type { Guest } from '../../types';
 
@@ -40,6 +44,59 @@ export function AdminCheckin() {
   const scanNext = () => {
     setResult(null);
     setScanning(true);
+  };
+
+  // ── Manual fallback ──────────────────────────────────────────────────────
+  // A dead phone or an unreadable QR must not leave a real guest ineligible,
+  // since the draw now requires checked_in_at (migration 0060).
+  const [query, setQuery] = useState('');
+  const [matches, setMatches] = useState<Guest[]>([]);
+  // Which query the current matches belong to, so a slower earlier response
+  // can't paint stale names over a newer search.
+  const [matchesFor, setMatchesFor] = useState('');
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) return;
+    // Debounce so a name typed at the door isn't one query per keystroke.
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const rows = await searchGuestsForCheckIn(q);
+        if (cancelled) return;
+        setMatches(rows);
+        setMatchesFor(q);
+      } catch (err) {
+        if (!cancelled) toast.error(`Search failed: ${(err as Error).message}`);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [query]);
+
+  const searching = query.trim().length >= 2 && matchesFor !== query.trim();
+
+  const manualCheckIn = async (g: Guest) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await checkInGuestById(g.id);
+      if (!r) {
+        toast.error('Guest not found');
+      } else {
+        setResult(r);
+        setQuery('');
+        setMatches([]);
+        setMatchesFor('');
+        if (!r.alreadyCheckedIn) toast.success(`${r.guest.name} checked in`);
+      }
+    } catch (err) {
+      toast.error(`Check-in failed: ${(err as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -114,6 +171,72 @@ export function AdminCheckin() {
           <button className="btn-primary mt-5" onClick={scanNext}>
             Scan again
           </button>
+        </div>
+      )}
+
+      {/* Manual fallback — always reachable while not actively scanning, so a
+          guest whose QR won't scan can still be checked in (and so stay
+          eligible for the raffle). */}
+      {!scanning && (
+        <div className="card max-w-md mt-4">
+          <label className="label" htmlFor="checkin-search">
+            Can't scan? Find the guest
+          </label>
+          <div className="relative">
+            <Search
+              size={15}
+              aria-hidden="true"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-plum/40"
+            />
+            <input
+              id="checkin-search"
+              className="input !pl-9"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Name, email, or access code"
+              autoComplete="off"
+            />
+          </div>
+
+          {query.trim().length >= 2 && (
+            <div className="mt-3">
+              {searching && <div className="text-sm text-plum/50">Searching…</div>}
+              {!searching && matches.length === 0 && (
+                <div className="text-sm text-plum/60">
+                  No guest matches that. Check the spelling, or confirm they registered
+                  for this venue.
+                </div>
+              )}
+              {!searching &&
+                matches.map((g) => (
+                  <div
+                    key={g.id}
+                    className="flex items-center gap-3 py-2 border-b border-plum/10 last:border-0"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-plum truncate">{g.name}</div>
+                      <div className="text-xs text-plum/55 truncate">
+                        {g.email}
+                        {dayLabel(g.preferredDay) ? ` · ${dayLabel(g.preferredDay)}` : ''}
+                      </div>
+                    </div>
+                    {g.checkedInAt ? (
+                      <span className="chip bg-amber-100 text-amber-800 shrink-0">
+                        In · {fmtTime(g.checkedInAt)}
+                      </span>
+                    ) : (
+                      <button
+                        className="btn-primary !px-3 !py-1.5 text-sm shrink-0"
+                        onClick={() => manualCheckIn(g)}
+                        disabled={busy}
+                      >
+                        Check in
+                      </button>
+                    )}
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
       )}
     </AdminShell>

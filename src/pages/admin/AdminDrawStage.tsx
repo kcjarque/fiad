@@ -179,14 +179,15 @@ export function AdminDrawStage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Grand prize draws from PAID entries only (mirrors the draw_prize RPC and
-  // the admin page). So when the grand prize is up, the idle reel + the
-  // eligible count reflect only earned entries.
+  // Mirrors the draw_prize RPC: every draw requires the guest to be checked
+  // in at the venue (0060), and the grand prize additionally draws from PAID
+  // entries only. The count below is projected to the room, so it has to
+  // match what Spin will actually consider.
   const isGrand = prize?.isGrand ?? false;
-  const eligibleEntries = useMemo(
-    () => (isGrand ? entries.filter((e) => !e.isComplimentary) : entries),
-    [entries, isGrand],
-  );
+  const eligibleEntries = useMemo(() => {
+    const checkedIn = entries.filter((e) => guestsById.get(e.guestId)?.checkedInAt);
+    return isGrand ? checkedIn.filter((e) => !e.isComplimentary) : checkedIn;
+  }, [entries, isGrand, guestsById]);
   const eligibleCount = eligibleEntries.length;
 
   // Idle decorative reel — scroll real participant names from the eligible

@@ -201,6 +201,46 @@ export const checkInGuestByQr = async (
   return { guest: { ...guest, checkedInAt: at }, alreadyCheckedIn: false };
 };
 
+/**
+ * Manual check-in fallback for the door: a dead phone, a cracked screen or a
+ * QR that won't scan in bad lighting must not leave a real guest ineligible
+ * for the raffle, since draw_prize requires checked_in_at (0060).
+ * Searches the selected event by name, email or access code.
+ */
+export const searchGuestsForCheckIn = async (query: string): Promise<Guest[]> => {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  // Escape LIKE metacharacters so a query containing % or _ can't wildcard.
+  const esc = q.replace(/[\\%_]/g, (c) => '\\' + c);
+  const { data, error } = await supabase
+    .from('guests')
+    .select('*')
+    .eq('event_id', getSelectedEventId())
+    .or(`name.ilike.%${esc}%,email.ilike.%${esc}%,access_code.ilike.${esc}`)
+    .order('name')
+    .limit(25);
+  if (error) throw error;
+  return (data ?? []).map(rowToGuest);
+};
+
+/** Check a guest in by id — the manual counterpart to checkInGuestByQr. */
+export const checkInGuestById = async (
+  guestId: string,
+): Promise<{ guest: Guest; alreadyCheckedIn: boolean } | null> => {
+  const { data, error } = await supabase.from('guests').select('*').eq('id', guestId).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const guest = rowToGuest(data);
+  if (guest.checkedInAt) return { guest, alreadyCheckedIn: true };
+  const at = new Date().toISOString();
+  const { error: upErr } = await supabase
+    .from('guests')
+    .update({ checked_in_at: at })
+    .eq('id', guestId);
+  if (upErr) throw upErr;
+  return { guest: { ...guest, checkedInAt: at }, alreadyCheckedIn: false };
+};
+
 export const findGuestByEmail = async (
   email: string,
   eventId: string = getSelectedEventId(),

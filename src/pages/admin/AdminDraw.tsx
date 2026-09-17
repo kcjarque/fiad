@@ -136,18 +136,18 @@ export function AdminDraw() {
   };
 
   // Eligibility rules (must mirror the draw_prize RPC):
+  //   • Every draw   → the guest must be CHECKED IN at the venue (0060).
   //   • Grand prize  → PAID entries only (no complimentary), but NO
   //                    past-winner exclusion — a past winner can still win.
   //   • Hourly prize → whole pool, but exclude tickets that already won
   //                    (no double winners on the hourly draws).
   const isGrand = prize?.isGrand ?? false;
-  const eligibleEntries = useMemo(
-    () =>
-      isGrand
-        ? allPool.filter((e) => !e.isComplimentary)
-        : allPool.filter((e) => !wonTickets.has(e.ticketNumber)),
-    [allPool, wonTickets, isGrand],
-  );
+  const eligibleEntries = useMemo(() => {
+    const checkedIn = allPool.filter((e) => guestsById.get(e.guestId)?.checkedInAt);
+    return isGrand
+      ? checkedIn.filter((e) => !e.isComplimentary)
+      : checkedIn.filter((e) => !wonTickets.has(e.ticketNumber));
+  }, [allPool, wonTickets, isGrand, guestsById]);
 
   const idleNames = useMemo(() => {
     const names = new Set<string>();
@@ -170,8 +170,8 @@ export function AdminDraw() {
     if (eligibleEntries.length === 0) {
       alert(
         isGrand
-          ? 'No PAID entries available — the grand prize draws from earned entries only.'
-          : 'No raffle entries available to draw.',
+          ? 'No eligible entries — the grand prize draws only from PAID entries belonging to guests who have been checked in at the door.'
+          : 'No eligible entries — draws only include guests who have been checked in at the door. Check that the check-in desk is scanning arrivals.',
       );
       return;
     }
