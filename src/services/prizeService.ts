@@ -38,6 +38,22 @@ const rowToPrize = (r: Row): Prize => ({
   poolEventIds: r.pool_event_ids?.length ? r.pool_event_ids : [r.event_id],
 });
 
+/**
+ * Prizes across several events, for the public raffle schedule which shows
+ * every venue at once. Unlike listPrizes() this ignores the selected event,
+ * so it works for a visitor who has never picked one.
+ */
+export const listPrizesForEvents = async (eventIds: string[]): Promise<Prize[]> => {
+  if (eventIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('prizes')
+    .select('*')
+    .in('event_id', eventIds)
+    .order('id');
+  if (error) throw error;
+  return (data ?? []).filter((r) => !HIDDEN_PRIZE_IDS.has(r.id)).map(rowToPrize);
+};
+
 // Prize photo upload (reuses the public supplier-docs bucket).
 export const uploadPrizeImage = async (file: File): Promise<string> => {
   const ext = (file.name.split('.').pop() || 'png').toLowerCase();

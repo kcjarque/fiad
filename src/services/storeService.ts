@@ -80,6 +80,21 @@ export const uploadStorePackages = async (file: File): Promise<string> => {
   return supabase.storage.from('supplier-docs').getPublicUrl(path).data.publicUrl;
 };
 
+/**
+ * Stores across several events, for the public raffle schedule which names
+ * each prize's sponsor across both venues. Ignores the selected event.
+ */
+export const listStoresForEvents = async (eventIds: string[]): Promise<Store[]> => {
+  if (eventIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('stores')
+    .select('*')
+    .in('event_id', eventIds)
+    .order('booth_number');
+  if (error) throw error;
+  return (data ?? []).filter((r) => !HIDDEN_STORE_IDS.has(r.id)).map(rowToStore);
+};
+
 export const listStores = async (): Promise<Store[]> => {
   const { data, error } = await supabase
     .from('stores')

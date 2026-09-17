@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Landing } from './pages/Landing';
 import { InviteFunnel } from './pages/InviteFunnel';
+import { RaffleSchedule } from './pages/RaffleSchedule';
 import { SupplierSignup } from './pages/SupplierSignup';
 import { StaffPortal } from './pages/StaffPortal';
 import { CallingCard } from './pages/CallingCard';
@@ -93,6 +94,9 @@ export default function App() {
 
         {/* Ads funnel — marketing landing → RSVP → "need help?" → thank-you */}
         <Route path="/rsvp" element={<InviteFunnel />} />
+
+        {/* Public raffle schedule — shareable, no login, both venues */}
+        <Route path="/raffle-schedule" element={<RaffleSchedule />} />
 
         {/* Public supplier application — mini landing page → supplier_signups */}
         <Route path="/suppliers" element={<SupplierSignup />} />
