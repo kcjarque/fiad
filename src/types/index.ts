@@ -141,6 +141,17 @@ export type Prize = {
   winningTicketNumber?: string;
   sponsoredByStoreId?: string;
   scheduledAt?: string;
+  /**
+   * Grand-raffle prize: draws from PAID entries only, with no past-winner
+   * exclusion. Replaces the old hardcoded `id === 'prize_grand'` test.
+   */
+  isGrand: boolean;
+  /**
+   * Events whose entries are eligible for this prize. Normally just
+   * `[eventId]`; the Season-2 grand raffle is hosted at one venue but pools
+   * both (Brittany + Mella). Always contains `eventId`.
+   */
+  poolEventIds: string[];
 };
 
 export type ChallengeType = 'booth' | 'activity' | 'visit_all';

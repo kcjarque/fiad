@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { drawWinner, listPrizes } from '../../services/prizeService';
-import { allEntries, wonTicketNumbers } from '../../services/raffleService';
-import { listGuests } from '../../services/guestService';
+import { allEntriesForEvents, wonTicketNumbers } from '../../services/raffleService';
+import { listGuestsForEvents } from '../../services/guestService';
 import { listStores } from '../../services/storeService';
 import { Confetti } from '../../components/shared/Confetti';
 import { Trophy, MonitorPlay } from 'lucide-react';
@@ -18,14 +18,8 @@ export function AdminDraw() {
   const queryClient = useQueryClient();
   const selectedEventId = useEventStore((s) => s.selectedEventId);
   const { data: prizes = [] } = useQuery({ queryKey: ['prizes', selectedEventId], queryFn: listPrizes });
-  // Full pool (incl. tickets that already won) + the won-ticket set, so we
-  // can apply the won-exclusion only for hourly prizes — the grand prize has
-  // no past-winner limitation.
-  const { data: allPool = [] } = useQuery({ queryKey: ['raffle', 'all', selectedEventId], queryFn: allEntries });
   const { data: wonTickets = new Set<string>() } = useQuery({ queryKey: ['raffle', 'won', selectedEventId], queryFn: wonTicketNumbers });
-  const { data: guests = [] } = useQuery({ queryKey: ['guests', selectedEventId], queryFn: listGuests });
   const { data: stores = [] } = useQuery({ queryKey: ['stores', selectedEventId], queryFn: listStores });
-  const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const storesById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
 
   const undrawn = prizes.filter((p) => !p.winnerGuestId);
@@ -46,6 +40,26 @@ export function AdminDraw() {
   const effectivePrizeId = prizeId || undrawn[0]?.id || '';
   const prize = prizes.find((p) => p.id === effectivePrizeId);
 
+  // The eligible pool follows the prize: a cross-venue grand prize pools every
+  // event in pool_event_ids, everything else stays on the selected event. This
+  // must mirror draw_prize — the stage shows this count to the room.
+  const poolEventIds = useMemo(
+    () => (prize?.isGrand && prize.poolEventIds?.length ? [...prize.poolEventIds].sort() : [selectedEventId]),
+    [prize, selectedEventId],
+  );
+  const poolKey = poolEventIds.join(',');
+  // Full pool (incl. tickets that already won) — the won-exclusion is applied
+  // below for hourly prizes only; the grand prize has no past-winner limit.
+  const { data: allPool = [] } = useQuery({
+    queryKey: ['raffle', 'all', poolKey],
+    queryFn: () => allEntriesForEvents(poolEventIds),
+  });
+  const { data: guests = [] } = useQuery({
+    queryKey: ['guests', poolKey],
+    queryFn: () => listGuestsForEvents(poolEventIds),
+  });
+  const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
+
   // Resolve "Store Name · Booth X" for a prize's sponsor so the announcement
   // can tell the winner where to claim. Falls back to the registration desk.
   const claimLocationFor = (sponsoredByStoreId?: string): string => {
@@ -61,6 +75,8 @@ export function AdminDraw() {
           description: p.description,
           imageUrl: p.imageUrl,
           claimLocation: claimLocationFor(p.sponsoredByStoreId),
+          isGrand: p.isGrand,
+          poolEventIds: p.poolEventIds,
         }
       : null;
 
@@ -124,7 +140,7 @@ export function AdminDraw() {
   //                    past-winner exclusion — a past winner can still win.
   //   • Hourly prize → whole pool, but exclude tickets that already won
   //                    (no double winners on the hourly draws).
-  const isGrand = effectivePrizeId === 'prize_grand';
+  const isGrand = prize?.isGrand ?? false;
   const eligibleEntries = useMemo(
     () =>
       isGrand

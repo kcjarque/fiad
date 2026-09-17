@@ -8,8 +8,14 @@ import { Modal } from '../../components/shared/Modal';
 import { toast } from '../../stores/toastStore';
 import type { Prize } from '../../types';
 import { useEventStore } from '../../stores/eventStore';
+import { listEvents } from '../../services/eventService';
 
-const empty = { name: '', description: '', imageUrl: '', quantity: 1, scheduledAt: '', sponsoredByStoreId: '' };
+const empty = {
+  name: '', description: '', imageUrl: '', quantity: 1, scheduledAt: '', sponsoredByStoreId: '',
+  isGrand: false,
+  /** Extra events pooled into this prize's draw (host event is always in). */
+  poolEventIds: [] as string[],
+};
 
 // Convert a stored ISO timestamp to the value a datetime-local input wants
 // (local time, "YYYY-MM-DDTHH:MM"), and vice-versa on save.
@@ -31,6 +37,12 @@ export function AdminPrizes() {
   const { data: stores = [] } = useQuery({ queryKey: ['storesForLogin'], queryFn: listStoresForLogin });
   const suppliers = useMemo(() => stores.filter((s) => s.boothNumber !== 'DEMO'), [stores]);
   const storesById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
+  // Venues a grand prize can pool in, besides the one hosting it.
+  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: listEvents });
+  const otherEvents = useMemo(
+    () => events.filter((e) => e.id !== selectedEventId),
+    [events, selectedEventId],
+  );
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Prize | null>(null);
@@ -62,6 +74,9 @@ export function AdminPrizes() {
         ...draft,
         imageUrl: draft.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(draft.name)}/400/400`,
         scheduledAt: draft.scheduledAt ? new Date(draft.scheduledAt).toISOString() : '',
+        // A non-grand prize never pools. Empty lets the DB trigger reset the
+        // pool to just this prize's own event.
+        poolEventIds: draft.isGrand ? draft.poolEventIds : [],
       };
       if (editing) {
         await updatePrize(editing.id, payload);
@@ -91,6 +106,7 @@ export function AdminPrizes() {
     setDraft({
       name: p.name, description: p.description, imageUrl: p.imageUrl, quantity: p.quantity,
       scheduledAt: toLocalInput(p.scheduledAt), sponsoredByStoreId: p.sponsoredByStoreId ?? '',
+      isGrand: p.isGrand, poolEventIds: p.poolEventIds ?? [],
     });
     setOpen(true);
   };
@@ -178,6 +194,57 @@ export function AdminPrizes() {
               <option value="">None</option>
               {suppliers.map((s) => <option key={s.id} value={s.id}>Booth {s.boothNumber} — {s.name}</option>)}
             </select>
+          </div>
+
+          {/* Grand raffle — paid-only eligibility, and (optionally) a pool
+              that spans other venues. The prize is still hosted and drawn at
+              the event selected above. */}
+          <div className="rounded-xl border border-plum/15 p-3">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={draft.isGrand}
+                onChange={(e) => setDraft({ ...draft, isGrand: e.target.checked })}
+              />
+              <span>
+                <span className="label !mb-0">Grand raffle prize</span>
+                <span className="block text-xs text-plum/60 mt-0.5">
+                  Draws from paid entries only. Past winners stay eligible.
+                </span>
+              </span>
+            </label>
+
+            {draft.isGrand && (
+              <div className="mt-3 pl-6">
+                <label className="label">Also include entries from</label>
+                {otherEvents.length === 0 ? (
+                  <div className="text-xs text-plum/60">No other events to pool.</div>
+                ) : (
+                  otherEvents.map((ev) => (
+                    <label key={ev.id} className="flex items-center gap-2 cursor-pointer py-1">
+                      <input
+                        type="checkbox"
+                        checked={draft.poolEventIds.includes(ev.id)}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            poolEventIds: e.target.checked
+                              ? [...draft.poolEventIds, ev.id]
+                              : draft.poolEventIds.filter((id) => id !== ev.id),
+                          })
+                        }
+                      />
+                      <span className="text-sm text-plum/80">{ev.name}</span>
+                    </label>
+                  ))
+                )}
+                <div className="text-xs text-plum/60 mt-1">
+                  Guests at the selected venues become eligible and will see this
+                  prize in their own app.
+                </div>
+              </div>
+            )}
           </div>
           <button
             className="btn-primary w-full"

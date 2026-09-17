@@ -237,11 +237,21 @@ export const loginGuestWithAccessCode = async (
   return rowToGuest(data.guest);
 };
 
-export const listGuests = async (): Promise<Guest[]> => {
+export const listGuests = async (): Promise<Guest[]> =>
+  listGuestsForEvents([getSelectedEventId()]);
+
+/**
+ * Guests across several events. The cross-venue grand draw passes its pool so
+ * winner names and the stage idle reel resolve for every venue in it.
+ * Kept separate from listGuests() so bare `queryFn: listGuests` references
+ * keep working — react-query would otherwise pass its context object here.
+ */
+export const listGuestsForEvents = async (eventIds: string[]): Promise<Guest[]> => {
+  const ids = eventIds.length ? eventIds : [getSelectedEventId()];
   const { data, error } = await supabase
     .from('guests')
     .select('*')
-    .eq('event_id', getSelectedEventId())
+    .in('event_id', ids)
     .order('registered_at', { ascending: false });
   if (error) throw error;
   return (data ?? []).map(rowToGuest);

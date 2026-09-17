@@ -15,6 +15,10 @@ export type Prize = {
   imageUrl?: string;
   /** Pre-formatted "Store Name · Booth X" string for the claim notice. */
   claimLocation?: string;
+  /** Grand raffle — stage shows paid-only eligibility to match draw_prize. */
+  isGrand?: boolean;
+  /** Events feeding this prize's pool (cross-venue grand raffle). */
+  poolEventIds?: string[];
 };
 
 export type StageMsg =

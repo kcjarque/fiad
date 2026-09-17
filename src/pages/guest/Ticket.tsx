@@ -45,7 +45,7 @@ export function Ticket() {
     queryClient.invalidateQueries();
   };
 
-  const schedule = event?.date ? buildSchedule(prizes.map((p) => p.id), event.date) : new Map<string, string>();
+  const schedule = event?.date ? buildSchedule(prizes, event.date) : new Map<string, string>();
   const sortedPrizes = [...prizes].sort((a, b) => getDrawSortKey(schedule, a.id) - getDrawSortKey(schedule, b.id));
   const nextPrize = sortedPrizes.find((p) => !p.winnerGuestId);
   const drawTarget = nextPrize ? getDrawTime(schedule, nextPrize.id) : null;

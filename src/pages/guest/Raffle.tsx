@@ -50,7 +50,7 @@ export function Raffle() {
   // gets 12pm, etc.; Day-2 same shape; grand prize always 9:30pm Day 2.
   const schedule = useMemo(() => {
     if (!event?.date) return new Map<string, string>();
-    return buildSchedule(prizes.map((p) => p.id), event.date);
+    return buildSchedule(prizes, event.date);
   }, [prizes, event?.date]);
 
   // Sort by scheduled draw time so the UI lists prizes in the order they
@@ -65,7 +65,7 @@ export function Raffle() {
   // The Hero shows the marquee grand-prize image always — the gold "Next Draw"
   // card to the right shows the actual next hourly prize. Falls back to
   // nextPrize if the grand prize row hasn't been seeded.
-  const grandPrize = sortedPrizes.find((p) => p.id === 'prize_grand') ?? nextPrize;
+  const grandPrize = sortedPrizes.find((p) => p.isGrand) ?? nextPrize;
 
   const drawTarget = nextPrize ? getDrawTime(schedule, nextPrize.id) : null;
   const cd = useCountdown(drawTarget);
@@ -173,7 +173,7 @@ export function Raffle() {
         const groups: Group[] = [];
         const day1 = upcoming.filter((p) => p.id.startsWith('prize_d1_'));
         const day2 = upcoming.filter((p) => p.id.startsWith('prize_d2_'));
-        const grand = upcoming.find((p) => p.id === 'prize_grand');
+        const grand = upcoming.find((p) => p.isGrand);
         if (day1.length) groups.push({ label: 'Day 1 · Saturday, June 6', prizes: day1 });
         if (day2.length) groups.push({ label: 'Day 2 · Sunday, June 7', prizes: day2 });
         if (grand)       groups.push({ label: 'Grand Finale', prizes: [grand] });

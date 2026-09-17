@@ -45,15 +45,23 @@ export const totalEntries = async (): Promise<number> => {
  * rows, so once the pool grows past 1000 a plain select('*') silently drops
  * the rest — page through with .range() until we've fetched everything.
  */
-export const allEntries = async (): Promise<RaffleEntry[]> => {
-  const eventId = getSelectedEventId();
+export const allEntries = async (): Promise<RaffleEntry[]> =>
+  allEntriesForEvents([getSelectedEventId()]);
+
+/**
+ * Entries across several events — the cross-venue grand prize passes its
+ * pool_event_ids so admin/stage eligible counts mirror draw_prize. Separate
+ * from allEntries() so bare `queryFn: allEntries` references keep working.
+ */
+export const allEntriesForEvents = async (eventIds: string[]): Promise<RaffleEntry[]> => {
+  const ids = eventIds.length ? eventIds : [getSelectedEventId()];
   const PAGE = 1000;
   const rows: Row[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from('raffle_entries')
       .select('id,event_id,guest_id,transaction_id,ticket_number,created_at,is_complimentary')
-      .eq('event_id', eventId)
+      .in('event_id', ids)
       .range(from, from + PAGE - 1);
     if (error) throw error;
     const batch = (data ?? []) as Row[];
@@ -73,7 +81,13 @@ export const wonTicketNumbers = async (): Promise<Set<string>> => {
   return new Set((data ?? []).map((r) => r.winning_ticket_number as string).filter(Boolean));
 };
 
-export const allActiveEntries = async (): Promise<RaffleEntry[]> => {
-  const [entries, drawnTickets] = await Promise.all([allEntries(), wonTicketNumbers()]);
+export const allActiveEntries = async (): Promise<RaffleEntry[]> =>
+  allActiveEntriesForEvents([getSelectedEventId()]);
+
+export const allActiveEntriesForEvents = async (eventIds: string[]): Promise<RaffleEntry[]> => {
+  const [entries, drawnTickets] = await Promise.all([
+    allEntriesForEvents(eventIds),
+    wonTicketNumbers(),
+  ]);
   return entries.filter((e) => !drawnTickets.has(e.ticketNumber));
 };

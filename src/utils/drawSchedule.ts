@@ -15,8 +15,14 @@
  * a Map of prizeId → ISO draw-time string. Times are interpreted in the
  * browser's local timezone (PH guests see PH times).
  */
-export function buildSchedule(prizeIds: string[], eventDate: string): Map<string, string> {
+type SchedulablePrize = { id: string; isGrand?: boolean };
+
+export function buildSchedule(
+  prizes: SchedulablePrize[],
+  eventDate: string,
+): Map<string, string> {
   const map = new Map<string, string>();
+  const prizeIds = prizes.map((p) => p.id);
   const day1Base = new Date(`${eventDate}T11:00:00`);
   if (isNaN(day1Base.getTime())) return map;
 
@@ -37,12 +43,15 @@ export function buildSchedule(prizeIds: string[], eventDate: string): Map<string
     map.set(id, t.toISOString());
   });
 
-  // Grand prize — 9:30pm Day 2.
-  if (prizeIds.includes('prize_grand')) {
+  // Grand prize — 9:30pm Day 2. Flag-driven, so a grand prize created through
+  // the admin UI (which assigns a random id) still lands in the finale slot.
+  // 'prize_grand' stays recognized for databases predating the is_grand flag.
+  const grand = prizes.find((p) => p.isGrand) ?? prizes.find((p) => p.id === 'prize_grand');
+  if (grand) {
     const t = new Date(day1Base);
     t.setDate(t.getDate() + 1);
     t.setHours(21, 30, 0, 0);
-    map.set('prize_grand', t.toISOString());
+    map.set(grand.id, t.toISOString());
   }
 
   return map;

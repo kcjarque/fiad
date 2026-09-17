@@ -6,8 +6,8 @@ import { Confetti } from '../../components/shared/Confetti';
 import { Trophy, MapPin } from 'lucide-react';
 import { openChannel, postMessage, type StageMsg, type Prize } from '../../utils/drawChannel';
 import { listPrizes } from '../../services/prizeService';
-import { listGuests } from '../../services/guestService';
-import { allActiveEntries } from '../../services/raffleService';
+import { listGuestsForEvents } from '../../services/guestService';
+import { allActiveEntriesForEvents } from '../../services/raffleService';
 import { useEventStore } from '../../stores/eventStore';
 
 /**
@@ -54,20 +54,49 @@ export function AdminDrawStage() {
     queryFn: listPrizes,
     refetchInterval: 4000,
   });
+  const undrawn = useMemo(() => prizes.filter((p) => !p.winnerGuestId), [prizes]);
+  const undrawnCount = undrawn.length;
+  // Next undrawn prize in id order (d1 → d2 → grand) for the idle display.
+  // Carries isGrand/poolEventIds so a standalone stage (no admin window
+  // broadcasting) still scopes its pool the same way draw_prize does.
+  const dataNextPrize: Prize | null = useMemo(() => {
+    const next = [...undrawn].sort((a, b) => a.id.localeCompare(b.id))[0];
+    return next
+      ? {
+          id: next.id,
+          name: next.name,
+          description: next.description,
+          imageUrl: next.imageUrl,
+          isGrand: next.isGrand,
+          poolEventIds: next.poolEventIds,
+        }
+      : null;
+  }, [undrawn]);
+
+  // The prize shown in "Up Next": the admin's live selection if the channel
+  // sent one, otherwise the next undrawn prize from our own data.
+  const prize: Prize | null = channelPrize ?? dataNextPrize;
+
+  // Pool follows the prize — a cross-venue grand prize counts both venues.
+  // The eligible count below is projected to the room, so it has to match.
+  const poolEventIds = useMemo(
+    () => (prize?.isGrand && prize.poolEventIds?.length ? [...prize.poolEventIds].sort() : [selectedEventId]),
+    [prize, selectedEventId],
+  );
+  const poolKey = poolEventIds.join(',');
+
   const { data: guests = [] } = useQuery({
-    queryKey: ['guests', selectedEventId],
-    queryFn: listGuests,
+    queryKey: ['guests', poolKey],
+    queryFn: () => listGuestsForEvents(poolEventIds),
     refetchInterval: 10000,
   });
   const { data: entries = [] } = useQuery({
-    queryKey: ['raffle', 'active', selectedEventId],
-    queryFn: allActiveEntries,
+    queryKey: ['raffle', 'active', poolKey],
+    queryFn: () => allActiveEntriesForEvents(poolEventIds),
     refetchInterval: 8000,
   });
   const guestsById = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
 
-  const undrawn = useMemo(() => prizes.filter((p) => !p.winnerGuestId), [prizes]);
-  const undrawnCount = undrawn.length;
   const drawnList = useMemo(
     () =>
       prizes
@@ -75,11 +104,6 @@ export function AdminDrawStage() {
         .map((p) => ({ name: p.name, winner: guestsById.get(p.winnerGuestId!)?.name ?? '—' })),
     [prizes, guestsById],
   );
-  // Next undrawn prize in id order (d1 → d2 → grand) for the idle display.
-  const dataNextPrize: Prize | null = useMemo(() => {
-    const next = [...undrawn].sort((a, b) => a.id.localeCompare(b.id))[0];
-    return next ? { id: next.id, name: next.name, description: next.description, imageUrl: next.imageUrl } : null;
-  }, [undrawn]);
 
   useEffect(() => {
     const ch = openChannel();
@@ -155,14 +179,10 @@ export function AdminDrawStage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The prize shown in "Up Next": the admin's live selection if the channel
-  // sent one, otherwise the next undrawn prize from our own data.
-  const prize: Prize | null = channelPrize ?? dataNextPrize;
-
   // Grand prize draws from PAID entries only (mirrors the draw_prize RPC and
   // the admin page). So when the grand prize is up, the idle reel + the
   // eligible count reflect only earned entries.
-  const isGrand = prize?.id === 'prize_grand';
+  const isGrand = prize?.isGrand ?? false;
   const eligibleEntries = useMemo(
     () => (isGrand ? entries.filter((e) => !e.isComplimentary) : entries),
     [entries, isGrand],

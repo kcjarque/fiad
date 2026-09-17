@@ -38,3 +38,4 @@ booth_qr_print/
 booth_qr_print.zip
 FIAD_Booth_QR_Codes_v2/
 FIAD_Booth_QR_Codes_v2.zip
+.env*

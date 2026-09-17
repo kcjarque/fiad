@@ -16,6 +16,8 @@ type Row = {
   winning_ticket_number: string | null;
   sponsored_by_store_id: string | null;
   scheduled_at?: string | null;
+  is_grand?: boolean | null;
+  pool_event_ids?: string[] | null;
 };
 
 const rowToPrize = (r: Row): Prize => ({
@@ -30,6 +32,10 @@ const rowToPrize = (r: Row): Prize => ({
   winningTicketNumber: r.winning_ticket_number ?? undefined,
   sponsoredByStoreId: r.sponsored_by_store_id ?? undefined,
   scheduledAt: r.scheduled_at ?? undefined,
+  // Legacy rows predate the is_grand flag — the Season-1 grand prize is still
+  // recognized by id so an un-migrated database behaves correctly.
+  isGrand: r.is_grand ?? r.id === 'prize_grand',
+  poolEventIds: r.pool_event_ids?.length ? r.pool_event_ids : [r.event_id],
 });
 
 // Prize photo upload (reuses the public supplier-docs bucket).
@@ -44,11 +50,24 @@ export const uploadPrizeImage = async (file: File): Promise<string> => {
 };
 
 export const listPrizes = async (): Promise<Prize[]> => {
-  const { data, error } = await supabase
+  const eventId = getSelectedEventId();
+  // A prize is visible in its host event AND in any event it pools entries
+  // from — otherwise Brittany guests would be eligible for the cross-venue
+  // grand prize without ever seeing it in their own app.
+  let { data, error } = await supabase
     .from('prizes')
     .select('*')
-    .eq('event_id', getSelectedEventId())
+    .or(`event_id.eq.${eventId},pool_event_ids.cs.{${eventId}}`)
     .order('id');
+  // Databases that haven't had 0059 applied yet have no pool_event_ids
+  // column; fall back to the plain event-scoped read rather than failing.
+  if (error) {
+    ({ data, error } = await supabase
+      .from('prizes')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('id'));
+  }
   if (error) throw error;
   // Drop hidden prizes per src/constants/hidden.ts. The position-based
   // raffle schedule naturally compacts the remaining slots so there are
@@ -59,9 +78,10 @@ export const listPrizes = async (): Promise<Prize[]> => {
 };
 
 export const createPrize = async (p: Omit<Prize, 'id' | 'eventId'>): Promise<Prize> => {
+  const eventId = getSelectedEventId();
   const row: Row = {
     id: uid('prize'),
-    event_id: getSelectedEventId(),
+    event_id: eventId,
     name: p.name,
     description: p.description,
     image_url: p.imageUrl,
@@ -71,6 +91,9 @@ export const createPrize = async (p: Omit<Prize, 'id' | 'eventId'>): Promise<Pri
     winning_ticket_number: p.winningTicketNumber ?? null,
     sponsored_by_store_id: p.sponsoredByStoreId || null,
     scheduled_at: p.scheduledAt || null,
+    is_grand: p.isGrand ?? false,
+    // Host event is always eligible; the DB trigger enforces this too.
+    pool_event_ids: Array.from(new Set([...(p.poolEventIds ?? []), eventId])),
   };
   const { error } = await supabase.from('prizes').insert(row);
   if (error) throw error;
@@ -88,6 +111,8 @@ export const updatePrize = async (id: string, patch: Partial<Prize>): Promise<Pr
   if (patch.winningTicketNumber !== undefined) dbPatch.winning_ticket_number = patch.winningTicketNumber ?? null;
   if (patch.sponsoredByStoreId !== undefined) dbPatch.sponsored_by_store_id = patch.sponsoredByStoreId || null;
   if (patch.scheduledAt !== undefined) dbPatch.scheduled_at = patch.scheduledAt || null;
+  if (patch.isGrand !== undefined) dbPatch.is_grand = patch.isGrand;
+  if (patch.poolEventIds !== undefined) dbPatch.pool_event_ids = patch.poolEventIds;
   const { data, error } = await supabase
     .from('prizes')
     .update(dbPatch)
