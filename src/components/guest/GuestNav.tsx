@@ -6,6 +6,7 @@ import {
   BookHeart,
   Trophy,
   Map,
+  Gift,
   CalendarClock,
   MoreHorizontal,
   LogOut,
@@ -20,6 +21,9 @@ const items: { to: string; label: string; Icon: LucideIcon }[] = [
   { to: '/app/raffle', label: 'Raffle', Icon: Dices },
   { to: '/app/passport', label: 'Passport', Icon: BookHeart },
   { to: '/app/challenges', label: 'Quests', Icon: Trophy },
+  // "Draws" = raffle prize times; "Schedule" = the event programme. Two
+  // different things, so they get separate labels rather than one ambiguous one.
+  { to: '/app/draws', label: 'Draws', Icon: Gift },
   { to: '/app/schedule', label: 'Schedule', Icon: CalendarClock },
   { to: '/app/walkthrough', label: 'Booths', Icon: Map },
 ];

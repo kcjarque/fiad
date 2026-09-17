@@ -5,6 +5,7 @@ import { MapPin, Clock, Gift, Crown, CalendarDays } from 'lucide-react';
 import { listEvents } from '../services/eventService';
 import { listPrizesForEvents } from '../services/prizeService';
 import { listStoresForEvents } from '../services/storeService';
+import { useAuth } from '../stores/authStore';
 import type { Prize, EventInfo } from '../types';
 
 /**
@@ -30,6 +31,11 @@ type Row = { prize: Prize; sponsor?: string };
 type Day = { key: string; label: string; rows: Row[] };
 
 export function RaffleSchedule() {
+  // Rendered both publicly (shareable link) and inside the guest shell via the
+  // Draws tab. A signed-in guest has already registered, so the RSVP call to
+  // action is replaced by padding that clears the fixed bottom nav.
+  const isGuest = useAuth((s) => s.session.role === 'guest');
+
   const { data: events = [], isLoading: loadingEvents } = useQuery({
     queryKey: ['events'],
     queryFn: listEvents,
@@ -116,7 +122,7 @@ export function RaffleSchedule() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-5 pb-20">
+      <main className={`mx-auto max-w-2xl px-5 ${isGuest ? "pb-28" : "pb-20"}`}>
         {/* ── Venue switcher ───────────────────────────────────────────── */}
         {venues.length > 1 && (
           <div
@@ -256,12 +262,14 @@ export function RaffleSchedule() {
               All times are Philippine Standard Time at {active.venue}. Schedule is
               indicative and may shift on the day.
             </p>
-            <Link
-              to="/rsvp"
-              className="btn-primary mt-5 w-full inline-flex items-center justify-center"
-            >
-              Reserve your free spot
-            </Link>
+            {!isGuest && (
+              <Link
+                to="/rsvp"
+                className="btn-primary mt-5 w-full inline-flex items-center justify-center"
+              >
+                Reserve your free spot
+              </Link>
+            )}
           </section>
         )}
       </main>

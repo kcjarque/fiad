@@ -122,6 +122,9 @@ export default function App() {
           <Route path="/app/challenges" element={<RequireGuest><Challenges /></RequireGuest>} />
           <Route path="/app/walkthrough" element={<RequireGuest><Walkthrough /></RequireGuest>} />
           <Route path="/app/schedule" element={<RequireGuest><Walkthrough initialTab="schedule_item" /></RequireGuest>} />
+          {/* Same page as the public /raffle-schedule, inside the guest shell
+              so the bottom nav stays put. */}
+          <Route path="/app/draws" element={<RequireGuest><RaffleSchedule /></RequireGuest>} />
           <Route path="/app/scan" element={<RequireGuest><Scan /></RequireGuest>} />
           <Route path="/app/scan-card" element={<RequireGuest><CardScan /></RequireGuest>} />
         </Route>
