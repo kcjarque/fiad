@@ -50,6 +50,11 @@ export function AdminGuests() {
   const { data: entries = [] } = useQuery({ queryKey: ['raffle', 'active', selectedEventId], queryFn: allActiveEntries });
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'in' | 'out'>('all');
+  // Which fair day the guest picked. 'none' matters as its own option: Season 1
+  // predates the field entirely and /app/register never sets it, so without it
+  // Day 1 + Day 2 wouldn't account for everyone and the list would look like
+  // it was losing guests.
+  const [dayFilter, setDayFilter] = useState<'all' | 'day1' | 'day2' | 'none'>('all');
 
   // Inline name editing — fix wrongly-entered guest names.
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -111,11 +116,22 @@ export function AdminGuests() {
 
   const checkedInCount = useMemo(() => guests.filter((g) => g.checkedInAt).length, [guests]);
 
+  const dayCounts = useMemo(
+    () => ({
+      day1: guests.filter((g) => g.preferredDay === 'day1').length,
+      day2: guests.filter((g) => g.preferredDay === 'day2').length,
+      none: guests.filter((g) => !g.preferredDay).length,
+    }),
+    [guests],
+  );
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return guests.filter((g) => {
       if (statusFilter === 'in' && !g.checkedInAt) return false;
       if (statusFilter === 'out' && g.checkedInAt) return false;
+      if (dayFilter === 'none' && g.preferredDay) return false;
+      if ((dayFilter === 'day1' || dayFilter === 'day2') && g.preferredDay !== dayFilter) return false;
       if (!q) return true;
       return (
         g.name.toLowerCase().includes(q) ||
@@ -124,7 +140,7 @@ export function AdminGuests() {
         (g.accessCode ?? '').toLowerCase().includes(q)
       );
     });
-  }, [guests, query, statusFilter]);
+  }, [guests, query, statusFilter, dayFilter]);
 
   return (
     <AdminShell>
@@ -143,6 +159,33 @@ export function AdminGuests() {
                 className={`px-3 py-1 rounded-full border transition ${
                   statusFilter === k
                     ? 'bg-coral text-white border-coral'
+                    : 'border-plum/15 text-plum/70 hover:border-plum/30'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Fair day. Separate row so it reads as a second, combinable filter
+              rather than more options on the check-in one. */}
+          <div className="flex items-center gap-1.5 mt-2 flex-wrap text-xs">
+            <span className="text-plum/40 uppercase tracking-wider text-[10px] mr-0.5">Day</span>
+            {([
+              ['all', `All ${guests.length}`],
+              ['day1', `Day 1 ${dayCounts.day1}`],
+              ['day2', `Day 2 ${dayCounts.day2}`],
+              ...(dayCounts.none > 0
+                ? ([['none', `Not set ${dayCounts.none}`]] as const)
+                : ([] as const)),
+            ] as const).map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => setDayFilter(k)}
+                aria-pressed={dayFilter === k}
+                className={`px-3 py-1 rounded-full border transition ${
+                  dayFilter === k
+                    ? 'bg-plum text-cream border-plum'
                     : 'border-plum/15 text-plum/70 hover:border-plum/30'
                 }`}
               >
@@ -171,7 +214,9 @@ export function AdminGuests() {
           <p className="text-sm text-plum/60 mt-1">
             {guests.length === 0
               ? 'Guests appear here as they register via GHL or the /app/register page.'
-              : 'Try a different search term.'}
+              : statusFilter !== 'all' || dayFilter !== 'all'
+                ? 'No guests match the selected filters. Try setting them back to All.'
+                : 'Try a different search term.'}
           </p>
         </div>
       ) : (
