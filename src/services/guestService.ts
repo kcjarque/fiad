@@ -174,11 +174,35 @@ export const deleteGuest = async (id: string): Promise<void> => {
   }
 };
 
+/**
+ * Scanners hand back whatever the QR encodes, and not every guest QR carries a
+ * bare token. The transactional email encodes the raw token, but the GHL
+ * webhook hands out a ticket URL (`<origin>/app/qr/<token>`), so a guest who
+ * arrived that way presents a full URL at the door and the exact-match lookup
+ * misses — they show up "not recognized" while sitting in the guest list.
+ * Cameras also pick up stray whitespace or a trailing newline.
+ *
+ * Normalise to the token: trim, drop any query/hash, and take the last path
+ * segment. A bare token passes through untouched.
+ */
+const normalizeQrToken = (raw: string): string => {
+  let v = raw.trim();
+  if (!v) return v;
+  v = v.split(/[?#]/)[0];
+  if (v.includes('/')) {
+    const parts = v.split('/').filter(Boolean);
+    v = parts[parts.length - 1] ?? v;
+  }
+  return v.trim();
+};
+
 export const getGuestByQr = async (qrToken: string): Promise<Guest | undefined> => {
+  const token = normalizeQrToken(qrToken);
+  if (!token) return undefined;
   const { data, error } = await supabase
     .from('guests')
     .select('*')
-    .eq('qr_token', qrToken)
+    .eq('qr_token', token)
     .maybeSingle();
   if (error) throw error;
   return data ? rowToGuest(data) : undefined;
