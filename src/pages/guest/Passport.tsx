@@ -33,7 +33,7 @@ export function Passport() {
         imageUrl="https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&auto=format&fit=crop&q=70"
         kicker="Passport"
         title={`${stampedCount} / ${total} booths visited`}
-        subtitle="Collect stamps from every booth to unlock bonus entries and a surprise keepsake."
+        subtitle="Collect a stamp from every booth to claim a surprise keepsake."
         height="lg"
       >
         <div className="mt-1">
@@ -122,8 +122,8 @@ export function Passport() {
               </div>
               <div className={`text-xs mt-1 ${completed ? 'text-cream/80' : 'text-plum/60'}`}>
                 {completed
-                  ? 'Bonus entries have been issued. Visit the info desk for your surprise gift.'
-                  : '+10 raffle entries + a surprise keepsake gift.'}
+                  ? 'Visit the info desk to claim your surprise gift.'
+                  : 'A surprise keepsake gift.'}
               </div>
             </div>
           </div>

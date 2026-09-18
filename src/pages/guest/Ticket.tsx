@@ -231,7 +231,7 @@ export function Ticket() {
             </div>
             <div>
               <div className="font-medium text-plum">Visit every booth</div>
-              <div className="text-plum/60 text-xs">Complete the passport for +10 entries and a surprise gift.</div>
+              <div className="text-plum/60 text-xs">Complete the passport to claim a surprise gift.</div>
             </div>
           </li>
         </ul>
