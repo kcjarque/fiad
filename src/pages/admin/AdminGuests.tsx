@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Search, Pencil, Check, X, Trash2 } from 'lucide-react';
+import { Copy, Search, Pencil, Check, X, Trash2, Mail, MailCheck } from 'lucide-react';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { listGuests, updateGuestName, deleteGuest } from '../../services/guestService';
 import { allActiveEntries } from '../../services/raffleService';
 import { Modal } from '../../components/shared/Modal';
 import { formatDate } from '../../utils/id';
 import { toast } from '../../stores/toastStore';
+import { resendTicketEmail } from '../../lib/notify';
+import { getEventById } from '../../services/eventService';
 import type { Guest } from '../../types';
 import { useEventStore } from '../../stores/eventStore';
 
@@ -48,6 +50,8 @@ export function AdminGuests() {
   const selectedEventId = useEventStore((s) => s.selectedEventId);
   const { data: guests = [] } = useQuery({ queryKey: ['guests', selectedEventId], queryFn: listGuests });
   const { data: entries = [] } = useQuery({ queryKey: ['raffle', 'active', selectedEventId], queryFn: allActiveEntries });
+  // Venue + date are rendered into the ticket email.
+  const { data: event } = useQuery({ queryKey: ['event', selectedEventId], queryFn: () => getEventById(selectedEventId) });
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'in' | 'out'>('all');
   // Which fair day the guest picked. 'none' matters as its own option: Season 1
@@ -86,6 +90,36 @@ export function AdminGuests() {
       toast.error(`Update failed: ${(err as Error).message}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── Resend the confirmation email ────────────────────────────────────────
+  // Door use: a guest who can't find their original mail needs the QR and
+  // access code again. Re-sends the same welcome template, email only.
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+
+  const resend = async (g: Guest) => {
+    if (resendingId) return;
+    if (!g.accessCode) {
+      toast.error(`${g.name} has no access code, so the ticket email can't be built.`);
+      return;
+    }
+    setResendingId(g.id);
+    try {
+      await resendTicketEmail({
+        name: g.name,
+        email: g.email,
+        accessCode: g.accessCode,
+        venue: event?.venue ?? '',
+        date: event?.date ?? '',
+      });
+      setSentIds((s) => new Set(s).add(g.id));
+      toast.success(`Ticket email sent to ${g.email}`);
+    } catch (err) {
+      toast.error(`Could not send: ${(err as Error).message}`);
+    } finally {
+      setResendingId(null);
     }
   };
 
@@ -286,6 +320,15 @@ export function AdminGuests() {
                       </button>
                     )}
                     <button
+                      onClick={() => resend(g)}
+                      disabled={resendingId === g.id || !g.accessCode}
+                      className="text-plum/50 hover:text-coral p-1.5 rounded hover:bg-coral/10 transition disabled:opacity-40 disabled:hover:bg-transparent"
+                      aria-label={`Resend ticket email to ${g.name}`}
+                      title={g.accessCode ? 'Resend ticket email (QR + access code)' : 'No access code — cannot build the ticket email'}
+                    >
+                      {sentIds.has(g.id) ? <MailCheck size={15} className="text-emerald-600" /> : <Mail size={15} />}
+                    </button>
+                    <button
                       onClick={() => setToDelete(g)}
                       className="text-red-500/70 hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition"
                       aria-label="Delete guest"
@@ -381,6 +424,15 @@ export function AdminGuests() {
                     <td className="py-2 pr-4 text-plum/60">{formatDate(g.registeredAt)}</td>
                     <td className="py-2 pr-4"><CheckinBadge at={g.checkedInAt} /></td>
                     <td className="py-2">
+                      <button
+                        onClick={() => resend(g)}
+                        disabled={resendingId === g.id || !g.accessCode}
+                        className="text-plum/50 hover:text-coral p-1.5 rounded hover:bg-coral/10 transition disabled:opacity-40 disabled:hover:bg-transparent"
+                        aria-label={`Resend ticket email to ${g.name}`}
+                        title={g.accessCode ? 'Resend ticket email (QR + access code)' : 'No access code — cannot build the ticket email'}
+                      >
+                        {sentIds.has(g.id) ? <MailCheck size={15} className="text-emerald-600" /> : <Mail size={15} />}
+                      </button>
                       <button
                         onClick={() => setToDelete(g)}
                         className="text-red-500/70 hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition"
