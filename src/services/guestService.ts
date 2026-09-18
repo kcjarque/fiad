@@ -199,11 +199,36 @@ const normalizeQrToken = (raw: string): string => {
 export const getGuestByQr = async (qrToken: string): Promise<Guest | undefined> => {
   const token = normalizeQrToken(qrToken);
   if (!token) return undefined;
-  const { data, error } = await supabase
+
+  let { data, error } = await supabase
     .from('guests')
     .select('*')
     .eq('qr_token', token)
     .maybeSingle();
+  if (error) throw error;
+  if (data) return rowToGuest(data);
+
+  /**
+   * Fall back to the access code. The manual "Enter code" field at the door
+   * feeds into this lookup, and the only code a guest can actually read out is
+   * the 6-character access code from their email — the qr_token is never shown
+   * anywhere in full (the ticket prints just the last 10 characters, upper
+   * cased, so it can never match). Staff were typing the access code and
+   * getting "QR not recognized".
+   *
+   * Unambiguous by construction: access codes are 6 chars of [A-Z0-9] and
+   * unique (verified across all 993 issued), while qr_tokens are 19 chars of
+   * [a-z0-9-]. The two can never collide, and the shape guard below means a
+   * real token is never re-tried as a code.
+   */
+  const code = token.toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(code)) return undefined;
+
+  ({ data, error } = await supabase
+    .from('guests')
+    .select('*')
+    .eq('access_code', code)
+    .maybeSingle());
   if (error) throw error;
   return data ? rowToGuest(data) : undefined;
 };
