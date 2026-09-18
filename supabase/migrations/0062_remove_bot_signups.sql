@@ -1,0 +1,123 @@
+-- Remove automated signups from the Brittany Season 2 event.
+--
+-- /rsvp has no captcha or rate limit and anon can insert into guests. From
+-- Sep 12 2026 the Brittany event took a wave of bot registrations: by Sep 17,
+-- 22 of 31 signups that day were random-string names, many on Gmail
+-- dot-trick addresses. 100 rows in total; Mella and Season 1 have none.
+--
+-- Every one was verified inert before deletion: zero checked in, zero
+-- transactions, zero passport stamps, zero override requests, and exactly one
+-- raffle entry each -- the complimentary ticket auto-issued by the 0047
+-- trigger. A real attendee would have left some other trace.
+--
+-- Ids are listed explicitly rather than re-deriving a name pattern at delete
+-- time, so this removes exactly the rows that were reviewed and nothing else.
+-- Deleting a guest cascades to raffle_entries (100 complimentary tickets).
+--
+-- Idempotent: rows already gone are simply not matched.
+--
+-- NOTE: this is cleanup, not a fix. Without a captcha or rate limit on /rsvp
+-- the wave resumes; see 0063.
+
+delete from guests where id in (
+  'guest_03reuk65f7dh',
+  'guest_0fybs6ilevlj',
+  'guest_0t8yoezysaa7',
+  'guest_0um2icjajxm0',
+  'guest_1w7xehoynwmt',
+  'guest_2lclf1v0snav',
+  'guest_2t23rkd6x7ms',
+  'guest_32se8apzc5rr',
+  'guest_36asi291lfqk',
+  'guest_38qey8cuchv9',
+  'guest_3eedhtkgphul',
+  'guest_3fq5mrn7zqfm',
+  'guest_42ov9n7bp5zi',
+  'guest_4s7tv4wnxqlg',
+  'guest_63mojg0f53hl',
+  'guest_6zlj5w1ipfpf',
+  'guest_70ch621eu4dm',
+  'guest_72sq4x9zk0u5',
+  'guest_75dhay0r3xyy',
+  'guest_7ag7qt3zo7hm',
+  'guest_7fgnbmueaiyd',
+  'guest_7fv1q861fcny',
+  'guest_88zi5fkwhxf2',
+  'guest_8wkhi550zssv',
+  'guest_91ec9wc5lxmm',
+  'guest_93i40kf8q7ox',
+  'guest_9lqcy0brw22j',
+  'guest_9napqcf2vve5',
+  'guest_9uauia9mcw64',
+  'guest_adx28r6e0gqt',
+  'guest_aeqd84nkeprd',
+  'guest_aoor8ph87dsk',
+  'guest_avmbg3bvpm0n',
+  'guest_b9mgk8ups3am',
+  'guest_bd6w744vuijh',
+  'guest_cipzsheshyrc',
+  'guest_coclknf3a9a2',
+  'guest_cpfsxcvcf0ar',
+  'guest_csgsph5twvhh',
+  'guest_cz6rmpnnebq9',
+  'guest_dl1haysp6h8n',
+  'guest_dnkwnvarcfo5',
+  'guest_dv810opinrpn',
+  'guest_f0bh8zc91ztw',
+  'guest_fllh46o1bzfb',
+  'guest_gan32ip1hfdn',
+  'guest_gjhjif83ew1v',
+  'guest_h7jtggu9ffdl',
+  'guest_h83wvi0wuyvb',
+  'guest_hgg5xor3bapd',
+  'guest_icptegq4ski9',
+  'guest_jp63r6x5s0iz',
+  'guest_k4oaik8g7hse',
+  'guest_ko7rxqrtoixr',
+  'guest_krdwnsp397s1',
+  'guest_lprpxog9jgzl',
+  'guest_mel4wsmvp27j',
+  'guest_mimbbnstspxq',
+  'guest_mxjpqutxv6ap',
+  'guest_my96ffbownab',
+  'guest_no66q57sg5wc',
+  'guest_o6v8thp3o1w2',
+  'guest_oiej6p0fbrws',
+  'guest_omsk93znyrld',
+  'guest_p6f8tzxgoaca',
+  'guest_pfa9lp4eyi57',
+  'guest_prxvxqofk67u',
+  'guest_pt4pswu1lai2',
+  'guest_q19x8bzs0v6q',
+  'guest_qg7y0vvvi6w1',
+  'guest_r0yk7fvk222f',
+  'guest_r99630fxxf39',
+  'guest_re5gumsrtla8',
+  'guest_sn6p1dqfyzr3',
+  'guest_sndwhnr25gly',
+  'guest_sumsmp7q5i5n',
+  'guest_sxfkz6jv1064',
+  'guest_tipigwsw75to',
+  'guest_tnhgkv6bfva3',
+  'guest_typ9a36klr20',
+  'guest_v3tc6r2zb7g8',
+  'guest_vg0gqop11jq4',
+  'guest_vgb1bq2220do',
+  'guest_vlmfqvlr2nva',
+  'guest_voigzsyiyu96',
+  'guest_w547tvxxvl3y',
+  'guest_wpk9ezngpt1o',
+  'guest_x54hn9ffcygu',
+  'guest_x8b1d3y9k60r',
+  'guest_xg164ylgn1w1',
+  'guest_xgjdf05iioqx',
+  'guest_xmvxm99w927g',
+  'guest_y3dzmk5j32rc',
+  'guest_y5iswcj0n1a6',
+  'guest_y5nmtky1khyu',
+  'guest_ybsvp9257f74',
+  'guest_yp59tyc6fhxr',
+  'guest_yu2j1arlzupk',
+  'guest_z579o4cu5hdl',
+  'guest_zo71t6u21h6t'
+);
