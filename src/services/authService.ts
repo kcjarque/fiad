@@ -68,16 +68,40 @@ export const loginAdmin = async (email: string, passcode: string): Promise<Admin
   }
 };
 
+/**
+ * Fold the characters vendors actually confuse when reading a code off a
+ * printout or a phone screen.
+ *
+ * generatePasscode() deliberately skips 0/O/1/I/L, but 23 live codes predate
+ * it and were imported with those characters in them — BA 3 is `8QTMO0`,
+ * which carries both an O and a zero, and Mella Hotel is `9ZJF7O`, ending in
+ * a letter O. An exact match turns every mistype into a flat "invalid".
+ *
+ * Folding both sides is collision-free across all live Season 2 codes
+ * (verified against production: the only duplicate group is six archived
+ * Season 1 rows still on the `1234` default, and those are not in the S2
+ * login picker). So this can only ever turn a would-be failure into the
+ * correct booth — it never maps one supplier's code onto another's.
+ */
+const foldLookalikes = (code: string): string =>
+  code.trim().toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1');
+
 export const loginStore = async (storeId: string, passcode: string): Promise<Store | null> => {
   const run = async (): Promise<Store | null> => {
+    // Fetched by id and compared here rather than with .eq('passcode', …) so
+    // the fold can apply. No new exposure: anon already holds SELECT on
+    // stores (policy anon_select_stores, 0005), so the column was readable
+    // either way — the comparison just moved.
     const { data, error } = await supabase
       .from('stores')
       .select('*')
       .eq('id', storeId)
-      .eq('passcode', passcode)
       .maybeSingle();
     if (error) throw error;
-    return data ? rowToStore(data) : null;
+    if (!data) return null;
+    const stored = String((data as { passcode?: string }).passcode ?? '');
+    if (!stored) return null;
+    return foldLookalikes(stored) === foldLookalikes(passcode) ? rowToStore(data) : null;
   };
   try {
     return await run();
