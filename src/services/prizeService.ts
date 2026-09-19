@@ -190,3 +190,30 @@ export const latestWinFor = async (
   const prize = rowToPrize(data);
   return { prize, at: prize.drawnAt! };
 };
+
+/**
+ * Clear a drawn prize so it can be redrawn — the "forfeit" the event team
+ * performs when a winner isn't present to claim.
+ *
+ * Goes through the forfeit_prize RPC rather than an update: 0063 restricts
+ * anon's UPDATE on prizes to the admin-editable columns precisely so a winner
+ * can't be written by hand from a browser. The function is SECURITY DEFINER
+ * and only ever clears, so it grants no ability to name one.
+ *
+ * Releases rather than disqualifies — the forfeited ticket returns to the
+ * pool, matching how every forfeit has been handled.
+ */
+export const forfeitPrize = async (
+  prizeId: string,
+): Promise<{ ok: true; name: string; ticket: string } | { ok: false; reason: string }> => {
+  const { data, error } = await supabase.rpc('forfeit_prize', { p_prize_id: prizeId });
+  if (error) throw error;
+  const r = data as {
+    ok: boolean;
+    reason?: string;
+    forfeited_name?: string;
+    forfeited_ticket?: string;
+  } | null;
+  if (!r?.ok) return { ok: false, reason: r?.reason ?? 'unknown' };
+  return { ok: true, name: r.forfeited_name ?? 'Guest', ticket: r.forfeited_ticket ?? '' };
+};

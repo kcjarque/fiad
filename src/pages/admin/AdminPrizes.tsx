@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
-import { createPrize, deletePrize, listPrizes, updatePrize, uploadPrizeImage } from '../../services/prizeService';
+import { createPrize, deletePrize, forfeitPrize, listPrizes, updatePrize, uploadPrizeImage } from '../../services/prizeService';
 import { listGuests } from '../../services/guestService';
 import { listStoresForLogin } from '../../services/authService';
 import { Modal } from '../../components/shared/Modal';
@@ -48,6 +48,8 @@ export function AdminPrizes() {
   const [editing, setEditing] = useState<Prize | null>(null);
   const [draft, setDraft] = useState(empty);
   const [uploadingImg, setUploadingImg] = useState(false);
+  // Prize whose winner is about to be released back into the pool.
+  const [toForfeit, setToForfeit] = useState<Prize | null>(null);
 
   const onImgFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -91,6 +93,31 @@ export function AdminPrizes() {
       setOpen(false);
       setEditing(null);
       setDraft(empty);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  // Forfeit — the winner isn't present to claim, so clear the draw and let
+  // the prize be drawn again. The ticket stays in the pool, matching how the
+  // team has handled every forfeit at the event.
+  const forfeitMutation = useMutation({
+    mutationFn: async (prize: Prize) => {
+      const r = await forfeitPrize(prize.id);
+      if (!r.ok) {
+        throw new Error(
+          r.reason === 'not_drawn'
+            ? 'That prize has not been drawn yet.'
+            : r.reason === 'no_such_prize'
+              ? 'That prize no longer exists.'
+              : 'Forfeit failed.',
+        );
+      }
+      return r;
+    },
+    onSuccess: (r) => {
+      invalidate();
+      setToForfeit(null);
+      toast.success(`${r.name} forfeited — the prize can be drawn again`);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -141,8 +168,17 @@ export function AdminPrizes() {
               ) : (
                 <div className="mt-2 chip">Undrawn</div>
               )}
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex gap-2 flex-wrap">
                 <button className="btn-ghost text-sm" onClick={() => edit(p)}>Edit</button>
+                {winner && (
+                  <button
+                    className="btn-ghost text-sm text-amber-700"
+                    onClick={() => setToForfeit(p)}
+                    title="Clear this winner so the prize can be drawn again"
+                  >
+                    Forfeit
+                  </button>
+                )}
                 <button
                   className="btn-ghost text-sm text-red-600"
                   onClick={() => { if (confirm('Delete this prize?')) deleteMutation.mutate(p.id); }}
@@ -154,6 +190,44 @@ export function AdminPrizes() {
           );
         })}
       </div>
+
+      <Modal
+        open={!!toForfeit}
+        onClose={() => setToForfeit(null)}
+        title="Forfeit this prize?"
+      >
+        {toForfeit && (
+          <div className="space-y-4">
+            <p className="text-sm text-plum/75">
+              This clears the draw on <strong className="text-plum">{toForfeit.name}</strong>
+              {(() => {
+                const w = toForfeit.winnerGuestId ? guestsById.get(toForfeit.winnerGuestId) : null;
+                return w ? <> — <strong className="text-plum">{w.name}</strong> gives it up</> : null;
+              })()}
+              . The prize goes back to Undrawn and can be drawn again.
+            </p>
+            <p className="text-xs text-plum/55">
+              Their ticket stays in the pool, so they can still win a later draw.
+            </p>
+            <div className="flex gap-2">
+              <button
+                className="btn-ghost flex-1 border border-plum/15 text-plum"
+                onClick={() => setToForfeit(null)}
+                disabled={forfeitMutation.isPending}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary flex-1"
+                onClick={() => forfeitMutation.mutate(toForfeit)}
+                disabled={forfeitMutation.isPending}
+              >
+                {forfeitMutation.isPending ? 'Forfeiting…' : 'Forfeit'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Edit prize' : 'New prize'}>
         <div className="space-y-3">
