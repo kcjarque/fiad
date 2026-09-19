@@ -35,7 +35,11 @@ export function AdminRaffleScanner() {
   const { data: event } = useQuery({ queryKey: ['activeEvent'], queryFn: getActiveEvent });
   const { data: stores = [] } = useQuery({ queryKey: ['storesForLogin'], queryFn: listStoresForLogin });
   const suppliers = useMemo(() => stores.filter((s) => s.boothNumber !== 'DEMO'), [stores]);
-  const raffleRate = event?.raffleRate ?? 100;
+  // No placeholder rate. Both live Season 2 events are ₱1,000/entry, so a
+  // hardcoded 100 shown while this query is in flight understates the spend
+  // needed by 10x — and it also drove the "≈ N entries" preview below, so the
+  // booth saw ten times the entries issue_entries would actually grant.
+  const raffleRate = event?.raffleRate;
 
   const onQr = async (raw: string) => {
     if (busy) return;
@@ -113,7 +117,9 @@ export function AdminRaffleScanner() {
       <h1 className="font-display text-2xl md:text-3xl mb-1">Raffle Scanner</h1>
       <p className="text-sm text-plum/60 mb-5 max-w-md">
         Admin booth: scan the guest's QR, pick the supplier from the receipt, and enter the amount.
-        ₱{raffleRate} spent = 1 raffle entry.
+        {raffleRate === undefined
+          ? ' Loading the raffle rate…'
+          : ` ₱${raffleRate.toLocaleString()} spent = 1 raffle entry.`}
       </p>
 
       {step === 'scan' && (
@@ -177,7 +183,7 @@ export function AdminRaffleScanner() {
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="e.g. 1500"
               />
-              {selectedStore && amount && (
+              {selectedStore && amount && raffleRate !== undefined && (
                 <div className="mt-2 text-xs text-plum/60">
                   ≈ {Math.floor(Number(amount.replace(/[^0-9.]/g, '')) / raffleRate)} entries for {selectedStore.name}
                 </div>

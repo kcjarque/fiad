@@ -213,7 +213,11 @@ export function Ticket() {
             </div>
             <div>
               <div className="font-medium text-plum">Spend at a booth</div>
-              <div className="text-plum/60 text-xs">Show this QR to the vendor. ₱{event?.raffleRate ?? 100} spent = 1 raffle entry.</div>
+              <div className="text-plum/60 text-xs">
+                Show this QR to the vendor.
+                {event?.raffleRate !== undefined
+                  && ` ₱${event.raffleRate.toLocaleString()} spent = 1 raffle entry.`}
+              </div>
             </div>
           </li>
           <li className="flex gap-3">

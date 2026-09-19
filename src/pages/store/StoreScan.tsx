@@ -117,13 +117,25 @@ export function StoreScan() {
     setStep('idle');
   };
 
-  const cap = event?.dailyCapPerGuestPerStore ?? 5000;
-  const raffleRate = event?.raffleRate ?? 100;
-  const remaining = Math.max(cap - alreadySpent, 0);
-  const willExceed = !!guest && Number(amount.replace(/[^0-9.]/g, '')) > remaining;
+  // Never invent these. The two Season 2 venues differ (Mella caps at ₱5,000,
+  // Brittany at ₱100,000), so a placeholder shown while the event query is in
+  // flight is not a harmless default — it drives the override warning below
+  // and would wrongly flag a Brittany vendor as over cap.
+  const cap = event?.dailyCapPerGuestPerStore;
+  const raffleRate = event?.raffleRate;
+  const remaining = cap === undefined ? undefined : Math.max(cap - alreadySpent, 0);
+  const willExceed =
+    !!guest && remaining !== undefined && Number(amount.replace(/[^0-9.]/g, '')) > remaining;
 
   return (
-    <PageShell title="Issue Raffle Entries" subtitle={`₱${raffleRate} = 1 entry · Cap ${peso(cap)}/day/guest`}>
+    <PageShell
+      title="Issue Raffle Entries"
+      subtitle={
+        raffleRate === undefined || cap === undefined
+          ? 'Loading event settings…'
+          : `₱${raffleRate.toLocaleString()} = 1 entry · Cap ${peso(cap)}/day/guest`
+      }
+    >
       {step === 'idle' && (
         <Card className="text-center py-8">
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-champagne/40 text-plum mb-4">
@@ -158,7 +170,8 @@ export function StoreScan() {
               <button onClick={reset} className="text-xs text-plum/50">Change</button>
             </div>
             <div className="mt-3 text-xs text-plum/60">
-              Spent today at this store: {peso(alreadySpent)} · Remaining: {peso(remaining)}
+              Spent today at this store: {peso(alreadySpent)}
+              {remaining !== undefined && ` · Remaining: ${peso(remaining)}`}
             </div>
           </Card>
 
