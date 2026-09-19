@@ -222,15 +222,34 @@ export const getGuestByQr = async (qrToken: string): Promise<Guest | undefined> 
    * real token is never re-tried as a code.
    */
   const code = token.toUpperCase();
-  if (!/^[A-Z0-9]{6}$/.test(code)) return undefined;
 
-  ({ data, error } = await supabase
-    .from('guests')
-    .select('*')
-    .eq('access_code', code)
-    .maybeSingle());
-  if (error) throw error;
-  return data ? rowToGuest(data) : undefined;
+  // 6-char access code (printed in the confirmation email).
+  if (/^[A-Z0-9]{6}$/.test(code)) {
+    ({ data, error } = await supabase
+      .from('guests')
+      .select('*')
+      .eq('access_code', code)
+      .maybeSingle());
+    if (error) throw error;
+    if (data) return rowToGuest(data);
+  }
+
+  // 10-char ticket code. The in-app/printed ticket shows the qr_token's LAST 10
+  // chars, upper-cased (e.g. "ZTK20EKK5W" for guest-qr-ztk20ekk5w) — that's the
+  // code a guest actually reads off their ticket at the booth, so match it
+  // against the token's suffix. 10 random chars make a collision effectively
+  // impossible, so maybeSingle is safe.
+  if (/^[A-Z0-9]{10}$/.test(code)) {
+    ({ data, error } = await supabase
+      .from('guests')
+      .select('*')
+      .ilike('qr_token', `%${code.toLowerCase()}`)
+      .maybeSingle());
+    if (error) throw error;
+    if (data) return rowToGuest(data);
+  }
+
+  return undefined;
 };
 
 /**
