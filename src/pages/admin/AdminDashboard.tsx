@@ -7,6 +7,8 @@ import { listStores } from '../../services/storeService';
 import { totalEntries } from '../../services/raffleService';
 import { listOverrides } from '../../services/overrideService';
 import { stampActivity } from '../../services/passportService';
+import { getEventById } from '../../services/eventService';
+import { listCheckIns, phDay } from '../../services/checkInService';
 import { peso } from '../../utils/id';
 import { useEventStore } from '../../stores/eventStore';
 
@@ -45,29 +47,53 @@ export function AdminDashboard() {
     queryKey: ['stampActivity', selectedEventId],
     queryFn: stampActivity,
   });
+  const { data: checkIns = [] } = useQuery({
+    queryKey: ['checkIns', selectedEventId],
+    queryFn: () => listCheckIns(selectedEventId),
+    refetchInterval: 30_000,
+  });
+  // The event's own date is the walk-in boundary. Reading it from the row
+  // rather than hardcoding a season keeps this correct for every venue.
+  const { data: event } = useQuery({
+    queryKey: ['event', selectedEventId],
+    queryFn: () => getEventById(selectedEventId),
+  });
 
   const approvedTxs = useMemo(() => transactions.filter((t) => t.status === 'approved'), [transactions]);
   const totalRevenue = approvedTxs.reduce((sum, t) => sum + t.amount, 0);
 
-  // "Attended + used the app" = distinct guests who either stamped a booth
-  // (requires login + physically scanning a QR) or made a transaction.
-  // This is our best proxy — the app has no raw pageview analytics, and
-  // many guests registered through the GHL funnel without opening the app.
-  const attendedGuestIds = useMemo(() => {
-    const ids = new Set(stamps.guestIds);
-    for (const t of transactions) ids.add(t.guestId);
-    return ids;
-  }, [stamps.guestIds, transactions]);
+  // Attendance comes from check_ins (0076), the append-only door log — not
+  // from guests.checked_in_at, which only says who is checked in right now
+  // and is cleared by the daily reset.
+  const attendedGuestIds = useMemo(
+    () => new Set(checkIns.map((c) => c.guestId)),
+    [checkIns],
+  );
   const attendedCount = attendedGuestIds.size;
   const attendedPct = guests.length ? Math.round((attendedCount / guests.length) * 100) : 0;
-
-  // Walk-ins = guests who registered ON an event day (June 6-7 PH).
-  // June 6 00:00 PH = June 5 16:00 UTC.
-  const EVENT_START = new Date('2026-06-05T16:00:00Z').getTime();
-  const walkIns = useMemo(
-    () => guests.filter((g) => new Date(g.registeredAt).getTime() >= EVENT_START).length,
-    [guests],
+  // Guests who came through the door today, for a two-day venue where the
+  // running total alone doesn't say how the current day is going.
+  const todayPh = phDay(new Date().toISOString());
+  const attendedToday = useMemo(
+    () => new Set(checkIns.filter((c) => phDay(c.checkedInAt) === todayPh).map((c) => c.guestId)).size,
+    [checkIns, todayPh],
   );
+  // Distinct guests who actually opened the app on-site — stamped a booth or
+  // transacted. Was previously labelled "checked in"; it measures engagement,
+  // not attendance, so it is now reported as its own line.
+  const appUsers = useMemo(() => {
+    const ids = new Set(stamps.guestIds);
+    for (const t of transactions) ids.add(t.guestId);
+    return ids.size;
+  }, [stamps.guestIds, transactions]);
+
+  // Walk-ins = guests who registered on an event day. The boundary is the
+  // event's own date in PH time, so each venue counts its own day-of sign-ups.
+  const eventDate = event?.date;
+  const walkIns = useMemo(() => {
+    if (!eventDate) return 0;
+    return guests.filter((g) => phDay(g.registeredAt) >= eventDate).length;
+  }, [guests, eventDate]);
   const preRegistered = guests.length - walkIns;
   const perStore = stores
     .map((s) => ({
@@ -87,7 +113,7 @@ export function AdminDashboard() {
         <Stat
           label="Checked In"
           value={attendedCount}
-          sub={`${attendedPct}% show-up rate`}
+          sub={`${attendedPct}% show-up rate · ${attendedToday} today`}
           tone="coral"
         />
         <Stat label="Sales (Down Payments)" value={peso(totalRevenue)} tone="champagne" />
@@ -116,9 +142,11 @@ export function AdminDashboard() {
             <div className="pl-3 text-plum/60">Pre-registered: <strong>{preRegistered}</strong></div>
             <div className="pl-3 text-plum/60">Walk-in (registered day-of): <strong>{walkIns}</strong></div>
             <div className="pt-1 border-t border-plum/10 mt-1">
-              Checked in (used app): <strong>{attendedCount}</strong>{' '}
+              Checked in at the door: <strong>{attendedCount}</strong>{' '}
               <span className="text-plum/50">— {attendedPct}% show-up rate</span>
             </div>
+            <div className="pl-3 text-plum/60">Checked in today: <strong>{attendedToday}</strong></div>
+            <div className="pl-3 text-plum/60">Used the app on-site: <strong>{appUsers}</strong></div>
             <div className="pl-3 text-plum/60">Booth scans (passport stamps): <strong>{stamps.totalStamps}</strong></div>
             <div className="pt-1 border-t border-plum/10 mt-1">
               Down payments collected: <strong>{peso(totalRevenue)}</strong>
