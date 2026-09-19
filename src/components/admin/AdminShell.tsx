@@ -13,6 +13,7 @@ const sections = [
   { to: '/admin/supplier-sales', label: 'Supplier Sales' },
   { to: '/admin/guests', label: 'Guests' },
   { to: '/admin/checkin', label: 'Check-in' },
+  { to: '/admin/attendance', label: 'Attendance log' },
   { to: '/admin/raffle-scan', label: 'Raffle Scanner' },
   { to: '/admin/inquiries', label: 'Inquiries' },
   { to: '/admin/email-marketing', label: 'Email Marketing' },

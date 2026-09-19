@@ -33,6 +33,7 @@ import { AdminStores } from './pages/admin/AdminStores';
 import { AdminSupplierSales } from './pages/admin/AdminSupplierSales';
 import { AdminGuests } from './pages/admin/AdminGuests';
 import { AdminCheckin } from './pages/admin/AdminCheckin';
+import { AdminAttendance } from './pages/admin/AdminAttendance';
 import { AdminRaffleScanner } from './pages/admin/AdminRaffleScanner';
 import { AdminQrGenerator } from './pages/admin/AdminQrGenerator';
 import { AdminQrCards } from './pages/admin/AdminQrCards';
@@ -149,6 +150,7 @@ export default function App() {
         <Route path="/admin/supplier-sales" element={<RequireAdmin><AdminSupplierSales /></RequireAdmin>} />
         <Route path="/admin/guests" element={<RequireAdmin><AdminGuests /></RequireAdmin>} />
         <Route path="/admin/checkin" element={<RequireAdmin><AdminCheckin /></RequireAdmin>} />
+        <Route path="/admin/attendance" element={<RequireAdmin><AdminAttendance /></RequireAdmin>} />
         <Route path="/admin/raffle-scan" element={<RequireAdmin><AdminRaffleScanner /></RequireAdmin>} />
         <Route path="/admin/qr-generator" element={<RequireAdmin><AdminQrGenerator /></RequireAdmin>} />
         <Route path="/admin/qr-cards" element={<RequireAdmin><AdminQrCards /></RequireAdmin>} />
