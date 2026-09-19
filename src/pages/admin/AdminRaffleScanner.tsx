@@ -5,6 +5,8 @@ import { AdminShell } from '../../components/admin/AdminShell';
 import { QRScanner } from '../../components/shared/QRScanner';
 import { getGuestByQr } from '../../services/guestService';
 import { listStoresForLogin } from '../../services/authService';
+import { listEvents } from '../../services/eventService';
+import { useEventStore } from '../../stores/eventStore';
 import { issueEntries } from '../../services/transactionService';
 import { getActiveEvent } from '../../services/eventService';
 import { toast } from '../../stores/toastStore';
@@ -22,6 +24,7 @@ const cleanToken = (raw: string) => {
 
 export function AdminRaffleScanner() {
   const queryClient = useQueryClient();
+  const selectedEventId = useEventStore((st) => st.selectedEventId);
   const [step, setStep] = useState<Step>('scan');
   const [guest, setGuest] = useState<Guest | null>(null);
   const [storeId, setStoreId] = useState('');
@@ -34,8 +37,26 @@ export function AdminRaffleScanner() {
 
   const { data: event } = useQuery({ queryKey: ['activeEvent'], queryFn: getActiveEvent });
   const { data: stores = [] } = useQuery({ queryKey: ['storesForLogin'], queryFn: listStoresForLogin });
-  const suppliers = useMemo(() => stores.filter((s) => s.boothNumber !== 'DEMO'), [stores]);
-  const raffleRate = event?.raffleRate ?? 100;
+  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: listEvents });
+
+  // Only this venue's booths. listStoresForLogin returns both Season-2 events
+  // for the store-login picker, which let an admin on one venue pick the
+  // other's booth — the entries then landed in the wrong venue at the wrong
+  // rate, because issue_entries resolves the event from the store.
+  const suppliers = useMemo(
+    () => stores.filter((s) => s.boothNumber !== 'DEMO' && s.eventId === selectedEventId),
+    [stores, selectedEventId],
+  );
+
+  // Rate of the CHOSEN BOOTH's event, not the admin's selected one. The server
+  // charges the booth's rate, so previewing the selected event's rate showed a
+  // figure the server would not honour — Brittany is P1000/entry and Mella
+  // P100, so a cross-venue pick was out by 10x and looked correct.
+  const selectedStore = suppliers.find((s) => s.id === storeId);
+
+  const rateFor = (eventId?: string) =>
+    events.find((e) => e.id === eventId)?.raffleRate ?? event?.raffleRate ?? 100;
+  const raffleRate = rateFor(selectedStore?.eventId ?? selectedEventId);
 
   const onQr = async (raw: string) => {
     if (busy) return;
@@ -100,7 +121,6 @@ export function AdminRaffleScanner() {
     setStep('scan');
   };
 
-  const selectedStore = suppliers.find((s) => s.id === storeId);
   // Type-to-search: match on booth number OR supplier name.
   const supplierMatches = (() => {
     const q = supplierQuery.trim().toLowerCase();
