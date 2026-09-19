@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Phone, Mail, Globe, UserPlus, Share2, FileText, MapPin, Check, X, ExternalLink,
+  Phone, Mail, Globe, UserPlus, Share2, FileText, MapPin, Check, X, ExternalLink, CalendarCheck,
 } from 'lucide-react';
 import { getStoreByQr } from '../services/storeService';
+import { createBooking } from '../services/bookingService';
 import { S2_VENUES } from '../stores/eventStore';
 import type { Store, ContactEntry } from '../types';
 
@@ -41,6 +42,11 @@ export function CallingCard() {
   });
   const [shared, setShared] = useState(false);
   const [promoOpen, setPromoOpen] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [err, setErr] = useState('');
+  const [form, setForm] = useState({ name: '', mobile: '', email: '', date: '', message: '' });
 
   if (isLoading) {
     return <div className="min-h-[100svh] bg-cream flex items-center justify-center text-plum/50">Loading…</div>;
@@ -61,6 +67,33 @@ export function CallingCard() {
       if (navigator.share) await navigator.share({ title: store.name, text: `${store.name} — Forever in a Day supplier`, url });
       else { await navigator.clipboard.writeText(url); setShared(true); setTimeout(() => setShared(false), 1800); }
     } catch { /* user cancelled */ }
+  };
+
+  const submitBooking = async () => {
+    if (submitting) return;
+    if (!form.name.trim() || (!form.mobile.trim() && !form.email.trim())) {
+      setErr('Please enter your name and a mobile number or email.');
+      return;
+    }
+    setErr('');
+    setSubmitting(true);
+    try {
+      await createBooking({
+        storeId: store.id,
+        eventId: store.eventId,
+        clientName: form.name,
+        clientMobile: form.mobile,
+        clientEmail: form.email,
+        eventDate: form.date,
+        message: form.message,
+      });
+      setSubmitted(true);
+      setForm({ name: '', mobile: '', email: '', date: '', message: '' });
+    } catch {
+      setErr('Could not send your request. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -110,6 +143,14 @@ export function CallingCard() {
         >
           <UserPlus size={18} /> Save to Contacts
         </a>
+
+        {/* Book / inquire — evergreen, still works after the fair ends */}
+        <button
+          onClick={() => { setSubmitted(false); setErr(''); setBookOpen(true); }}
+          className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl bg-white border border-coral/40 text-coral font-medium py-3.5 shadow-card hover:bg-coral/5 transition"
+        >
+          <CalendarCheck size={18} /> Request a booking
+        </button>
 
         {/* Contacts — one block per brand sharing the booth */}
         {entries.map((c, i) => (
@@ -171,6 +212,43 @@ export function CallingCard() {
               <iframe title={`${store.name} packages and promos`} src={store.packagesUrl} className="w-full rounded-xl bg-white shadow-soft" style={{ height: '80vh', border: 0 }} />
             ) : (
               <img src={store.packagesUrl} alt={`${store.name} packages and promos`} className="w-full rounded-xl bg-white shadow-soft" />
+            )}
+          </div>
+        </div>
+      )}
+
+      {bookOpen && (
+        <div className="fixed inset-0 z-50 bg-plum/70 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4" onClick={() => !submitting && setBookOpen(false)}>
+          <div className="bg-cream w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-soft max-h-[92svh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-1">
+              <div className="font-cormorant text-2xl text-plum">Request a booking</div>
+              <button onClick={() => !submitting && setBookOpen(false)} aria-label="Close" className="text-plum/50 p-1"><X size={22} /></button>
+            </div>
+            {submitted ? (
+              <div className="px-5 pb-8 pt-4 text-center">
+                <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 mb-3"><Check size={30} /></div>
+                <div className="font-cormorant text-2xl text-plum">Request sent!</div>
+                <p className="text-sm text-plum/60 mt-1">{store.name} will reach out about their rates &amp; packages.</p>
+                <button onClick={() => setBookOpen(false)} className="mt-5 w-full rounded-2xl bg-gradient-to-r from-coral to-[#8B2348] text-cream font-medium py-3">Done</button>
+              </div>
+            ) : (
+              <div className="px-5 pb-6 pt-1 space-y-3">
+                <p className="text-sm text-plum/60">Interested in {store.name}'s rates or promos? Send a request — they'll get back to you, even after the fair.</p>
+                <input className="input" placeholder="Your name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <input className="input" placeholder="Mobile number" inputMode="tel" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
+                <input className="input" placeholder="Email" inputMode="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <input className="input" placeholder="Event date (optional)" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+                <textarea className="input" rows={3} placeholder="What are you interested in? (package, budget, etc.)" value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
+                {err && <div className="text-sm text-red-600">{err}</div>}
+                <button
+                  onClick={submitBooking}
+                  disabled={submitting}
+                  className="w-full rounded-2xl bg-gradient-to-r from-coral to-[#8B2348] text-cream font-medium py-3.5 shadow-soft disabled:opacity-50 active:scale-[0.99] transition"
+                >
+                  {submitting ? 'Sending…' : 'Send request'}
+                </button>
+                <p className="text-[11px] text-plum/40 text-center">We share your details with {store.name} so they can contact you.</p>
+              </div>
             )}
           </div>
         </div>

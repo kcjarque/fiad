@@ -16,6 +16,7 @@ const sections = [
   { to: '/admin/attendance', label: 'Attendance log' },
   { to: '/admin/raffle-scan', label: 'Raffle Scanner' },
   { to: '/admin/inquiries', label: 'Inquiries' },
+  { to: '/admin/bookings', label: 'Bookings' },
   { to: '/admin/email-marketing', label: 'Email Marketing' },
   { to: '/admin/supplier-signups', label: 'Supplier Sign-ups' },
   { to: '/admin/transactions', label: 'Transactions' },
