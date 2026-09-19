@@ -3,11 +3,15 @@
 Columns match the original file the user had:
   Booth · Company · Category · Login Passcode · Booth QR Token · Email · Contact · Facebook
 
-Output goes to /Users/kylejarque/Documents/Claude/fiad/FIAD_Supplier_Codes.xlsx
-(gitignored — share via private channel only).
+Output defaults to FIAD_Supplier_Codes.xlsx in the repo root (gitignored —
+share via private channel only). Override with FIAD_CODES_OUT=/some/path.xlsx
+or by passing the path as the first argument.
 """
 import json
+import os
+import sys
 import urllib.request
+from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -16,7 +20,13 @@ URL = "https://cjhnsyldnzdedgianzsj.supabase.co"
 KEY = ("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqaG5z"
        "eWxkbnpkZWRnaWFuenNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNjg1NDIsImV4cCI6MjA5"
        "NDc0NDU0Mn0.A0BYsTrGpqVmXT6OdKndxytNuOoMJJmNGCYSTYrk48c")
-OUT = "/Users/kylejarque/Documents/Claude/fiad/FIAD_Supplier_Codes.xlsx"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+OUT = (
+    sys.argv[1]
+    if len(sys.argv) > 1
+    else os.environ.get("FIAD_CODES_OUT")
+    or str(REPO_ROOT / "FIAD_Supplier_Codes.xlsx")
+)
 
 req = urllib.request.Request(
     f"{URL}/rest/v1/stores?select=name,booth_number,category,passcode,qr_token,email,contact,social_media&order=booth_number",

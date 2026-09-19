@@ -36,6 +36,26 @@ function QrCardPage({ store }: { store: Store }) {
             <div className="qr-cap">Scan for contact,<br />socials &amp; promos</div>
           </div>
         </div>
+        {/*
+          Booth sign-in code, next to the QRs so it can be read off without
+          digging through Vendors → Edit. Marked no-print on purpose: this card
+          is displayed at the booth where guests can read it, and the passcode
+          lets the holder issue raffle entries (see migration 0063). Drop the
+          `no-print` class if you want it on the printed handout instead.
+        */}
+        <div className="qr-signin no-print">
+          <div className="qr-signin-label">Booth sign-in code</div>
+          {store.passcode ? (
+            <div className="qr-signin-code">{store.passcode}</div>
+          ) : (
+            <div className="qr-signin-missing">
+              No code set — open Vendors → Edit → Regenerate, then Save.
+            </div>
+          )}
+          <div className="qr-signin-hint">
+            Vendor enters this at fiad.app/store/login · screen only, never printed
+          </div>
+        </div>
         <div className="qr-foot">fiad.app</div>
       </div>
     </div>
@@ -76,6 +96,11 @@ export function AdminQrCards() {
         .qr-pill.card{background:#3E2A3E;color:#FCE9F0}
         .qr-box{background:#fff;padding:10px;border-radius:8px;line-height:0}
         .qr-cap{font-size:13px;color:rgba(62,42,62,.7);margin-top:4mm;line-height:1.35}
+        .qr-signin{margin-top:9mm;border:1.5px dashed #D4AF7A;border-radius:4mm;background:#fff;padding:5mm 8mm;display:flex;flex-direction:column;align-items:center}
+        .qr-signin-label{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:rgba(62,42,62,.55)}
+        .qr-signin-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:34px;font-weight:700;letter-spacing:.34em;padding-left:.34em;color:#3E2A3E;margin-top:3mm;line-height:1}
+        .qr-signin-missing{font-size:15px;font-weight:600;color:#B3261E;margin-top:3mm;text-align:center}
+        .qr-signin-hint{font-size:11px;color:rgba(62,42,62,.5);margin-top:3mm;text-align:center}
         .qr-foot{font-size:11px;letter-spacing:.4em;text-transform:uppercase;color:#D4AF7A;margin-top:8mm}
         @media print{
           @page{size:A4;margin:0}

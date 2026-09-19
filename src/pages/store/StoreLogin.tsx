@@ -4,7 +4,13 @@ import { ArrowLeft } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { listStoresForLogin, loginStore } from '../../services/authService';
 import { useAuth } from '../../stores/authStore';
+import { S2_VENUES } from '../../stores/eventStore';
 import { toast } from '../../stores/toastStore';
+
+// The picker lists both Season 2 venues. A supplier exhibiting at both has one
+// row per venue, each with its own passcode, so the venue has to be on the
+// option — otherwise they pick the wrong row and their code reads as invalid.
+const venueLabel = (eventId: string) => S2_VENUES.find((v) => v.id === eventId)?.label ?? '';
 
 export function StoreLogin() {
   const navigate = useNavigate();
@@ -28,7 +34,7 @@ export function StoreLogin() {
     try {
       const store = await loginStore(storeId, cleaned);
       if (!store) {
-        toast.error('Invalid passcode.');
+        toast.error('That code does not match this booth. Check the booth and venue above.');
         return;
       }
       setStore(store.id);
@@ -54,7 +60,7 @@ export function StoreLogin() {
             <select className="input" value={storeId} onChange={(e) => setStoreId(e.target.value)} disabled={isLoading}>
               {isLoading ? <option>Loading…</option> : stores.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} — Booth {s.boothNumber}
+                  {`${s.name} — Booth ${s.boothNumber}${venueLabel(s.eventId) ? ` · ${venueLabel(s.eventId)}` : ''}`}
                 </option>
               ))}
             </select>

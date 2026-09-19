@@ -51,7 +51,10 @@ QR_SIZE = 760  # pixels
 FONT_DIR = Path("/tmp/fiad_fonts")
 TITLE_FONT_PATH = FONT_DIR / "PlayfairDisplay.ttf"
 SUBTITLE_FONT_PATH = FONT_DIR / "Inter.ttf"
-OUT_DIR = Path("/Users/kylejarque/Documents/Claude/fiad/booth_qr_print")
+OUT_DIR = Path(
+    os.environ.get("FIAD_QR_OUT")
+    or Path(__file__).resolve().parent.parent / "booth_qr_codes"
+)
 
 
 def fetch_stores() -> list[dict]:
