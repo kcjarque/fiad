@@ -7,6 +7,12 @@ export default defineConfig({
     port: process.env.PORT ? Number(process.env.PORT) : 5173,
     strictPort: true,
     host: true,
+    // Allow Cloudflare quick tunnels. Testing the QR scanner needs a real
+    // camera on a real phone, and getUserMedia only runs in a secure context —
+    // so a phone on the LAN over plain http can't open the camera at all. A
+    // tunnel gives dev an https origin; without this Vite answers 403 to the
+    // tunnel's Host header. Dev-server only: it has no bearing on the build.
+    allowedHosts: ['.trycloudflare.com'],
   },
   plugins: [
     react(),
