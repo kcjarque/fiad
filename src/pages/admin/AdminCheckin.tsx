@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Camera, ScanLine, CheckCircle2, AlertCircle, Search } from 'lucide-react';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { QRScanner } from '../../components/shared/QRScanner';
@@ -6,8 +7,16 @@ import {
   checkInGuestByQr,
   checkInGuestById,
   searchGuestsForCheckIn,
+  listGuests,
 } from '../../services/guestService';
 import { toast } from '../../stores/toastStore';
+import {
+  listCheckIns,
+  attendanceByDay,
+  returningGuestCount,
+  phDay,
+} from '../../services/checkInService';
+import { useEventStore } from '../../stores/eventStore';
 import type { Guest } from '../../types';
 
 type Result = { guest: Guest; alreadyCheckedIn: boolean } | 'notfound';
@@ -77,6 +86,29 @@ export function AdminCheckin() {
   }, [query]);
 
   const searching = query.trim().length >= 2 && matchesFor !== query.trim();
+
+  // ── Attendance log ───────────────────────────────────────────────────────
+  // guests.checked_in_at only says whether someone is checked in *now*, and it
+  // gets cleared by the daily reset. check_ins (0076) is the append-only
+  // record, so this survives that and shows who attended on which day.
+  const selectedEventId = useEventStore((s) => s.selectedEventId);
+  const { data: checkIns = [] } = useQuery({
+    queryKey: ['checkIns', selectedEventId],
+    queryFn: () => listCheckIns(selectedEventId),
+    refetchInterval: 30_000,
+  });
+  const { data: guests = [] } = useQuery({
+    queryKey: ['guests', selectedEventId],
+    queryFn: listGuests,
+  });
+  const guestName = useMemo(
+    () => new Map(guests.map((g) => [g.id, g.name])),
+    [guests],
+  );
+  const days = useMemo(() => attendanceByDay(checkIns), [checkIns]);
+  const returning = useMemo(() => returningGuestCount(checkIns), [checkIns]);
+  const todayPh = phDay(new Date().toISOString());
+  const recent = checkIns.slice(0, 8);
 
   const manualCheckIn = async (g: Guest) => {
     if (busy) return;
@@ -239,6 +271,71 @@ export function AdminCheckin() {
           )}
         </div>
       )}
+
+      {/* ── Attendance log ──────────────────────────────────────────────── */}
+      <div className="card max-w-md mt-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-display text-lg text-plum">Attendance</h2>
+          <span className="text-xs text-plum/50">{checkIns.length} check-ins logged</span>
+        </div>
+
+        {days.length === 0 ? (
+          <p className="text-sm text-plum/60 mt-2">
+            No check-ins recorded for this venue yet.
+          </p>
+        ) : (
+          <>
+            <ul className="mt-3 space-y-1.5">
+              {days.map((d) => (
+                <li key={d.day} className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-plum/80">
+                    {new Date(`${d.day}T12:00:00`).toLocaleDateString('en-PH', {
+                      weekday: 'long',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                    {d.day === todayPh && (
+                      <span className="chip bg-coral text-white ml-2">Today</span>
+                    )}
+                  </span>
+                  <span className="font-display text-plum tabular-nums">{d.guests}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-plum/55 mt-3 pt-3 border-t border-plum/10">
+              {returning > 0
+                ? `${returning} guest${returning === 1 ? '' : 's'} attended more than one day.`
+                : 'No returning guests recorded yet — a returner only appears here once they scan again on a later day.'}
+            </p>
+          </>
+        )}
+
+        {recent.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-plum/10">
+            <div className="text-[10px] uppercase tracking-[0.25em] text-plum/40 mb-2">
+              Most recent
+            </div>
+            <ul className="space-y-1">
+              {recent.map((c) => (
+                <li key={c.id} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-plum/80 truncate">
+                    {guestName.get(c.guestId) ?? 'Removed guest'}
+                  </span>
+                  <span className="text-plum/50 text-xs tabular-nums shrink-0">
+                    {new Date(c.checkedInAt).toLocaleString('en-PH', {
+                      timeZone: 'Asia/Manila',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </AdminShell>
   );
 }
