@@ -70,7 +70,10 @@ export function QRScanner({ onResult, onClose, hint }: Props) {
       }
       ctx.drawImage(video, 0, 0, w, h);
       const img = ctx.getImageData(0, 0, w, h);
-      const code = jsQR(img.data, w, h, { inversionAttempts: 'dontInvert' });
+      // attemptBoth also tries an inverted read, which costs a little CPU per
+      // frame but recovers codes shown on a dark-themed phone or a screen that
+      // renders light-on-dark. dontInvert silently gave up on those.
+      const code = jsQR(img.data, w, h, { inversionAttempts: 'attemptBoth' });
       if (code && code.data) {
         cancelled = true;
         stop();
@@ -87,8 +90,17 @@ export function QRScanner({ onResult, onClose, hint }: Props) {
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error('Camera not supported in this browser');
         }
+        // Ask for a high-resolution stream. Without a size hint browsers hand
+        // back 640x480, and a guest's on-screen QR then covers too few pixels
+        // for jsQR to resolve the modules — the camera looks fine and simply
+        // never decodes. All hints are `ideal`, so a device that can't manage
+        // them degrades instead of failing.
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
           audio: false,
         });
         if (cancelled) {
@@ -105,6 +117,22 @@ export function QRScanner({ onResult, onClose, hint }: Props) {
         video.setAttribute('playsinline', 'true');
         video.muted = true;
         await video.play().catch(() => { /* iOS may need user gesture; tick will retry */ });
+
+        // Best-effort continuous autofocus. Guests hold a phone screen close to
+        // the lens, where a fixed focus leaves the QR soft and undecodable.
+        // Unsupported on iOS Safari and older Android — hence the try/catch
+        // rather than a capability check.
+        try {
+          const track = stream.getVideoTracks()[0];
+          const caps = track?.getCapabilities?.() as { focusMode?: string[] } | undefined;
+          if (caps?.focusMode?.includes('continuous')) {
+            await track.applyConstraints({
+              advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet],
+            });
+          }
+        } catch {
+          /* focus hints are a nicety; never block the scanner on them */
+        }
         if (cancelled) {
           stop();
           return;
@@ -185,16 +213,24 @@ export function QRScanner({ onResult, onClose, hint }: Props) {
               </div>
             )}
           </div>
-          {error && (
-            <div className="text-sm text-amber-700 bg-amber-50 rounded-xl p-3 flex gap-2 items-start">
-              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-              <div>
-                <div className="font-medium">Camera unavailable</div>
-                <div className="text-xs mt-1 text-plum/70">{error}. Use "Enter code" above instead.</div>
-              </div>
-            </div>
-          )}
         </>
+      )}
+
+      {/* Rendered outside the camera branch on purpose. A camera failure calls
+          setMode('manual'), which unmounted this banner the moment it was set —
+          so the scanner silently dropped to manual entry and never said why.
+          Staff read that as "the QR scan is broken" with nothing to report. */}
+      {error && (
+        <div className="text-sm text-amber-700 bg-amber-50 rounded-xl p-3 flex gap-2 items-start">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          <div>
+            <div className="font-medium">Camera unavailable</div>
+            <div className="text-xs mt-1 text-plum/70">
+              {error}. Enter the guest's 6-character access code below, or find them by name
+              under Guests.
+            </div>
+          </div>
+        </div>
       )}
 
       {mode === 'manual' && (
