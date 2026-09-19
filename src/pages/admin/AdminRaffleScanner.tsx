@@ -25,6 +25,8 @@ export function AdminRaffleScanner() {
   const [step, setStep] = useState<Step>('scan');
   const [guest, setGuest] = useState<Guest | null>(null);
   const [storeId, setStoreId] = useState('');
+  const [supplierQuery, setSupplierQuery] = useState('');
+  const [supplierOpen, setSupplierOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState('');
@@ -91,12 +93,20 @@ export function AdminRaffleScanner() {
     idempotencyKey.current = crypto.randomUUID();
     setGuest(null);
     setStoreId('');
+    setSupplierQuery('');
+    setSupplierOpen(false);
     setAmount('');
     setResult('');
     setStep('scan');
   };
 
   const selectedStore = suppliers.find((s) => s.id === storeId);
+  // Type-to-search: match on booth number OR supplier name.
+  const supplierMatches = (() => {
+    const q = supplierQuery.trim().toLowerCase();
+    if (!q) return suppliers;
+    return suppliers.filter((s) => `booth ${s.boothNumber} ${s.name}`.toLowerCase().includes(q));
+  })();
 
   return (
     <AdminShell>
@@ -125,14 +135,36 @@ export function AdminRaffleScanner() {
           </div>
 
           <div className="card space-y-4">
-            <div>
-              <label className="label">Supplier / booth (from the receipt)</label>
-              <select className="input" value={storeId} onChange={(e) => setStoreId(e.target.value)}>
-                <option value="">Select supplier…</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>Booth {s.boothNumber} — {s.name}</option>
-                ))}
-              </select>
+            <div className="relative">
+              <label className="label" htmlFor="supplier-search">Supplier / booth (from the receipt)</label>
+              <input
+                id="supplier-search"
+                className="input"
+                value={supplierQuery}
+                onChange={(e) => { setSupplierQuery(e.target.value); setStoreId(''); setSupplierOpen(true); }}
+                onFocus={() => setSupplierOpen(true)}
+                onBlur={() => setTimeout(() => setSupplierOpen(false), 150)}
+                placeholder="Type a booth # or supplier name…"
+                autoComplete="off"
+              />
+              {supplierOpen && (
+                <div className="absolute z-20 left-0 right-0 mt-1 max-h-64 overflow-y-auto rounded-xl border border-plum/15 bg-white shadow-card">
+                  {supplierMatches.length === 0 ? (
+                    <div className="px-3 py-2.5 text-sm text-plum/50">No booth or supplier matches “{supplierQuery.trim()}”.</div>
+                  ) : (
+                    supplierMatches.map((s) => (
+                      <button
+                        type="button"
+                        key={s.id}
+                        onClick={() => { setStoreId(s.id); setSupplierQuery(`Booth ${s.boothNumber} — ${s.name}`); setSupplierOpen(false); }}
+                        className={`block w-full text-left px-3 py-2.5 text-sm border-b border-plum/5 last:border-0 ${storeId === s.id ? 'bg-coral/10 text-coral' : 'text-plum hover:bg-cream/70'}`}
+                      >
+                        <span className="font-medium">Booth {s.boothNumber}</span> — {s.name}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
