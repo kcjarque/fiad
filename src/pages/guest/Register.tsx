@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import { registerGuest } from '../../services/guestService';
+import { getActiveEvent } from '../../services/eventService';
+import { notifyRsvp } from '../../lib/notify';
 import { useAuth } from '../../stores/authStore';
 import { toast } from '../../stores/toastStore';
 import { toPhE164, phLocal } from '../../utils/phone';
@@ -10,6 +13,8 @@ export function Register() {
   const navigate = useNavigate();
   const setGuest = useAuth((s) => s.setGuest);
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', mobile: '', consent: false });
+  // Venue + date are rendered into the confirmation email.
+  const { data: event } = useQuery({ queryKey: ['activeEvent'], queryFn: getActiveEvent });
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -27,10 +32,25 @@ export function Register() {
     }
     setBusy(true);
     try {
+      const fullName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
       const guest = await registerGuest({
-        name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+        name: fullName,
         email: form.email,
         mobile: form.mobile,
+      });
+      // Confirmation email + SMS carrying the check-in QR and access code.
+      // This page never sent one — only the /rsvp funnel did — so anyone who
+      // signed up here, including walk-ins registering at the venue, got
+      // nothing and had no way to produce a QR at the door. Fire-and-forget,
+      // exactly as the funnel does it: a failed notification must never block
+      // a registration that already succeeded.
+      void notifyRsvp({
+        name: fullName,
+        email: form.email,
+        mobile: form.mobile,
+        accessCode: guest.accessCode ?? '',
+        venue: event?.venue ?? '',
+        date: event?.date ?? '',
       });
       setGuest(guest.id);
       toast.success('You are registered! Your ticket is ready.');
