@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
+import { NA_PRIZE_IDS } from '../../constants/hidden';
 import { createPrize, deletePrize, forfeitPrize, listPrizes, updatePrize, uploadPrizeImage } from '../../services/prizeService';
 import { listGuests } from '../../services/guestService';
 import { listStoresForLogin } from '../../services/authService';
@@ -165,6 +166,8 @@ export function AdminPrizes() {
               )}
               {winner ? (
                 <div className="mt-2 chip bg-emerald-100 text-emerald-800">Won by {winner.name}</div>
+              ) : NA_PRIZE_IDS.has(p.id) ? (
+                <div className="mt-2 chip bg-plum/10 text-plum/50" title="Given directly to exhibit finishers — not drawn">N/A</div>
               ) : (
                 <div className="mt-2 chip">Undrawn</div>
               )}

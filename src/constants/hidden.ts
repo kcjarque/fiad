@@ -26,4 +26,16 @@ export const HIDDEN_PRIZE_IDS: ReadonlySet<string> = new Set([
   'prize_d1_05', // Frozen Siomai
 ]);
 
+/**
+ * Prizes given out DIRECTLY (not through the draw). Shown as "N/A" in the admin
+ * prize list and kept out of the draw so they can't be accidentally drawn — but
+ * still visible for the record (unlike HIDDEN_PRIZE_IDS, which removes them).
+ */
+export const NA_PRIZE_IDS: ReadonlySet<string> = new Set([
+  // Relationship Planner (Mella) — the Sep 19 5PM & 7PM slots were handed to
+  // exhibit finishers as an additional prize, not drawn.
+  'prize_s2_m1_17',
+  'prize_s2_m1_19',
+]);
+
 /** Quests are hidden indirectly by being linked to a hidden store_id. */

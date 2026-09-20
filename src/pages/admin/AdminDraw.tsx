@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminShell } from '../../components/admin/AdminShell';
+import { NA_PRIZE_IDS } from '../../constants/hidden';
 import { drawWinner, listPrizes } from '../../services/prizeService';
 import { allEntriesForEvents, wonTicketNumbers } from '../../services/raffleService';
 import { listGuestsForEvents } from '../../services/guestService';
@@ -22,7 +23,7 @@ export function AdminDraw() {
   const { data: stores = [] } = useQuery({ queryKey: ['stores', selectedEventId], queryFn: listStores });
   const storesById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
 
-  const undrawn = prizes.filter((p) => !p.winnerGuestId);
+  const undrawn = prizes.filter((p) => !p.winnerGuestId && !NA_PRIZE_IDS.has(p.id));
 
   const [prizeId, setPrizeId] = useState<string>('');
   const [phase, setPhase] = useState<'idle' | 'spinning' | 'revealed'>('idle');
@@ -256,7 +257,7 @@ export function AdminDraw() {
     setTransition('none');
     if (channelRef.current) postMessage(channelRef.current, { type: 'reset' });
     // prizes already refreshed via invalidation in spin(); pick next undrawn
-    const nextUndrawn = prizes.find((p) => !p.winnerGuestId);
+    const nextUndrawn = prizes.find((p) => !p.winnerGuestId && !NA_PRIZE_IDS.has(p.id));
     if (nextUndrawn) setPrizeId(nextUndrawn.id);
   };
 
@@ -336,8 +337,8 @@ export function AdminDraw() {
               onChange={(e) => setPrizeId(e.target.value)}
             >
               {prizes.map((p) => (
-                <option key={p.id} value={p.id} disabled={!!p.winnerGuestId}>
-                  {p.name} {p.winnerGuestId ? '· drawn' : ''}
+                <option key={p.id} value={p.id} disabled={!!p.winnerGuestId || NA_PRIZE_IDS.has(p.id)}>
+                  {p.name} {p.winnerGuestId ? '· drawn' : NA_PRIZE_IDS.has(p.id) ? '· N/A' : ''}
                 </option>
               ))}
             </select>
