@@ -1,10 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Camera, ClipboardList, ShieldCheck, QrCode, Contact, Users, LogOut, type LucideIcon } from 'lucide-react';
+import { Camera, ClipboardList, ShieldCheck, QrCode, Contact, Users, LogOut, CalendarCheck, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../../stores/authStore';
 
 const items: { to: string; label: string; Icon: LucideIcon }[] = [
   { to: '/store/scan', label: 'Scan', Icon: Camera },
   { to: '/store/customers', label: 'Customers', Icon: Users },
+  { to: '/store/bookings', label: 'Bookings', Icon: CalendarCheck },
   { to: '/store/history', label: 'Sales', Icon: ClipboardList },
   { to: '/store/overrides', label: 'Overrides', Icon: ShieldCheck },
   { to: '/store/passport-qr', label: 'Booth QR', Icon: QrCode },

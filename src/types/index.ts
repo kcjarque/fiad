@@ -213,6 +213,22 @@ export type OverrideRequest = {
   respondedBy?: string;
 };
 
+export type SupplierBookingStatus = 'new' | 'contacted' | 'closed';
+
+/** A client's booking / inquiry request sent to a supplier from their calling card. */
+export type SupplierBooking = {
+  id: string;
+  storeId: string;
+  eventId?: string;
+  clientName: string;
+  clientMobile?: string;
+  clientEmail?: string;
+  eventDate?: string;
+  message?: string;
+  status: SupplierBookingStatus;
+  createdAt: string;
+};
+
 export type Role = 'guest' | 'store' | 'admin' | null;
 
 export type Interest = {

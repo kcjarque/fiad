@@ -305,6 +305,43 @@ function inquiryEmailHtml(inq: {
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
+function bookingEmailHtml(b: {
+  supplierName: string;
+  clientName: string;
+  clientMobile: string;
+  clientEmail: string;
+  eventDate: string;
+  message: string;
+}): string {
+  const row = (label: string, val: string) =>
+    val
+      ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f0ebe6;"><strong style="color:#8a6a7a;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${label}</strong><br/><span style="color:#3c1e32;font-size:15px;">${val}</span></td></tr>`
+      : '';
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><title>New booking request</title></head>
+<body style="margin:0;padding:0;background:#f9f5f0;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f5f0;padding:40px 16px;"><tr><td align="center">
+    <table width="100%" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;">
+      <tr><td style="background:#3c1e32;padding:24px 32px;">
+        <p style="margin:0;color:#e8d5c0;font-size:11px;letter-spacing:3px;text-transform:uppercase;">Forever in a Day</p>
+        <h2 style="margin:6px 0 0;color:#f9f5f0;font-size:20px;font-weight:normal;">New booking request</h2>
+      </td></tr>
+      <tr><td style="padding:28px 32px;">
+        <p style="margin:0 0 16px;color:#3c1e32;font-size:15px;line-height:1.6;">Hi ${b.supplierName}, a client is interested in your rates / packages — reach out to them:</p>
+        <table width="100%" cellpadding="0" cellspacing="0">
+          ${row('Client', b.clientName)}
+          ${row('Mobile', b.clientMobile)}
+          ${row('Email', b.clientEmail)}
+          ${row('Event date', b.eventDate)}
+          ${row('Message', b.message)}
+        </table>
+        <p style="margin:20px 0 0;color:#8a6a7a;font-size:13px;">You can also see all your requests in the FIAD app under <strong>Bookings</strong>.</p>
+      </td></tr>
+      <tr><td style="background:#f9f5f0;padding:16px 32px;text-align:center;"><p style="margin:0;color:#8a6a7a;font-size:12px;">FIAD · <a href="https://fiad.app" style="color:#8a6a7a;">fiad.app</a></p></td></tr>
+    </table>
+  </td></tr></table>
+</body></html>`;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
@@ -395,6 +432,47 @@ Deno.serve(async (req: Request) => {
     if (adminMobile) {
       const parts = [`FIAD Inquiry: ${name}`, phone, eventType].filter(Boolean).join(' | ');
       results.sms = await sendSms({ to: adminMobile, message: parts, kind: 'inquiry_lead' });
+    }
+  }
+
+  // ── Supplier booking request → email the supplier ─────────────────────────
+  else if (body.type === 'supplier_booking') {
+    const { bookingId } = body;
+    if (!bookingId) return json({ error: 'missing_fields' }, 400);
+
+    const { data: booking } = await db
+      .from('supplier_bookings')
+      .select('*')
+      .eq('id', bookingId)
+      .maybeSingle();
+    if (!booking) return json({ error: 'booking_not_found' }, 404);
+
+    const { data: store } = await db
+      .from('stores')
+      .select('name, email, contacts')
+      .eq('id', booking.store_id)
+      .maybeSingle();
+
+    // Supplier email: the store's own email, else the first brand contact's.
+    const contacts = (store?.contacts ?? []) as Array<{ email?: string }>;
+    const supplierEmail = store?.email || contacts.find((c) => c?.email)?.email || '';
+
+    if (supplierEmail) {
+      results.email = await sendEmail({
+        to: supplierEmail,
+        subject: `New booking request — ${booking.client_name}`,
+        fromName: 'Forever in a Day',
+        html: bookingEmailHtml({
+          supplierName: store?.name ?? 'there',
+          clientName: booking.client_name,
+          clientMobile: booking.client_mobile ?? '',
+          clientEmail: booking.client_email ?? '',
+          eventDate: booking.event_date ?? '',
+          message: booking.message ?? '',
+        }),
+      });
+    } else {
+      results.email = { sent: false, error: 'no_supplier_email' };
     }
   }
 

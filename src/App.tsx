@@ -24,6 +24,7 @@ import { StoreOverrides } from './pages/store/StoreOverrides';
 import { StorePassportQR } from './pages/store/StorePassportQR';
 import { StoreCard } from './pages/store/StoreCard';
 import { StoreCustomers } from './pages/store/StoreCustomers';
+import { StoreBookings } from './pages/store/StoreBookings';
 import { StoreNav } from './components/store/StoreNav';
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminSelectEvent } from './pages/admin/AdminSelectEvent';
@@ -38,6 +39,7 @@ import { AdminRaffleScanner } from './pages/admin/AdminRaffleScanner';
 import { AdminQrGenerator } from './pages/admin/AdminQrGenerator';
 import { AdminQrCards } from './pages/admin/AdminQrCards';
 import { AdminInquiries } from './pages/admin/AdminInquiries';
+import { AdminBookings } from './pages/admin/AdminBookings';
 import { AdminEmailMarketing } from './pages/admin/AdminEmailMarketing';
 import { AdminSupplierSignups } from './pages/admin/AdminSupplierSignups';
 import { AdminTransactions } from './pages/admin/AdminTransactions';
@@ -139,6 +141,7 @@ export default function App() {
           <Route path="/store/passport-qr" element={<RequireStore><StorePassportQR /></RequireStore>} />
           <Route path="/store/card" element={<RequireStore><StoreCard /></RequireStore>} />
           <Route path="/store/customers" element={<RequireStore><StoreCustomers /></RequireStore>} />
+          <Route path="/store/bookings" element={<RequireStore><StoreBookings /></RequireStore>} />
         </Route>
 
         {/* Admin */}
@@ -155,6 +158,7 @@ export default function App() {
         <Route path="/admin/qr-generator" element={<RequireAdmin><AdminQrGenerator /></RequireAdmin>} />
         <Route path="/admin/qr-cards" element={<RequireAdmin><AdminQrCards /></RequireAdmin>} />
         <Route path="/admin/inquiries" element={<RequireAdmin><AdminInquiries /></RequireAdmin>} />
+        <Route path="/admin/bookings" element={<RequireAdmin><AdminBookings /></RequireAdmin>} />
         <Route path="/admin/email-marketing" element={<RequireAdmin><AdminEmailMarketing /></RequireAdmin>} />
         <Route path="/admin/supplier-signups" element={<RequireAdmin><AdminSupplierSignups /></RequireAdmin>} />
         <Route path="/admin/transactions" element={<RequireAdmin><AdminTransactions /></RequireAdmin>} />
