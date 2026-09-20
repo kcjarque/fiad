@@ -8,6 +8,7 @@ import {
   checkInGuestById,
   searchGuestsForCheckIn,
   listGuests,
+  checkedInToday,
 } from '../../services/guestService';
 import { toast } from '../../stores/toastStore';
 import {
@@ -19,7 +20,7 @@ import {
 import { useEventStore } from '../../stores/eventStore';
 import type { Guest } from '../../types';
 
-type Result = { guest: Guest; alreadyCheckedIn: boolean } | 'notfound';
+type Result = { guest: Guest; alreadyCheckedIn: boolean; returning: boolean } | 'notfound';
 
 const dayLabel = (d?: string) => (d === 'day1' ? 'Day 1' : d === 'day2' ? 'Day 2' : d ?? '');
 const fmtTime = (iso?: string) =>
@@ -40,7 +41,11 @@ export function AdminCheckin() {
         setResult('notfound');
       } else {
         setResult(r);
-        if (!r.alreadyCheckedIn) toast.success(`${r.guest.name} checked in`);
+        if (!r.alreadyCheckedIn) {
+          toast.success(
+            r.returning ? `Welcome back, ${r.guest.name}` : `${r.guest.name} checked in`,
+          );
+        }
       }
     } catch (err) {
       toast.error(`Check-in failed: ${(err as Error).message}`);
@@ -122,7 +127,11 @@ export function AdminCheckin() {
         setQuery('');
         setMatches([]);
         setMatchesFor('');
-        if (!r.alreadyCheckedIn) toast.success(`${r.guest.name} checked in`);
+        if (!r.alreadyCheckedIn) {
+          toast.success(
+            r.returning ? `Welcome back, ${r.guest.name}` : `${r.guest.name} checked in`,
+          );
+        }
       }
     } catch (err) {
       toast.error(`Check-in failed: ${(err as Error).message}`);
@@ -136,6 +145,7 @@ export function AdminCheckin() {
       <h1 className="font-display text-2xl md:text-3xl mb-2">Check-in</h1>
       <p className="text-sm text-plum/60 mb-5 max-w-md">
         Scan the QR in a guest's confirmation email or ticket to check them in at the door.
+        A guest who attended an earlier day just scans again — they do not register a second time.
       </p>
 
       {!scanning && !result && (
@@ -182,9 +192,16 @@ export function AdminCheckin() {
             }`}
           >
             {result.alreadyCheckedIn
-              ? `Already checked in${result.guest.checkedInAt ? ` · ${fmtTime(result.guest.checkedInAt)}` : ''}`
-              : 'Checked in ✓'}
+              ? `Already checked in today${result.guest.checkedInAt ? ` · ${fmtTime(result.guest.checkedInAt)}` : ''}`
+              : result.returning
+                ? 'Checked in ✓ · returning guest'
+                : 'Checked in ✓'}
           </div>
+          {result.returning && !result.alreadyCheckedIn && (
+            <div className="text-xs text-plum/60 mt-1">
+              Attended a previous day — no need to register again.
+            </div>
+          )}
           <button className="btn-primary mt-5" onClick={scanNext}>
             Scan next guest
           </button>
@@ -252,7 +269,7 @@ export function AdminCheckin() {
                         {dayLabel(g.preferredDay) ? ` · ${dayLabel(g.preferredDay)}` : ''}
                       </div>
                     </div>
-                    {g.checkedInAt ? (
+                    {checkedInToday(g.checkedInAt) ? (
                       <span className="chip bg-amber-100 text-amber-800 shrink-0">
                         In · {fmtTime(g.checkedInAt)}
                       </span>
@@ -261,8 +278,13 @@ export function AdminCheckin() {
                         className="btn-primary !px-3 !py-1.5 text-sm shrink-0"
                         onClick={() => manualCheckIn(g)}
                         disabled={busy}
+                        title={
+                          g.checkedInAt
+                            ? `Last here ${fmtTime(g.checkedInAt)} — check in again for today`
+                            : undefined
+                        }
                       >
-                        Check in
+                        {g.checkedInAt ? 'Check in again' : 'Check in'}
                       </button>
                     )}
                   </div>

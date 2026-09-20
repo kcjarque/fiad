@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import type { Guest } from '../types';
 import { uid } from '../utils/id';
 import { getSelectedEventId } from '../stores/eventStore';
+import { phDay } from './checkInService';
 
 type Row = {
   id: string;
@@ -257,16 +258,44 @@ export const getGuestByQr = async (qrToken: string): Promise<Guest | undefined> 
  * checked_in_at. Returns null if the QR doesn't match a guest. If they were
  * already checked in, the existing timestamp is preserved and flagged.
  */
+/**
+ * Has this guest already been checked in TODAY (Philippine time)?
+ *
+ * A two-day venue means a Day 1 guest who goes home and comes back is a fresh
+ * arrival, not a duplicate scan — they re-check-in, they do not re-register.
+ * Comparing on the PH calendar day rather than "is checked_in_at set at all"
+ * is what makes the second day work: the old test saw yesterday's timestamp,
+ * refused the scan, and so never fired the log_check_in trigger (0076), which
+ * left the returner missing from Day 2 attendance entirely.
+ *
+ * Within a single day it still does its original job of rejecting a double
+ * scan at the door.
+ */
+export type CheckInResult = {
+  guest: Guest;
+  /** Already scanned in earlier TODAY — a duplicate scan, not a new arrival. */
+  alreadyCheckedIn: boolean;
+  /** Last attended on an earlier day: a Day 1 guest coming back for Day 2. */
+  returning: boolean;
+};
+
+export const checkedInToday = (checkedInAt?: string): boolean =>
+  !!checkedInAt && phDay(checkedInAt) === phDay(new Date().toISOString());
+
 export const checkInGuestByQr = async (
   qrToken: string,
-): Promise<{ guest: Guest; alreadyCheckedIn: boolean } | null> => {
+): Promise<CheckInResult | null> => {
   const guest = await getGuestByQr(qrToken);
   if (!guest) return null;
-  if (guest.checkedInAt) return { guest, alreadyCheckedIn: true };
+  if (checkedInToday(guest.checkedInAt)) return { guest, alreadyCheckedIn: true, returning: false };
+  // Any earlier check-in was on a previous day, so this is a returning guest
+  // arriving again — worth telling the door, which otherwise cannot tell a
+  // returner from a first-timer.
+  const returning = !!guest.checkedInAt;
   const at = new Date().toISOString();
   const { error } = await supabase.from('guests').update({ checked_in_at: at }).eq('id', guest.id);
   if (error) throw error;
-  return { guest: { ...guest, checkedInAt: at }, alreadyCheckedIn: false };
+  return { guest: { ...guest, checkedInAt: at }, alreadyCheckedIn: false, returning };
 };
 
 /**
@@ -294,19 +323,20 @@ export const searchGuestsForCheckIn = async (query: string): Promise<Guest[]> =>
 /** Check a guest in by id — the manual counterpart to checkInGuestByQr. */
 export const checkInGuestById = async (
   guestId: string,
-): Promise<{ guest: Guest; alreadyCheckedIn: boolean } | null> => {
+): Promise<CheckInResult | null> => {
   const { data, error } = await supabase.from('guests').select('*').eq('id', guestId).maybeSingle();
   if (error) throw error;
   if (!data) return null;
   const guest = rowToGuest(data);
-  if (guest.checkedInAt) return { guest, alreadyCheckedIn: true };
+  if (checkedInToday(guest.checkedInAt)) return { guest, alreadyCheckedIn: true, returning: false };
+  const returning = !!guest.checkedInAt;
   const at = new Date().toISOString();
   const { error: upErr } = await supabase
     .from('guests')
     .update({ checked_in_at: at })
     .eq('id', guestId);
   if (upErr) throw upErr;
-  return { guest: { ...guest, checkedInAt: at }, alreadyCheckedIn: false };
+  return { guest: { ...guest, checkedInAt: at }, alreadyCheckedIn: false, returning };
 };
 
 export const findGuestByEmail = async (
