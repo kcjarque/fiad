@@ -32,10 +32,16 @@ export const HIDDEN_PRIZE_IDS: ReadonlySet<string> = new Set([
  * still visible for the record (unlike HIDDEN_PRIZE_IDS, which removes them).
  */
 export const NA_PRIZE_IDS: ReadonlySet<string> = new Set([
-  // Relationship Planner (Mella) — the Sep 19 5PM & 7PM slots were handed to
-  // exhibit finishers as an additional prize, not drawn.
+  // Relationship Planner (Mella) — handed to exhibit finishers as an
+  // additional prize, not drawn. Sep 19 5PM & 7PM, then every remaining
+  // undrawn slot on Sep 20. The Sep 20 5PM slot is absent deliberately: it
+  // was already drawn before the rest were given out, and that winner stands.
   'prize_s2_m1_17',
   'prize_s2_m1_19',
+  'prize_s2_m2_11',
+  'prize_s2_m2_13',
+  'prize_s2_m2_15',
+  'prize_s2_m2_19',
 ]);
 
 /** Quests are hidden indirectly by being linked to a hidden store_id. */
