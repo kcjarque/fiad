@@ -95,11 +95,78 @@ export type InquiryExportRow = {
   message: string;
 };
 
+export type SupplierExportRow = {
+  booth: string;
+  name: string;
+  category: string;
+  venue: string;
+  email: string;
+  contact: string;
+  salesPhp: number;
+  transactions: number;
+  /** Distinct guests who bought from this booth. */
+  buyers: number;
+  /** Passport scans at this booth — footfall, whether or not they bought. */
+  boothVisits: number;
+  visitors: number;
+  prizesSponsored: number;
+};
+
+export type PrizeExportRow = {
+  prize: string;
+  venue: string;
+  scheduledAt: string;
+  drawnAt: string;
+  status: string;
+  winnerName: string;
+  winnerEmail: string;
+  winnerMobile: string;
+  ticketNumber: string;
+  sponsor: string;
+  isGrand: boolean;
+};
+
+export type AttendanceExportRow = {
+  day: string;
+  time: string;
+  name: string;
+  email: string;
+  mobile: string;
+  venue: string;
+};
+
+export type EntryExportRow = {
+  ticketNumber: string;
+  guestName: string;
+  guestEmail: string;
+  venue: string;
+  source: string;
+  complimentary: boolean;
+  createdAt: string;
+};
+
+export type SupplierSignupExportRow = {
+  createdAt: string;
+  businessName: string;
+  contactPerson: string;
+  email: string;
+  mobile: string;
+  category: string;
+  social: string;
+  products: string;
+  message: string;
+};
+
 export type ExportBundle = {
   guests: GuestExportRow[];
   transactions: TransactionExportRow[];
   sms: SmsExportRow[];
   inquiries: InquiryExportRow[];
+  suppliers: SupplierExportRow[];
+  prizes: PrizeExportRow[];
+  attendance: AttendanceExportRow[];
+  entries: EntryExportRow[];
+  supplierSignups: SupplierSignupExportRow[];
   smsTotals: { messages: number; segments: number; costPhp: number };
   salesTotalPhp: number;
 };
@@ -131,9 +198,28 @@ type TxRow = {
   entries_issued: number; status: string; approved_by: string | null;
   override_note: string | null; timestamp: string;
 };
-type StoreRow = { id: string; name: string; booth_number: string; category: string | null };
+// NOTE: `passcode` is deliberately absent. It is the booth's login and must
+// never leave the system in an export.
+type StoreRow = {
+  id: string; event_id: string; name: string; booth_number: string;
+  category: string | null; email: string | null; contact: string | null;
+};
 type StampRow = { guest_id: string; store_id: string };
-type EntryRow = { guest_id: string };
+type EntryRow = {
+  guest_id: string; event_id: string; ticket_number: string; source: string | null;
+  is_complimentary: boolean | null; created_at: string; transaction_id: string | null;
+};
+type PrizeRow = {
+  id: string; event_id: string; name: string; scheduled_at: string | null;
+  drawn_at: string | null; winner_guest_id: string | null;
+  winning_ticket_number: string | null; sponsored_by_store_id: string | null;
+  is_grand: boolean | null;
+};
+type SignupRow = {
+  created_at: string; business_name: string; contact_person: string | null;
+  email: string | null; mobile: string | null; category: string | null;
+  social: string | null; products: string | null; message: string | null;
+};
 type CheckInRow = { guest_id: string; checked_in_at: string };
 type SmsRow = { event_id: string | null; kind: string; status: string; segments: number | null; created_at: string };
 type InqRow = {
@@ -144,17 +230,19 @@ type InqRow = {
 type EventRow = { id: string; name: string };
 
 export const buildExportBundle = async (): Promise<ExportBundle> => {
-  const [guests, txs, stores, stamps, entries, checkIns, sms, inquiries, events] =
+  const [guests, txs, stores, stamps, entries, checkIns, sms, inquiries, events, prizes, signups] =
     await Promise.all([
       pageAll<GuestRow>('guests', 'id,event_id,name,email,mobile,registered_at,preferred_day,checked_in_at'),
       pageAll<TxRow>('transactions', 'id,event_id,store_id,guest_id,amount,entries_issued,status,approved_by,override_note,timestamp'),
-      pageAll<StoreRow>('stores', 'id,name,booth_number,category'),
+      pageAll<StoreRow>('stores', 'id,event_id,name,booth_number,category,email,contact'),
       pageAll<StampRow>('passport_stamps', 'guest_id,store_id'),
-      pageAll<EntryRow>('raffle_entries', 'guest_id'),
+      pageAll<EntryRow>('raffle_entries', 'guest_id,event_id,ticket_number,source,is_complimentary,created_at,transaction_id'),
       pageAll<CheckInRow>('check_ins', 'guest_id,checked_in_at'),
       pageAll<SmsRow>('sms_log', 'event_id,kind,status,segments,created_at'),
       pageAll<InqRow>('event_inquiries', 'created_at,name,email,phone,partner_name,event_type,event_date,event_id,message'),
       pageAll<EventRow>('events', 'id,name'),
+      pageAll<PrizeRow>('prizes', 'id,event_id,name,scheduled_at,drawn_at,winner_guest_id,winning_ticket_number,sponsored_by_store_id,is_grand'),
+      pageAll<SignupRow>('supplier_signups', 'created_at,business_name,contact_person,email,mobile,category,social,products,message'),
     ]);
 
   const storeById = new Map(stores.map((s) => [s.id, s]));
@@ -322,9 +410,136 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
     }))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
+  // ── Supplier performance ────────────────────────────────────────────────
+  // What a vendor actually got for their booth: money taken, distinct buyers,
+  // and footfall. Booth visits and buyers are counted separately on purpose —
+  // a booth with heavy traffic and no sales is a different story from a quiet
+  // one that converted, and a single total hides both.
+  const supplierAgg = new Map<string, {
+    sales: number; txCount: number; buyers: Set<string>;
+    visits: number; visitors: Set<string>; prizes: number;
+  }>();
+  const supplierOf = (id: string) => {
+    let a = supplierAgg.get(id);
+    if (!a) {
+      a = { sales: 0, txCount: 0, buyers: new Set(), visits: 0, visitors: new Set(), prizes: 0 };
+      supplierAgg.set(id, a);
+    }
+    return a;
+  };
+  for (const t of txs) {
+    if (t.status !== 'approved') continue;
+    const a = supplierOf(t.store_id);
+    a.sales += t.amount;
+    a.txCount += 1;
+    a.buyers.add(personOfGuestId.get(t.guest_id) ?? t.guest_id);
+  }
+  for (const st of stamps) {
+    const a = supplierOf(st.store_id);
+    a.visits += 1;
+    a.visitors.add(personOfGuestId.get(st.guest_id) ?? st.guest_id);
+  }
+  for (const pz of prizes) {
+    if (pz.sponsored_by_store_id) supplierOf(pz.sponsored_by_store_id).prizes += 1;
+  }
+  const supplierRows: SupplierExportRow[] = stores
+    .map((st) => {
+      const a = supplierAgg.get(st.id);
+      return {
+        booth: st.booth_number ?? '',
+        name: st.name,
+        category: st.category ?? '',
+        venue: eventName.get(st.event_id) ?? st.event_id,
+        email: st.email ?? '',
+        contact: st.contact ?? '',
+        salesPhp: a?.sales ?? 0,
+        transactions: a?.txCount ?? 0,
+        buyers: a?.buyers.size ?? 0,
+        boothVisits: a?.visits ?? 0,
+        visitors: a?.visitors.size ?? 0,
+        prizesSponsored: a?.prizes ?? 0,
+      };
+    })
+    .sort((a, b) => b.salesPhp - a.salesPhp || b.boothVisits - a.boothVisits);
+
+  // ── Prizes and winners ──────────────────────────────────────────────────
+  const guestById = new Map(guests.map((g) => [g.id, g]));
+  const prizeRows: PrizeExportRow[] = prizes
+    .map((pz) => {
+      const w = pz.winner_guest_id ? guestById.get(pz.winner_guest_id) : undefined;
+      return {
+        prize: pz.name,
+        venue: eventName.get(pz.event_id) ?? pz.event_id,
+        scheduledAt: pz.scheduled_at ?? '',
+        drawnAt: pz.drawn_at ?? '',
+        status: pz.winner_guest_id ? 'Drawn' : 'Not drawn',
+        winnerName: w?.name ?? '',
+        winnerEmail: w?.email ?? '',
+        winnerMobile: w?.mobile ?? '',
+        ticketNumber: pz.winning_ticket_number ?? '',
+        sponsor: pz.sponsored_by_store_id
+          ? (storeById.get(pz.sponsored_by_store_id)?.name ?? '')
+          : '',
+        isGrand: !!pz.is_grand,
+      };
+    })
+    .sort((a, b) => (a.scheduledAt || '').localeCompare(b.scheduledAt || ''));
+
+  // ── Attendance ──────────────────────────────────────────────────────────
+  // From check_ins, the append-only door log, so it survives the daily reset
+  // that clears guests.checked_in_at.
+  const attendanceRows: AttendanceExportRow[] = checkIns
+    .map((c) => {
+      const g = guestById.get(c.guest_id);
+      return {
+        day: phDay(c.checked_in_at),
+        time: c.checked_in_at,
+        name: g?.name ?? 'Removed guest',
+        email: g?.email ?? '',
+        mobile: g?.mobile ?? '',
+        venue: g ? (eventName.get(g.event_id) ?? g.event_id) : '',
+      };
+    })
+    .sort((a, b) => b.time.localeCompare(a.time));
+
+  // ── Raffle entries ──────────────────────────────────────────────────────
+  const entryRows: EntryExportRow[] = entries
+    .map((e) => {
+      const g = guestById.get(e.guest_id);
+      return {
+        ticketNumber: e.ticket_number,
+        guestName: g?.name ?? 'Removed guest',
+        guestEmail: g?.email ?? '',
+        venue: eventName.get(e.event_id) ?? e.event_id,
+        source: e.is_complimentary ? 'Complimentary' : 'Paid',
+        complimentary: !!e.is_complimentary,
+        createdAt: e.created_at,
+      };
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  const signupRows: SupplierSignupExportRow[] = signups
+    .map((v) => ({
+      createdAt: v.created_at,
+      businessName: v.business_name,
+      contactPerson: v.contact_person ?? '',
+      email: v.email ?? '',
+      mobile: v.mobile ?? '',
+      category: v.category ?? '',
+      social: v.social ?? '',
+      products: v.products ?? '',
+      message: v.message ?? '',
+    }))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
   return {
     guests: guestRows,
     transactions: txRows,
+    suppliers: supplierRows,
+    prizes: prizeRows,
+    attendance: attendanceRows,
+    entries: entryRows,
+    supplierSignups: signupRows,
     sms: smsRows,
     inquiries: inqRows,
     smsTotals,

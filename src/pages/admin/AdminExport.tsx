@@ -309,6 +309,99 @@ export function AdminExport() {
           />
 
           <DataSet
+            title="Supplier performance"
+            description="What each booth got for being there: money taken, how many distinct people bought, and footfall from passport scans. Visits and buyers are separate on purpose — a busy booth that sold nothing is a different story from a quiet one that converted."
+            rows={data.suppliers}
+            filename="fiad-suppliers.csv"
+            defaultSort={{ key: 'salesPhp', dir: 'desc' }}
+            columns={[
+              { key: 'booth', label: 'Booth' },
+              { key: 'name', label: 'Supplier' },
+              { key: 'category', label: 'Category' },
+              { key: 'venue', label: 'Venue' },
+              { key: 'salesPhp', label: 'Sales', type: 'number', render: (r) => peso(r.salesPhp) },
+              { key: 'transactions', label: 'Txns', type: 'number' },
+              { key: 'buyers', label: 'Buyers', type: 'number' },
+              { key: 'boothVisits', label: 'Booth scans', type: 'number' },
+              { key: 'visitors', label: 'Visitors', type: 'number' },
+              { key: 'prizesSponsored', label: 'Prizes given', type: 'number' },
+              { key: 'email', label: 'Email' },
+              { key: 'contact', label: 'Contact' },
+            ]}
+          />
+
+          <DataSet
+            title="Prizes & winners"
+            description="Every raffle slot with its winner and their contact details, drawn or not."
+            rows={data.prizes}
+            filename="fiad-prizes-winners.csv"
+            defaultSort={{ key: 'scheduledAt', dir: 'asc' }}
+            columns={[
+              { key: 'scheduledAt', label: 'Scheduled', type: 'date', render: (r) => fmtDate(r.scheduledAt) },
+              { key: 'prize', label: 'Prize' },
+              { key: 'venue', label: 'Venue' },
+              { key: 'status', label: 'Status' },
+              { key: 'winnerName', label: 'Winner' },
+              { key: 'winnerEmail', label: 'Email' },
+              { key: 'winnerMobile', label: 'Mobile' },
+              { key: 'ticketNumber', label: 'Ticket' },
+              { key: 'sponsor', label: 'Sponsor' },
+              { key: 'isGrand', label: 'Grand', type: 'bool', render: (r) => (r.isGrand ? 'Yes' : '') },
+            ]}
+          />
+
+          <DataSet
+            title="Attendance log"
+            description="Every door scan, from the append-only check-in log — so it survives the daily reset and still shows who was there on which day."
+            rows={data.attendance}
+            filename="fiad-attendance.csv"
+            defaultSort={{ key: 'time', dir: 'desc' }}
+            columns={[
+              { key: 'day', label: 'Day' },
+              { key: 'time', label: 'Time', type: 'date', render: (r) => fmtDate(r.time) },
+              { key: 'name', label: 'Name' },
+              { key: 'email', label: 'Email' },
+              { key: 'mobile', label: 'Mobile' },
+              { key: 'venue', label: 'Venue' },
+            ]}
+          />
+
+          <DataSet
+            title="Raffle entries"
+            description="Ticket-level detail — one row per entry, marked complimentary or paid."
+            rows={data.entries}
+            filename="fiad-raffle-entries.csv"
+            defaultSort={{ key: 'createdAt', dir: 'desc' }}
+            columns={[
+              { key: 'ticketNumber', label: 'Ticket' },
+              { key: 'guestName', label: 'Guest' },
+              { key: 'guestEmail', label: 'Email' },
+              { key: 'venue', label: 'Venue' },
+              { key: 'source', label: 'Type' },
+              { key: 'createdAt', label: 'Issued', type: 'date', render: (r) => fmtDate(r.createdAt) },
+            ]}
+          />
+
+          <DataSet
+            title="Supplier sign-ups"
+            description="Vendor applications from the public /suppliers page — the pipeline for next season."
+            rows={data.supplierSignups}
+            filename="fiad-supplier-signups.csv"
+            defaultSort={{ key: 'createdAt', dir: 'desc' }}
+            columns={[
+              { key: 'createdAt', label: 'When', type: 'date', render: (r) => fmtDate(r.createdAt) },
+              { key: 'businessName', label: 'Business' },
+              { key: 'contactPerson', label: 'Contact person' },
+              { key: 'email', label: 'Email' },
+              { key: 'mobile', label: 'Mobile' },
+              { key: 'category', label: 'Category' },
+              { key: 'social', label: 'Social' },
+              { key: 'products', label: 'Products' },
+              { key: 'message', label: 'Message' },
+            ]}
+          />
+
+          <DataSet
             title="SMS breakdown"
             description="Grouped by message type, venue and outcome. Segments are what the carrier bills — a long message counts as several — and only sent messages cost anything."
             rows={data.sms}
