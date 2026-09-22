@@ -45,6 +45,7 @@ import { AdminOverrides } from './pages/admin/AdminOverrides';
 import { AdminChallenges } from './pages/admin/AdminChallenges';
 import { AdminWalkthrough } from './pages/admin/AdminWalkthrough';
 import { AdminPrizes } from './pages/admin/AdminPrizes';
+import { AdminExport } from './pages/admin/AdminExport';
 import { AdminDraw } from './pages/admin/AdminDraw';
 import { AdminDrawStage } from './pages/admin/AdminDrawStage';
 import { ToastHost } from './components/shared/Toast';
@@ -161,6 +162,7 @@ export default function App() {
         <Route path="/admin/overrides" element={<RequireAdmin><AdminOverrides /></RequireAdmin>} />
         <Route path="/admin/challenges" element={<RequireAdmin><AdminChallenges /></RequireAdmin>} />
         <Route path="/admin/walkthrough" element={<RequireAdmin><AdminWalkthrough /></RequireAdmin>} />
+        <Route path="/admin/export" element={<RequireAdmin><AdminExport /></RequireAdmin>} />
         <Route path="/admin/prizes" element={<RequireAdmin><AdminPrizes /></RequireAdmin>} />
         <Route path="/admin/draw" element={<RequireAdmin><AdminDraw /></RequireAdmin>} />
         {/* Projector / LCD presentation window — opened from /admin/draw.

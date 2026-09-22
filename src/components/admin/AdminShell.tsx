@@ -24,6 +24,7 @@ const sections = [
   { to: '/admin/walkthrough', label: 'Walkthrough' },
   { to: '/admin/prizes', label: 'Raffle Prizes' },
   { to: '/admin/draw', label: 'Live Draw' },
+  { to: '/admin/export', label: 'Data Export' },
 ];
 
 export function AdminShell({ children }: { children: ReactNode }) {
