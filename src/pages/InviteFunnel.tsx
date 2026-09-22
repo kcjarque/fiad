@@ -19,6 +19,7 @@ import {
   Check,
 } from 'lucide-react';
 import { registerGuest, findGuestByEmail } from '../services/guestService';
+import { Captcha, captchaEnabled } from '../components/shared/Captcha';
 import type { Guest } from '../types';
 import { createInquiry } from '../services/inquiryService';
 import { getEventById } from '../services/eventService';
@@ -157,6 +158,9 @@ export function InviteFunnel() {
   });
   const [busy, setBusy] = useState(false);
   const [consentError, setConsentError] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
+  // Honeypot. Hidden from people, so anything in it came from a script.
+  const [website, setWebsite] = useState('');
   const [alreadyGuest, setAlreadyGuest] = useState<Guest | null>(null);
 
   // Enrich each venue with its dates from the matching event row, so dates
@@ -195,6 +199,10 @@ export function InviteFunnel() {
       toast.error('Please accept the data privacy notice to continue.');
       return;
     }
+    if (captchaEnabled && !captchaToken) {
+      toast.error('Please complete the verification below.');
+      return;
+    }
     setBusy(true);
     try {
       // Dedup guard: if this email is already registered for the chosen event,
@@ -216,6 +224,8 @@ export function InviteFunnel() {
           preferredDay: form.day,
           referredBy: form.referredBy,
           invitedFriend: form.invitedFriend,
+          captchaToken,
+          website,
         },
         selected.eventId,
       );
@@ -268,6 +278,9 @@ export function InviteFunnel() {
       busy={busy}
       consentError={consentError}
       clearConsentError={() => setConsentError(false)}
+      onCaptchaToken={setCaptchaToken}
+      website={website}
+      setWebsite={setWebsite}
       onSubmit={submitRegistration}
     />
   );
@@ -281,6 +294,9 @@ function Landing({
   busy,
   consentError,
   clearConsentError,
+  onCaptchaToken,
+  website,
+  setWebsite,
   onSubmit,
 }: {
   venueOptions: VenueOption[];
@@ -300,6 +316,9 @@ function Landing({
   busy: boolean;
   consentError: boolean;
   clearConsentError: () => void;
+  onCaptchaToken: (t: string) => void;
+  website: string;
+  setWebsite: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
 }) {
   return (
@@ -794,6 +813,21 @@ function Landing({
               </p>
             )}
           </div>
+
+          {/* Honeypot: off-screen and hidden from assistive tech, so only a
+              script that fills every input will touch it. */}
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            style={{ position: 'absolute', left: '-9999px', width: 1, height: 1 }}
+          />
+
+          <Captcha onToken={onCaptchaToken} />
 
           <button type="submit" disabled={busy} className="btn-primary w-full text-base">
             {busy ? 'Reserving…' : 'Reserve my free spot'}

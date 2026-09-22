@@ -69,6 +69,10 @@ export const registerGuest = async (
     /** Optional referral fields captured at the end of the RSVP funnel. */
     referredBy?: string;
     invitedFriend?: string;
+    /** Solved Turnstile token, when the captcha is configured. */
+    captchaToken?: string;
+    /** Honeypot value. Always '' from a human — the field is hidden. */
+    website?: string;
   },
   // Which event this registration belongs to. Defaults to the currently
   // selected event (Season 1 on the live admin/booth browsers); the /rsvp
@@ -76,6 +80,45 @@ export const registerGuest = async (
   eventId?: string,
 ): Promise<Guest> => {
   const targetEventId = eventId ?? getSelectedEventId();
+
+  // Registration goes through the register-guest edge function, which runs as
+  // the service role behind a honeypot, a per-IP rate limit and Turnstile.
+  // Writing to `guests` straight from the browser is what let four separate
+  // bot waves in, so anon's INSERT is revoked (0090) and this is the only door.
+  const { data: fnData, error: fnError } = await supabase.functions.invoke(
+    'register-guest',
+    {
+      body: {
+        name: data.name,
+        email: data.email,
+        mobile: data.mobile,
+        eventId: targetEventId,
+        preferredDay: data.preferredDay,
+        referredBy: data.referredBy,
+        invitedFriend: data.invitedFriend,
+        captchaToken: data.captchaToken,
+        website: data.website,
+      },
+    },
+  );
+  if (!fnError) {
+    const res = fnData as { ok?: boolean; guest?: Row } | null;
+    if (res?.ok && res.guest) return rowToGuest(res.guest);
+  } else {
+    const status =
+      (fnError as { context?: { status?: number } }).context?.status ??
+      (fnError as { status?: number }).status;
+    // A refusal is a real answer, not a reason to fall back — falling back
+    // would hand the bot exactly the open endpoint the gate exists to close.
+    if (status === 403) throw new Error('Please complete the verification and try again.');
+    if (status === 429) {
+      throw new Error('Too many sign-ups from this connection. Please try again shortly.');
+    }
+    if (status === 400) throw new Error('Please check the name, email and venue and try again.');
+    // Anything else (function not deployed yet, cold-start failure, network)
+    // falls through to the direct insert below, which still works until 0090
+    // is applied. That keeps registration alive during the rollout.
+  }
 
   // ── Idempotency: same email already registered FOR THIS EVENT → return
   // the existing account instead of creating a second row. Scoped per-event

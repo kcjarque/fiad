@@ -8,6 +8,7 @@ import { notifyRsvp } from '../../lib/notify';
 import { useAuth } from '../../stores/authStore';
 import { toast } from '../../stores/toastStore';
 import { toPhE164, phLocal } from '../../utils/phone';
+import { Captcha, captchaEnabled } from '../../components/shared/Captcha';
 
 export function Register() {
   const navigate = useNavigate();
@@ -16,6 +17,9 @@ export function Register() {
   // Venue + date are rendered into the confirmation email.
   const { data: event } = useQuery({ queryKey: ['activeEvent'], queryFn: getActiveEvent });
   const [busy, setBusy] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
+  // Honeypot. Hidden from people, so anything in it came from a script.
+  const [website, setWebsite] = useState('');
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +34,10 @@ export function Register() {
       toast.error('Please accept the data privacy notice to continue.');
       return;
     }
+    if (captchaEnabled && !captchaToken) {
+      toast.error('Please complete the verification below.');
+      return;
+    }
     setBusy(true);
     try {
       const fullName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
@@ -37,6 +45,8 @@ export function Register() {
         name: fullName,
         email: form.email,
         mobile: form.mobile,
+        captchaToken,
+        website,
       });
       // Confirmation email + SMS carrying the check-in QR and access code.
       // This page never sent one — only the /rsvp funnel did — so anyone who
@@ -105,6 +115,21 @@ export function Register() {
             (Data Privacy Act). I can request deletion anytime.
           </span>
         </label>
+
+        {/* Honeypot: off-screen and hidden from assistive tech, so only a
+            script that fills every input will touch it. */}
+        <input
+          type="text"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+          style={{ position: 'absolute', left: '-9999px', width: 1, height: 1 }}
+        />
+
+        <Captcha onToken={setCaptchaToken} className="mb-3" />
 
         <button type="submit" disabled={busy} className="btn-primary w-full">
           Get my ticket
