@@ -40,6 +40,8 @@ async function logSms(row: {
   to: string;
   segments: number;
   status: 'sent' | 'failed';
+  /** Gateway response or exception, so a failure can be diagnosed later. */
+  error?: string;
 }): Promise<void> {
   try {
     await db.from('sms_log').insert({
@@ -48,6 +50,7 @@ async function logSms(row: {
       to_phone: row.to,
       segments: row.segments,
       status: row.status,
+      error: row.status === 'failed' ? (row.error ?? 'unknown') : null,
     });
   } catch {
     /* logging must never break notifications */
@@ -172,10 +175,16 @@ async function sendSms(opts: {
     const text = (await res.text()).trim();
     const num = parseInt(text, 10);
     const ok = !Number.isNaN(num) && num > 0;
-    await logSms({ kind: opts.kind, to: mobile, segments, status: ok ? 'sent' : 'failed' });
+    await logSms({
+      kind: opts.kind, to: mobile, segments,
+      status: ok ? 'sent' : 'failed',
+      error: ok ? undefined : `gateway_${text.slice(0, 40)}`,
+    });
     return { sent: ok, error: ok ? undefined : `gateway_${text.slice(0, 40)}` };
   } catch (e) {
-    await logSms({ kind: opts.kind, to: mobile, segments, status: 'failed' });
+    await logSms({
+      kind: opts.kind, to: mobile, segments, status: 'failed', error: String(e).slice(0, 200),
+    });
     return { sent: false, error: String(e) };
   }
 }

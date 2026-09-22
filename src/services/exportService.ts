@@ -375,14 +375,16 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
         status: r.status,
         messages: 1,
         segments: seg,
-        costPhp: seg * SMS_RATE_PHP,
+        // Only a delivered message is billable. Charging for a failed send
+        // overstated the Sep 18 outage as a 763-peso spend that never happened.
+        costPhp: r.status === 'sent' ? seg * SMS_RATE_PHP : 0,
         firstSentAt: r.created_at,
         lastSentAt: r.created_at,
       });
     } else {
       cur.messages += 1;
       cur.segments += seg;
-      cur.costPhp = cur.segments * SMS_RATE_PHP;
+      cur.costPhp = r.status === 'sent' ? cur.segments * SMS_RATE_PHP : 0;
       if (r.created_at < cur.firstSentAt) cur.firstSentAt = r.created_at;
       if (r.created_at > cur.lastSentAt) cur.lastSentAt = r.created_at;
     }

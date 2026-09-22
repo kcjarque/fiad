@@ -83,15 +83,39 @@ Deno.serve(async (req: Request) => {
     if (m && !audience.has(m)) audience.set(m, g.event_id);
   }
 
-  // Numbers already texted for THIS blast (any status) — never re-send.
-  const { data: logged } = await db.from('sms_log').select('to_phone').eq('kind', BLAST_KIND);
+  // Numbers already DELIVERED for this blast. Only a successful send counts as
+  // done: treating a failure as done is what silently dropped 731 recipients
+  // when the gateway went down for 40 minutes during blast_0918 -- every one
+  // was marked handled and could never be picked up again, so re-running the
+  // blast found nothing pending and the outage became permanent.
+  //
+  // A failed number is therefore still pending and a later run retries it.
+  // That is safe because the gateway is the thing that failed: no message was
+  // delivered, so a retry cannot duplicate one.
+  const { data: logged } = await db
+    .from('sms_log')
+    .select('to_phone')
+    .eq('kind', BLAST_KIND)
+    .eq('status', 'sent');
   const done = new Set<string>((logged ?? []).map((r: { to_phone: string }) => r.to_phone));
   const pending = [...audience.keys()].filter((m) => !done.has(m));
+
+  // Numbers carrying a previous failure, so a dry run says plainly how much of
+  // `pending` is a retry rather than a first attempt.
+  const { data: failedRows } = await db
+    .from('sms_log')
+    .select('to_phone')
+    .eq('kind', BLAST_KIND)
+    .eq('status', 'failed');
+  const retrying = new Set<string>((failedRows ?? []).map((r: { to_phone: string }) => r.to_phone));
 
   if (body.mode !== 'blast') {
     return json({
       ok: true, mode: 'dry_run', audience: audience.size, alreadySent: done.size,
-      pending: pending.length, sample: pending.slice(0, 3).map((m) => m.slice(0, 4) + '****' + m.slice(-2)),
+      pending: pending.length,
+      retries: pending.filter((m) => retrying.has(m)).length,
+      firstAttempts: pending.filter((m) => !retrying.has(m)).length,
+      sample: pending.slice(0, 3).map((m) => m.slice(0, 4) + '****' + m.slice(-2)),
       message: MESSAGE, segments: smsSegments(MESSAGE),
     });
   }
@@ -103,6 +127,9 @@ Deno.serve(async (req: Request) => {
     await db.from('sms_log').insert({
       id: `smsl_${crypto.randomUUID()}`, event_id: audience.get(mobile) ?? null,
       kind: BLAST_KIND, to_phone: mobile, segments: smsSegments(MESSAGE), status: r.sent ? 'sent' : 'failed',
+      // Keep the gateway's own words. Without this a failure is just the word
+      // "failed", which is what made blast_0918 undiagnosable after the fact.
+      error: r.sent ? null : (r.error ?? 'unknown'),
     });
     r.sent ? sent++ : failed++;
   }
