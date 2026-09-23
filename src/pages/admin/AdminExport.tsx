@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, Search, ArrowUpDown, RefreshCw } from 'lucide-react';
+import { Download, Search, ArrowUpDown, RefreshCw, Database, Users, Wallet, MessageSquare, Inbox, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AdminShell } from '../../components/admin/AdminShell';
 import {
   buildExportBundle,
@@ -10,6 +10,7 @@ import {
 } from '../../services/exportService';
 import { peso } from '../../utils/id';
 import { SUPPLIERS } from '../../constants/suppliers';
+import './AdminExport.css';
 
 /**
  * One place to pull everything out of the system.
@@ -19,6 +20,19 @@ import { SUPPLIERS } from '../../constants/suppliers';
  */
 
 type ColumnType = 'text' | 'number' | 'date' | 'bool';
+
+const EXPORT_TABS = [
+  { id: 'guests', label: 'Guest directory' },
+  { id: 'inquiries', label: 'Inquiries' },
+  { id: 'transactions', label: 'Transactions' },
+  { id: 'suppliers', label: 'Supplier performance' },
+  { id: 'attendance', label: 'Attendance log' },
+  { id: 'entries', label: 'Raffle entries' },
+  { id: 'prizes', label: 'Prizes & winners' },
+  { id: 'supplierSignups', label: 'Supplier sign-ups' },
+  { id: 'sms', label: 'SMS breakdown' },
+] as const;
+type ExportTab = typeof EXPORT_TABS[number]['id'];
 
 type Column<T> = {
   key: keyof T & string;
@@ -58,35 +72,39 @@ function DataSet<T extends Record<string, unknown>>({
   columns,
   filename,
   defaultSort,
-  filter,
+  filters,
+  tabId,
+  activeTab,
 }: {
+  tabId: ExportTab;
+  activeTab: ExportTab;
   title: string;
   description: string;
   rows: T[];
   columns: Column<T>[];
   filename: string;
   defaultSort?: { key: keyof T & string; dir: 'asc' | 'desc' };
-  filter?: {
+  filters?: {
     label: string;
     allLabel: string;
     options: readonly string[];
     matches: (row: T, value: string) => boolean;
-  };
+  }[];
 }) {
   const [query, setQuery] = useState('');
-  const [filterValue, setFilterValue] = useState('');
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [sort, setSort] = useState<{ key: keyof T & string; dir: 'asc' | 'desc' }>(
     defaultSort ?? { key: columns[0].key, dir: 'asc' },
   );
-  const [expanded, setExpanded] = useState(false);
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((r) =>
-      (!filterValue || !filter || filter.matches(r, filterValue)) &&
+      (!filters || filters.every((filter) => !filterValues[filter.label] || filter.matches(r, filterValues[filter.label]))) &&
       (!q || columns.some((c) => String(r[c.key] ?? '').toLowerCase().includes(q))),
     );
-  }, [rows, columns, query, filter, filterValue]);
+  }, [rows, columns, query, filters, filterValues]);
 
   const sorted = useMemo(() => {
     const col = columns.find((c) => c.key === sort.key);
@@ -121,43 +139,52 @@ function DataSet<T extends Record<string, unknown>>({
   };
 
   const PREVIEW = 25;
-  const shown = expanded ? sorted : sorted.slice(0, PREVIEW);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PREVIEW));
+  const currentPage = Math.min(page, totalPages);
+  const shown = sorted.slice((currentPage - 1) * PREVIEW, currentPage * PREVIEW);
 
   return (
-    <section className="card !p-0 overflow-hidden mb-6">
-      <div className="p-4 md:p-5 border-b border-plum/10">
+    <section
+      id={`export-panel-${tabId}`}
+      role="tabpanel"
+      aria-labelledby={`export-tab-${tabId}`}
+      hidden={activeTab !== tabId}
+      tabIndex={0}
+      className="export-panel"
+    >
+      <div className="export-panel-header">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="min-w-0">
-            <h2 className="font-display text-xl text-plum">{title}</h2>
-            <p className="text-sm text-plum/60 mt-0.5 max-w-2xl">{description}</p>
+            <h2 className="text-lg font-semibold tracking-tight text-plum">{title}</h2>
+            <p className="text-sm text-plum/60 mt-1 max-w-2xl leading-relaxed">{description}</p>
           </div>
           <button
-            className="btn-primary !px-4 !py-2 text-sm inline-flex items-center gap-2 shrink-0"
+            className="btn-primary !rounded-xl !px-4 !py-2.5 text-sm inline-flex items-center gap-2 shrink-0"
             onClick={download}
             disabled={sorted.length === 0}
           >
             <Download size={15} aria-hidden="true" />
-            CSV ({sorted.length.toLocaleString()})
+            Export CSV <span className="opacity-75">({sorted.length.toLocaleString()})</span>
           </button>
         </div>
-        <div className="mt-3 flex flex-wrap items-end gap-3">
-        <div className="relative w-full max-w-sm">
+        <div className="export-toolbar">
+        <div className="relative w-full sm:flex-1 sm:min-w-48 sm:max-w-sm">
           <Search size={15} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-plum/40" />
           <input
             className="input !pl-9 !py-2 text-sm"
-            placeholder={`Search ${rows.length.toLocaleString()} rows`}
+            placeholder={`Search ${title.toLowerCase()}…`}
             value={query}
             aria-label={`Search ${title}`}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setPage(1); }}
           />
         </div>
-        {filter && (
-          <label className="flex flex-col gap-1 text-sm text-plum/70 w-full sm:w-auto sm:max-w-sm">
-            {filter.label}
+        {filters?.map((filter) => (
+          <label key={filter.label} className="flex items-center gap-2 text-xs font-medium text-plum/60 w-full sm:w-auto sm:max-w-sm">
+            <span className="shrink-0">{filter.label}</span>
             <select
               className="input !py-2 text-sm"
-              value={filterValue}
-              onChange={(e) => setFilterValue(e.target.value)}
+              value={filterValues[filter.label] ?? ''}
+              onChange={(e) => { setFilterValues((values) => ({ ...values, [filter.label]: e.target.value })); setPage(1); }}
             >
               <option value="">{filter.allLabel}</option>
               {filter.options.map((option) => (
@@ -165,13 +192,16 @@ function DataSet<T extends Record<string, unknown>>({
               ))}
             </select>
           </label>
+        ))}
+        {(query || Object.values(filterValues).some(Boolean)) && (
+          <button className="text-xs font-medium text-coral hover:underline" onClick={() => { setQuery(''); setFilterValues({}); setPage(1); }}>
+            Clear filters
+          </button>
         )}
         </div>
-        {filter && (
-          <p className="mt-2 text-xs text-plum/60" aria-live="polite">
+          <p className="mt-3 text-xs text-plum/50" aria-live="polite">
             Showing {sorted.length.toLocaleString()} of {rows.length.toLocaleString()} rows
           </p>
-        )}
       </div>
 
       {sorted.length === 0 ? (
@@ -180,12 +210,12 @@ function DataSet<T extends Record<string, unknown>>({
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="export-table-scroll">
+            <table className="export-table">
               <thead>
                 <tr className="bg-plum/5 text-left">
                   {columns.map((c) => (
-                    <th key={c.key} className="px-3 py-2 font-medium text-plum/70 whitespace-nowrap">
+                    <th key={c.key} aria-sort={sort.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-3 py-2 font-medium text-plum/70 whitespace-nowrap">
                       <button
                         className="inline-flex items-center gap-1 hover:text-coral"
                         onClick={() => toggleSort(c.key)}
@@ -214,16 +244,14 @@ function DataSet<T extends Record<string, unknown>>({
               </tbody>
             </table>
           </div>
-          {sorted.length > PREVIEW && (
-            <button
-              className="w-full py-2.5 text-sm text-plum/60 hover:text-coral border-t border-plum/10"
-              onClick={() => setExpanded((v) => !v)}
-            >
-              {expanded
-                ? 'Show less'
-                : `Show all ${sorted.length.toLocaleString()} rows`}
-            </button>
-          )}
+          <div className="export-pagination">
+            <span>{((currentPage - 1) * PREVIEW + 1).toLocaleString()}–{Math.min(currentPage * PREVIEW, sorted.length).toLocaleString()} of {sorted.length.toLocaleString()} results</span>
+            <div className="flex items-center gap-3">
+              <button className="export-page-button" aria-label="Previous page" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}><ChevronLeft size={16} /></button>
+              <span>Page {currentPage} of {totalPages}</span>
+              <button className="export-page-button" aria-label="Next page" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}><ChevronRight size={16} /></button>
+            </div>
+          </div>
         </>
       )}
     </section>
@@ -264,6 +292,7 @@ export function AdminExport() {
   });
 
   const [venueId, setVenueId] = useState('all');
+  const [activeTab, setActiveTab] = useState<ExportTab>('guests');
 
   // Built from the events table, so a Season 3 venue appears here on its own
   // rather than needing this list edited.
@@ -340,16 +369,18 @@ export function AdminExport() {
 
   return (
     <AdminShell>
+      <div className="data-export">
       <div className="flex items-start justify-between gap-3 flex-wrap mb-4 md:mb-6">
         <div>
-          <h1 className="font-display text-2xl md:text-3xl">Data export</h1>
+          <div className="export-eyebrow"><Database size={13} aria-hidden="true" /> REPORTING & INSIGHTS</div>
+          <h1 className="text-3xl font-semibold tracking-tight text-plum mt-2">Data export</h1>
           <p className="text-sm text-plum/60 mt-1 max-w-2xl">
-            Everything in the system, across both venues and both seasons. Sort or
-            search a table and the CSV follows — what you see is what downloads.
+            Choose a tab to browse and export data across venues and seasons.
+            CSV downloads follow the selected table’s filters, search, and sort.
           </p>
         </div>
         <button
-          className="btn-ghost text-sm border border-plum/15 text-plum inline-flex items-center gap-2"
+          className="btn-ghost !rounded-xl !bg-white !px-4 !py-2.5 text-sm border border-plum/10 text-plum inline-flex items-center gap-2"
           onClick={() => refetch()}
           disabled={isFetching}
         >
@@ -359,20 +390,12 @@ export function AdminExport() {
       </div>
 
       {data && filters.length > 1 && (
-        <div className="flex items-center gap-1.5 flex-wrap mb-5 text-sm">
-          {filters.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setVenueId(f.id)}
-              className={`px-3.5 py-1.5 rounded-full border transition ${
-                active.id === f.id
-                  ? 'bg-plum text-cream border-plum'
-                  : 'border-plum/15 text-plum/70 hover:border-plum/40'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="export-scope">
+          <label htmlFor="export-venue" className="text-sm font-medium text-plum">Venue & season</label>
+          <select id="export-venue" className="input !py-2 text-sm w-full sm:!w-auto sm:max-w-md" value={active.id} onChange={(event) => setVenueId(event.target.value)}>
+            {filters.map((filter) => <option key={filter.id} value={filter.id}>{filter.label}</option>)}
+          </select>
+          <span className="text-xs text-plum/50 sm:ml-auto">Applies across all tabs</span>
         </div>
       )}
 
@@ -387,37 +410,79 @@ export function AdminExport() {
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
-            <div className="rounded-2xl p-4 shadow-soft bg-plum text-cream">
-              <div className="text-[10px] uppercase tracking-wider opacity-70">People</div>
-              <div className="font-display text-2xl mt-1">{view.guests.length.toLocaleString()}</div>
-              <div className="text-[11px] opacity-75 mt-0.5">
+            <div className="export-stat export-stat--people">
+              <div className="export-stat-label">People <Users size={17} aria-hidden="true" /></div>
+              <div className="text-2xl font-semibold tracking-tight mt-3 tabular-nums">{view.guests.length.toLocaleString()}</div>
+              <div className="text-xs text-plum/50 mt-1.5">
                 {venueCounts.Brittany} Brittany · {venueCounts.Mella} Mella · {venueCounts.Both} both
               </div>
             </div>
-            <div className="rounded-2xl p-4 shadow-soft bg-champagne text-plum">
-              <div className="text-[10px] uppercase tracking-wider opacity-70">Sales</div>
-              <div className="font-display text-2xl mt-1">{peso(salesTotal)}</div>
-              <div className="text-[11px] opacity-75 mt-0.5">{view.transactions.length} transactions</div>
+            <div className="export-stat export-stat--sales">
+              <div className="export-stat-label">Sales <Wallet size={17} aria-hidden="true" /></div>
+              <div className="text-2xl font-semibold tracking-tight mt-3 tabular-nums">{peso(salesTotal)}</div>
+              <div className="text-xs text-plum/50 mt-1.5">{view.transactions.length} transactions</div>
             </div>
-            <div className="rounded-2xl p-4 shadow-soft bg-coral text-white">
-              <div className="text-[10px] uppercase tracking-wider opacity-70">SMS sent</div>
-              <div className="font-display text-2xl mt-1">{smsTotals.messages.toLocaleString()}</div>
-              <div className="text-[11px] opacity-75 mt-0.5">
+            <div className="export-stat export-stat--sms">
+              <div className="export-stat-label">SMS sent <MessageSquare size={17} aria-hidden="true" /></div>
+              <div className="text-2xl font-semibold tracking-tight mt-3 tabular-nums">{smsTotals.messages.toLocaleString()}</div>
+              <div className="text-xs text-plum/50 mt-1.5">
                 {smsTotals.segments.toLocaleString()} segments · {peso(smsTotals.costPhp)}
               </div>
             </div>
-            <div className="rounded-2xl p-4 shadow-soft bg-plum text-cream">
-              <div className="text-[10px] uppercase tracking-wider opacity-70">Inquiries</div>
-              <div className="font-display text-2xl mt-1">{view.inquiries.length.toLocaleString()}</div>
-              <div className="text-[11px] opacity-75 mt-0.5">from the RSVP funnel</div>
+            <div className="export-stat export-stat--inquiries">
+              <div className="export-stat-label">Inquiries <Inbox size={17} aria-hidden="true" /></div>
+              <div className="text-2xl font-semibold tracking-tight mt-3 tabular-nums">{view.inquiries.length.toLocaleString()}</div>
+              <div className="text-xs text-plum/50 mt-1.5">from the RSVP funnel</div>
             </div>
           </div>
 
+          <div
+            role="tablist"
+            aria-label="Export datasets"
+            className="export-tabs"
+          >
+            {EXPORT_TABS.map((tab, index) => (
+              <button
+                key={tab.id}
+                id={`export-tab-${tab.id}`}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`export-panel-${tab.id}`}
+                tabIndex={activeTab === tab.id ? 0 : -1}
+                onClick={() => setActiveTab(tab.id)}
+                onKeyDown={(event) => {
+                  let nextIndex: number;
+                  if (event.key === 'ArrowRight') nextIndex = (index + 1) % EXPORT_TABS.length;
+                  else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + EXPORT_TABS.length) % EXPORT_TABS.length;
+                  else if (event.key === 'Home') nextIndex = 0;
+                  else if (event.key === 'End') nextIndex = EXPORT_TABS.length - 1;
+                  else return;
+                  event.preventDefault();
+                  const next = EXPORT_TABS[nextIndex].id;
+                  setActiveTab(next);
+                  document.getElementById(`export-tab-${next}`)?.focus();
+                }}
+                className={`shrink-0 inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-coral focus-visible:outline-offset-[-2px] ${
+                  activeTab === tab.id
+                    ? 'border-plum/10 bg-white text-plum font-semibold shadow-sm'
+                    : 'border-transparent text-plum/65 hover:bg-white/60 hover:text-plum'
+                }`}
+              >
+                {tab.label}
+                <span className="rounded-full bg-plum/5 px-2 py-0.5 text-xs text-plum/60">
+                  {view[tab.id].length.toLocaleString()}
+                </span>
+              </button>
+            ))}
+          </div>
+
           <DataSet
+            tabId="guests"
+            activeTab={activeTab}
             title="Guest directory"
-            description="One row per person, not per registration — someone who signed up at both venues is collapsed into a single row marked Both. Looking for is what they ticked on the inquiry form; Suppliers engaged is the booths they actually visited or bought from."
+            description="Unique guests across venues. Looking for shows requested services; Suppliers engaged shows booths visited or purchased from."
             rows={view.guests}
-            filter={{
+            filters={[{
               label: 'Booked day',
               allLabel: 'All booked days',
               options: ['Day 1', 'Day 2', 'Both days', 'Not specified'],
@@ -425,7 +490,15 @@ export function AdminExport() {
                 ? !row.preferredDay
                 : row.preferredDay === value ||
                   (value !== 'Both days' && row.preferredDay === 'Both days'),
-            }}
+            }, {
+              label: 'Venue',
+              allLabel: 'All venues',
+              options: ['Brittany', 'Mella', 'Both venues', 'Season 1'],
+              matches: (row, value) => value === 'Both venues'
+                ? row.venue === 'Both'
+                : row.venue === value ||
+                  ((value === 'Brittany' || value === 'Mella') && row.venue === 'Both'),
+            }]}
             filename={`fiad-guests${slug}.csv`}
             defaultSort={{ key: 'name', dir: 'asc' }}
             columns={[
@@ -445,6 +518,8 @@ export function AdminExport() {
           />
 
           <DataSet
+            tabId="transactions"
+            activeTab={activeTab}
             title="Transactions"
             description="Every down payment recorded at a booth, with the guest's contact details attached for follow-up."
             rows={view.transactions}
@@ -466,8 +541,10 @@ export function AdminExport() {
           />
 
           <DataSet
+            tabId="suppliers"
+            activeTab={activeTab}
             title="Supplier performance"
-            description="What each booth got for being there: money taken, how many distinct people bought, and footfall from passport scans. Visits and buyers are separate on purpose — a busy booth that sold nothing is a different story from a quiet one that converted."
+            description="Sales, unique buyers, and booth visits for each supplier."
             rows={view.suppliers}
             filename={`fiad-suppliers${slug}.csv`}
             defaultSort={{ key: 'salesPhp', dir: 'desc' }}
@@ -488,6 +565,8 @@ export function AdminExport() {
           />
 
           <DataSet
+            tabId="prizes"
+            activeTab={activeTab}
             title="Prizes & winners"
             description="Every raffle slot with its winner and their contact details, drawn or not."
             rows={view.prizes}
@@ -508,6 +587,8 @@ export function AdminExport() {
           />
 
           <DataSet
+            tabId="attendance"
+            activeTab={activeTab}
             title="Attendance log"
             description="Every door scan, from the append-only check-in log — so it survives the daily reset and still shows who was there on which day."
             rows={view.attendance}
@@ -524,6 +605,8 @@ export function AdminExport() {
           />
 
           <DataSet
+            tabId="entries"
+            activeTab={activeTab}
             title="Raffle entries"
             description="Ticket-level detail — one row per entry, marked complimentary or paid."
             rows={view.entries}
@@ -540,6 +623,8 @@ export function AdminExport() {
           />
 
           <DataSet
+            tabId="supplierSignups"
+            activeTab={activeTab}
             title="Supplier sign-ups"
             description="Vendor applications from the public /suppliers page — the pipeline for next season."
             rows={view.supplierSignups}
@@ -559,6 +644,8 @@ export function AdminExport() {
           />
 
           <DataSet
+            tabId="sms"
+            activeTab={activeTab}
             title="SMS breakdown"
             description="Grouped by message type, venue and outcome. Segments are what the carrier bills — a long message counts as several — and only sent messages cost anything."
             rows={view.sms}
@@ -577,10 +664,12 @@ export function AdminExport() {
           />
 
           <DataSet
+            tabId="inquiries"
+            activeTab={activeTab}
             title="Inquiries"
             description="Leads from the public RSVP funnel, including the ones who never completed a registration."
             rows={view.inquiries}
-            filter={{
+            filters={[{
               label: 'Supplier category',
               allLabel: 'All supplier categories',
               options: SUPPLIERS,
@@ -588,7 +677,7 @@ export function AdminExport() {
                 category.trim().toLowerCase() === value.toLowerCase() ||
                 (value === 'Others' && category.trim().toLowerCase().startsWith('others:')),
               ),
-            }}
+            }]}
             filename={`fiad-inquiries${slug}.csv`}
             defaultSort={{ key: 'createdAt', dir: 'desc' }}
             columns={[
@@ -605,6 +694,7 @@ export function AdminExport() {
           />
         </>
       )}
+      </div>
     </AdminShell>
   );
 }

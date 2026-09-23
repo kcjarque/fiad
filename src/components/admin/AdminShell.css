@@ -1,0 +1,25 @@
+.admin-sidebar { width: 256px; flex-shrink: 0; flex-direction: column; position: sticky; top: 0; height: 100dvh; background: #fffcfa; color: #493747; border-right: 1px solid #eadfe5; }
+.admin-brand { position: relative; flex-shrink: 0; padding: 22px 24px 16px; text-align: center; }
+.admin-brand img { display: block; width: 154px; height: auto; margin: 0 auto 12px; }
+.admin-brand > span { font-size: 9px; letter-spacing: .18em; font-weight: 600; color: #a38696; }
+.admin-event-scope { margin: 0 16px 12px; padding: 12px; background: #f5eef2; border: 1px solid #eee2e9; border-radius: 12px; }
+.admin-event-scope > div { margin-bottom: 0; }
+.admin-event-scope > div > div:first-child { color: #8d7384; font-size: 9px; font-weight: 600; letter-spacing: .1em; }
+.admin-event-scope select { color: #493747; background: #fffcfa; border-color: #e7dbe2; font-size: 12px; }
+.admin-event-scope svg { color: #947b8b; }
+.admin-navigation { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px 12px; scrollbar-width: thin; scrollbar-color: #decfd8 transparent; }
+.admin-nav-group + .admin-nav-group { margin-top: 17px; }
+.admin-nav-group h2 { padding: 8px 12px 6px; font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #9b8392; }
+.admin-nav-link { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 8px 12px; margin: 2px 0; border: 1px solid transparent; border-radius: 9px; color: #786574; font-size: 12px; transition: background-color .15s, color .15s; }
+.admin-nav-link svg { flex-shrink: 0; color: #a48d9b; }
+.admin-nav-link:hover { background: #f6eff3; color: #493747; }
+.admin-nav-link.is-active { background: #fbe9f0; border-color: #f3d6e2; color: #a63764; font-weight: 600; box-shadow: inset 3px 0 #d56a93; }
+.admin-nav-link.is-active svg { color: #c04d7b; }
+.admin-sidebar-footer { flex-shrink: 0; padding: 12px 24px 16px; border-top: 1px solid #eee4e9; }
+.admin-sidebar-footer button { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 12px; color: #7c6675; }
+.admin-sidebar-footer button:hover { color: #bd3e70; }
+.admin-sidebar-footer > span { display: block; margin-top: 5px; font-size: 9px; color: #ab96a2; }
+.admin-mobile-header { background: #fffcfa; color: #493747; border-bottom: 1px solid #eadfe5; }
+.admin-sidebar-drawer { position: absolute; inset: 0 auto 0 0; width: 280px; max-width: 85vw; display: flex; box-shadow: 12px 0 40px rgb(63 44 63 / .08); }
+.admin-drawer-close { position: absolute; right: 10px; top: 10px; padding: 8px; color: #947b8b; }
+.admin-sidebar button:focus-visible, .admin-nav-link:focus-visible { outline: 2px solid #d56a93; outline-offset: 2px; }

@@ -1,148 +1,130 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import {
+  Menu, X, LayoutDashboard, CalendarDays, Store, QrCode, Printer, ChartNoAxesCombined,
+  Users, ScanLine, ClipboardList, ScanQrCode, Inbox, Mail, UserPlus, Receipt,
+  SlidersHorizontal, Trophy, Route, Gift, Radio, Download, LogOut,
+} from 'lucide-react';
 import { useAuth } from '../../stores/authStore';
 import { EventSwitcher } from './EventSwitcher';
+import './AdminShell.css';
 
-const sections = [
-  { to: '/admin/dashboard', label: 'Dashboard' },
-  { to: '/admin/event', label: 'Event' },
-  { to: '/admin/stores', label: 'Vendors' },
-  { to: '/admin/qr-generator', label: 'QR Generator' },
-  { to: '/admin/qr-cards', label: 'QR Cards (print all)' },
-  { to: '/admin/supplier-sales', label: 'Supplier Sales' },
-  { to: '/admin/guests', label: 'Guests' },
-  { to: '/admin/checkin', label: 'Check-in' },
-  { to: '/admin/attendance', label: 'Attendance log' },
-  { to: '/admin/raffle-scan', label: 'Raffle Scanner' },
-  { to: '/admin/inquiries', label: 'Inquiries' },
-  { to: '/admin/email-marketing', label: 'Email Marketing' },
-  { to: '/admin/supplier-signups', label: 'Supplier Sign-ups' },
-  { to: '/admin/transactions', label: 'Transactions' },
-  { to: '/admin/overrides', label: 'Overrides' },
-  { to: '/admin/challenges', label: 'Challenges' },
-  { to: '/admin/walkthrough', label: 'Walkthrough' },
-  { to: '/admin/prizes', label: 'Raffle Prizes' },
-  { to: '/admin/draw', label: 'Live Draw' },
-  { to: '/admin/export', label: 'Data Export' },
+const groups = [
+  { label: 'Workspace', links: [
+    { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/admin/event', label: 'Event', icon: CalendarDays },
+    { to: '/admin/stores', label: 'Vendors', icon: Store },
+  ] },
+  { label: 'Guests & outreach', links: [
+    { to: '/admin/guests', label: 'Guests', icon: Users },
+    { to: '/admin/checkin', label: 'Check-in', icon: ScanLine },
+    { to: '/admin/attendance', label: 'Attendance log', icon: ClipboardList },
+    { to: '/admin/inquiries', label: 'Inquiries', icon: Inbox },
+    { to: '/admin/email-marketing', label: 'Email Marketing', icon: Mail },
+    { to: '/admin/supplier-signups', label: 'Supplier Sign-ups', icon: UserPlus },
+  ] },
+  { label: 'Sales & reporting', links: [
+    { to: '/admin/supplier-sales', label: 'Supplier Sales', icon: ChartNoAxesCombined },
+    { to: '/admin/transactions', label: 'Transactions', icon: Receipt },
+    { to: '/admin/export', label: 'Data Export', icon: Download },
+    { to: '/admin/overrides', label: 'Overrides', icon: SlidersHorizontal },
+  ] },
+  { label: 'Event tools', links: [
+    { to: '/admin/qr-generator', label: 'QR Generator', icon: QrCode },
+    { to: '/admin/qr-cards', label: 'QR Cards (print all)', icon: Printer },
+    { to: '/admin/raffle-scan', label: 'Raffle Scanner', icon: ScanQrCode },
+    { to: '/admin/challenges', label: 'Challenges', icon: Trophy },
+    { to: '/admin/walkthrough', label: 'Walkthrough', icon: Route },
+    { to: '/admin/prizes', label: 'Raffle Prizes', icon: Gift },
+    { to: '/admin/draw', label: 'Live Draw', icon: Radio },
+  ] },
 ];
+
+function SidebarContent({ onClose, onLogout }: { onClose?: () => void; onLogout: () => void }) {
+  return (
+    <>
+      <div className="admin-brand">
+        <img src="/logo.png" alt="Forever in a Day" />
+        <span>ADMIN WORKSPACE</span>
+        {onClose && <button className="admin-drawer-close" onClick={onClose} aria-label="Close menu"><X size={20} /></button>}
+      </div>
+      <div className="admin-event-scope"><EventSwitcher /></div>
+      <nav className="admin-navigation" aria-label="Admin navigation">
+        {groups.map((group) => (
+          <div className="admin-nav-group" key={group.label}>
+            <h2>{group.label}</h2>
+            {group.links.map(({ to, label, icon: Icon }) => (
+              <NavLink key={to} to={to} onClick={onClose} className={({ isActive }) => `admin-nav-link${isActive ? ' is-active' : ''}`}>
+                <Icon size={17} strokeWidth={1.7} aria-hidden="true" />
+                <span>{label}</span>
+              </NavLink>
+            ))}
+          </div>
+        ))}
+      </nav>
+      <div className="admin-sidebar-footer">
+        <button onClick={onLogout}><LogOut size={16} aria-hidden="true" /> Sign out</button>
+        <span>Forever in a Day · Admin console</span>
+      </div>
+    </>
+  );
+}
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const logout = useAuth((s) => s.logout);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerRef = useRef<HTMLElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
 
-  // Close drawer on navigation
   useEffect(() => {
-    setDrawerOpen(false);
-  }, [location.pathname]);
+    if (!drawerOpen) return;
+    const menuButton = menuRef.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const drawer = drawerRef.current;
+    const focusable = () => Array.from(drawer?.querySelectorAll<HTMLElement>('button, a[href], select') ?? []);
+    focusable()[0]?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDrawerOpen(false);
+      if (event.key !== 'Tab') return;
+      const elements = focusable();
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+      menuButton?.focus();
+    };
+  }, [drawerOpen]);
 
-  const currentLabel = sections.find((s) => s.to === location.pathname)?.label ?? 'Admin';
+  const currentLabel = groups.flatMap((group) => group.links).find((link) => link.to === location.pathname)?.label ?? 'Admin';
+  const signOut = () => { logout(); navigate('/'); };
 
   return (
     <div className="min-h-screen lg:flex bg-cream">
-      {/* Mobile top bar */}
-      <header className="lg:hidden sticky top-0 z-30 bg-plum text-cream flex items-center gap-3 px-4 py-3 shadow-soft">
-        <button
-          onClick={() => setDrawerOpen(true)}
-          aria-label="Open menu"
-          className="w-10 h-10 -ml-2 flex items-center justify-center rounded-lg hover:bg-cream/10"
-        >
-          <Menu size={22} />
-        </button>
-        <div className="flex-1 font-display text-lg leading-tight">{currentLabel}</div>
-        <div className="text-cream/70 text-xs uppercase tracking-wider">FIAD</div>
+      <header className="admin-mobile-header lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3">
+        <button ref={menuRef} onClick={() => setDrawerOpen(true)} aria-label="Open menu" aria-expanded={drawerOpen} aria-controls="admin-mobile-menu" className="w-10 h-10 -ml-2 flex items-center justify-center rounded-lg hover:bg-plum/5"><Menu size={22} /></button>
+        <div className="flex-1 text-sm font-semibold">{currentLabel}</div>
+        <span className="text-plum/45 text-[10px] font-semibold tracking-widest">FIAD</span>
       </header>
-
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 shrink-0 bg-plum text-cream p-5 flex-col">
-        <div className="mb-6">
-          <div className="bg-cream rounded-xl p-3 mb-2">
-            <img src="/logo.png" alt="Forever in a Day" className="w-full h-auto" />
-          </div>
-          <div className="text-cream/60 text-xs uppercase tracking-wider">Admin Console</div>
-        </div>
-        <EventSwitcher />
-        <nav className="flex-1 space-y-1 text-sm">
-          {sections.map((s) => (
-            <NavLink
-              key={s.to}
-              to={s.to}
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-lg ${
-                  isActive ? 'bg-coral text-white' : 'hover:bg-cream/10 text-cream/85'
-                }`
-              }
-            >
-              {s.label}
-            </NavLink>
-          ))}
-        </nav>
-        <button
-          onClick={() => {
-            logout();
-            navigate('/');
-          }}
-          className="mt-6 text-xs text-cream/70 hover:text-cream text-left"
-        >
-          Sign out
-        </button>
+      <aside className="admin-sidebar hidden lg:flex">
+        <SidebarContent onLogout={signOut} />
       </aside>
-
-      {/* Mobile drawer */}
       {drawerOpen && (
-        <div className="lg:hidden fixed inset-0 z-50" role="dialog">
-          <div
-            className="absolute inset-0 bg-plum/60 backdrop-blur-sm"
-            onClick={() => setDrawerOpen(false)}
-          />
-          <aside className="absolute inset-y-0 left-0 w-72 max-w-[85%] bg-plum text-cream p-5 flex flex-col shadow-soft">
-            <div className="flex items-start justify-between mb-6 gap-3">
-              <div className="flex-1">
-                <div className="bg-cream rounded-xl p-3 mb-2">
-                  <img src="/logo.png" alt="Forever in a Day" className="w-full h-auto" />
-                </div>
-                <div className="text-cream/60 text-xs uppercase tracking-wider">Admin Console</div>
-              </div>
-              <button
-                onClick={() => setDrawerOpen(false)}
-                aria-label="Close menu"
-                className="text-cream/70 p-1"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <EventSwitcher />
-            <nav className="flex-1 space-y-1 text-sm overflow-y-auto">
-              {sections.map((s) => (
-                <NavLink
-                  key={s.to}
-                  to={s.to}
-                  className={({ isActive }) =>
-                    `block px-3 py-2 rounded-lg ${
-                      isActive ? 'bg-coral text-white' : 'hover:bg-cream/10 text-cream/85'
-                    }`
-                  }
-                >
-                  {s.label}
-                </NavLink>
-              ))}
-            </nav>
-            <button
-              onClick={() => {
-                logout();
-                navigate('/');
-              }}
-              className="mt-6 text-sm text-cream/70 hover:text-cream text-left"
-            >
-              Sign out
-            </button>
+        <div className="lg:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-plum/30 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
+          <aside ref={drawerRef} id="admin-mobile-menu" role="dialog" aria-modal="true" aria-label="Admin menu" className="admin-sidebar admin-sidebar-drawer">
+            <SidebarContent onClose={() => setDrawerOpen(false)} onLogout={signOut} />
           </aside>
         </div>
       )}
-
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 text-plum">{children}</main>
+      <main className="flex-1 min-w-0 overflow-y-auto p-4 md:p-6 lg:p-8 text-plum">{children}</main>
     </div>
   );
 }
