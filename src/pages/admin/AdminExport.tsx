@@ -9,6 +9,7 @@ import {
   type ExportBundle,
 } from '../../services/exportService';
 import { peso } from '../../utils/id';
+import { SUPPLIERS } from '../../constants/suppliers';
 
 /**
  * One place to pull everything out of the system.
@@ -57,6 +58,7 @@ function DataSet<T extends Record<string, unknown>>({
   columns,
   filename,
   defaultSort,
+  filter,
 }: {
   title: string;
   description: string;
@@ -64,8 +66,15 @@ function DataSet<T extends Record<string, unknown>>({
   columns: Column<T>[];
   filename: string;
   defaultSort?: { key: keyof T & string; dir: 'asc' | 'desc' };
+  filter?: {
+    label: string;
+    allLabel: string;
+    options: readonly string[];
+    matches: (row: T, value: string) => boolean;
+  };
 }) {
   const [query, setQuery] = useState('');
+  const [filterValue, setFilterValue] = useState('');
   const [sort, setSort] = useState<{ key: keyof T & string; dir: 'asc' | 'desc' }>(
     defaultSort ?? { key: columns[0].key, dir: 'asc' },
   );
@@ -73,11 +82,11 @@ function DataSet<T extends Record<string, unknown>>({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
     return rows.filter((r) =>
-      columns.some((c) => String(r[c.key] ?? '').toLowerCase().includes(q)),
+      (!filterValue || !filter || filter.matches(r, filterValue)) &&
+      (!q || columns.some((c) => String(r[c.key] ?? '').toLowerCase().includes(q))),
     );
-  }, [rows, columns, query]);
+  }, [rows, columns, query, filter, filterValue]);
 
   const sorted = useMemo(() => {
     const col = columns.find((c) => c.key === sort.key);
@@ -131,20 +140,43 @@ function DataSet<T extends Record<string, unknown>>({
             CSV ({sorted.length.toLocaleString()})
           </button>
         </div>
-        <div className="relative mt-3 max-w-sm">
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+        <div className="relative w-full max-w-sm">
           <Search size={15} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-plum/40" />
           <input
             className="input !pl-9 !py-2 text-sm"
             placeholder={`Search ${rows.length.toLocaleString()} rows`}
             value={query}
+            aria-label={`Search ${title}`}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
+        {filter && (
+          <label className="flex flex-col gap-1 text-sm text-plum/70 w-full sm:w-auto sm:max-w-sm">
+            {filter.label}
+            <select
+              className="input !py-2 text-sm"
+              value={filterValue}
+              onChange={(e) => setFilterValue(e.target.value)}
+            >
+              <option value="">{filter.allLabel}</option>
+              {filter.options.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        </div>
+        {filter && (
+          <p className="mt-2 text-xs text-plum/60" aria-live="polite">
+            Showing {sorted.length.toLocaleString()} of {rows.length.toLocaleString()} rows
+          </p>
+        )}
       </div>
 
       {sorted.length === 0 ? (
         <div className="px-5 py-10 text-center text-sm text-plum/55">
-          {rows.length === 0 ? 'Nothing recorded yet.' : 'No rows match that search.'}
+          {rows.length === 0 ? 'Nothing recorded yet.' : 'No rows match the selected filters or search.'}
         </div>
       ) : (
         <>
@@ -385,6 +417,15 @@ export function AdminExport() {
             title="Guest directory"
             description="One row per person, not per registration — someone who signed up at both venues is collapsed into a single row marked Both. Looking for is what they ticked on the inquiry form; Suppliers engaged is the booths they actually visited or bought from."
             rows={view.guests}
+            filter={{
+              label: 'Booked day',
+              allLabel: 'All booked days',
+              options: ['Day 1', 'Day 2', 'Both days', 'Not specified'],
+              matches: (row, value) => value === 'Not specified'
+                ? !row.preferredDay
+                : row.preferredDay === value ||
+                  (value !== 'Both days' && row.preferredDay === 'Both days'),
+            }}
             filename={`fiad-guests${slug}.csv`}
             defaultSort={{ key: 'name', dir: 'asc' }}
             columns={[
@@ -539,6 +580,15 @@ export function AdminExport() {
             title="Inquiries"
             description="Leads from the public RSVP funnel, including the ones who never completed a registration."
             rows={view.inquiries}
+            filter={{
+              label: 'Supplier category',
+              allLabel: 'All supplier categories',
+              options: SUPPLIERS,
+              matches: (row, value) => row.eventType.split(',').some((category) =>
+                category.trim().toLowerCase() === value.toLowerCase() ||
+                (value === 'Others' && category.trim().toLowerCase().startsWith('others:')),
+              ),
+            }}
             filename={`fiad-inquiries${slug}.csv`}
             defaultSort={{ key: 'createdAt', dir: 'desc' }}
             columns={[

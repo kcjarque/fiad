@@ -201,7 +201,7 @@ const venueOf = (eventIds: Set<string>): VenueLabel => {
 };
 
 const dayLabel = (d?: string | null) =>
-  d === 'day1' ? 'Day 1' : d === 'day2' ? 'Day 2' : '';
+  d === 'day1' ? 'Day 1' : d === 'day2' ? 'Day 2' : d === 'both' ? 'Both days' : '';
 
 type GuestRow = {
   id: string; event_id: string; name: string; email: string; mobile: string;
@@ -268,7 +268,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
   type Agg = {
     name: string; email: string; mobile: string;
     eventIds: Set<string>; guestIds: Set<string>;
-    registeredAt: string; preferredDay: string;
+    registeredAt: string; preferredDays: Set<string>;
     days: Set<string>; checkedIn: boolean;
     suppliers: Set<string>; spent: number; entries: number;
     lookingFor: string;
@@ -285,7 +285,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
       byPerson.set(k, {
         name: g.name, email: g.email, mobile: g.mobile,
         eventIds: new Set([g.event_id]), guestIds: new Set([g.id]),
-        registeredAt: g.registered_at, preferredDay: dayLabel(g.preferred_day),
+        registeredAt: g.registered_at, preferredDays: new Set([dayLabel(g.preferred_day)].filter(Boolean)),
         days: new Set(), checkedIn: !!g.checked_in_at,
         suppliers: new Set(), spent: 0, entries: 0,
         lookingFor: '',
@@ -296,7 +296,8 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
       // Keep the earliest registration, and fill any detail the first row lacked.
       if (g.registered_at < cur.registeredAt) cur.registeredAt = g.registered_at;
       if (!cur.mobile && g.mobile) cur.mobile = g.mobile;
-      if (!cur.preferredDay) cur.preferredDay = dayLabel(g.preferred_day);
+      const bookedDay = dayLabel(g.preferred_day);
+      if (bookedDay) cur.preferredDays.add(bookedDay);
       if (g.checked_in_at) cur.checkedIn = true;
     }
   }
@@ -341,7 +342,9 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
       email: a.email,
       mobile: a.mobile,
       venue: venueOf(a.eventIds),
-      preferredDay: a.preferredDay,
+      preferredDay: a.preferredDays.has('Both days') || a.preferredDays.size > 1
+        ? 'Both days'
+        : [...a.preferredDays][0] ?? '',
       registeredAt: a.registeredAt,
       daysAttended: [...a.days].sort().join(' / '),
       checkedIn: a.checkedIn || a.days.size > 0,
