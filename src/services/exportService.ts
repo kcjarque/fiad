@@ -32,6 +32,10 @@ const pageAll = async <T>(table: string, columns: string): Promise<T[]> => {
 export type VenueLabel = 'Brittany' | 'Mella' | 'Both' | 'Season 1';
 
 export type GuestExportRow = {
+  /** Events this person appears in. Plural because someone who registered at
+   *  both venues is one person across two rows, which is the whole point of
+   *  the directory — so the venue filter has to match on "any of". */
+  eventIds: string[];
   name: string;
   email: string;
   mobile: string;
@@ -57,6 +61,7 @@ export type GuestExportRow = {
 };
 
 export type TransactionExportRow = {
+  eventId: string;
   timestamp: string;
   guestName: string;
   guestEmail: string;
@@ -73,6 +78,7 @@ export type TransactionExportRow = {
 };
 
 export type SmsExportRow = {
+  eventId: string;
   kind: string;
   event: string;
   status: string;
@@ -84,6 +90,7 @@ export type SmsExportRow = {
 };
 
 export type InquiryExportRow = {
+  eventId: string;
   createdAt: string;
   name: string;
   email: string;
@@ -96,6 +103,7 @@ export type InquiryExportRow = {
 };
 
 export type SupplierExportRow = {
+  eventId: string;
   booth: string;
   name: string;
   category: string;
@@ -113,6 +121,7 @@ export type SupplierExportRow = {
 };
 
 export type PrizeExportRow = {
+  eventId: string;
   prize: string;
   venue: string;
   scheduledAt: string;
@@ -127,6 +136,7 @@ export type PrizeExportRow = {
 };
 
 export type AttendanceExportRow = {
+  eventId: string;
   day: string;
   time: string;
   name: string;
@@ -136,6 +146,7 @@ export type AttendanceExportRow = {
 };
 
 export type EntryExportRow = {
+  eventId: string;
   ticketNumber: string;
   guestName: string;
   guestEmail: string;
@@ -158,6 +169,9 @@ export type SupplierSignupExportRow = {
 };
 
 export type ExportBundle = {
+  /** Every event, so the venue filter is built from the data rather than a
+   *  hardcoded list that would go stale the moment a Season 3 row appears. */
+  events: { id: string; name: string }[];
   guests: GuestExportRow[];
   transactions: TransactionExportRow[];
   sms: SmsExportRow[];
@@ -322,6 +336,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
 
   const guestRows: GuestExportRow[] = [...byPerson.values()]
     .map((a) => ({
+      eventIds: [...a.eventIds],
       name: a.name,
       email: a.email,
       mobile: a.mobile,
@@ -343,6 +358,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
       const pk = personOfGuestId.get(t.guest_id);
       const p = pk ? byPerson.get(pk) : undefined;
       return {
+        eventId: t.event_id,
         timestamp: t.timestamp,
         guestName: p?.name ?? 'Removed guest',
         guestEmail: p?.email ?? '',
@@ -370,6 +386,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
     const cur = smsAgg.get(k);
     if (!cur) {
       smsAgg.set(k, {
+        eventId: r.event_id ?? '',
         kind: r.kind,
         event: r.event_id ? (eventName.get(r.event_id) ?? r.event_id) : 'All events',
         status: r.status,
@@ -400,6 +417,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
 
   const inqRows: InquiryExportRow[] = inquiries
     .map((i) => ({
+      eventId: i.event_id ?? '',
       createdAt: i.created_at,
       name: i.name,
       email: i.email,
@@ -448,6 +466,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
     .map((st) => {
       const a = supplierAgg.get(st.id);
       return {
+        eventId: st.event_id,
         booth: st.booth_number ?? '',
         name: st.name,
         category: st.category ?? '',
@@ -470,6 +489,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
     .map((pz) => {
       const w = pz.winner_guest_id ? guestById.get(pz.winner_guest_id) : undefined;
       return {
+        eventId: pz.event_id,
         prize: pz.name,
         venue: eventName.get(pz.event_id) ?? pz.event_id,
         scheduledAt: pz.scheduled_at ?? '',
@@ -494,6 +514,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
     .map((c) => {
       const g = guestById.get(c.guest_id);
       return {
+        eventId: g?.event_id ?? '',
         day: phDay(c.checked_in_at),
         time: c.checked_in_at,
         name: g?.name ?? 'Removed guest',
@@ -509,6 +530,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
     .map((e) => {
       const g = guestById.get(e.guest_id);
       return {
+        eventId: e.event_id,
         ticketNumber: e.ticket_number,
         guestName: g?.name ?? 'Removed guest',
         guestEmail: g?.email ?? '',
@@ -535,6 +557,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return {
+    events: events.map((e) => ({ id: e.id, name: e.name })),
     guests: guestRows,
     transactions: txRows,
     suppliers: supplierRows,

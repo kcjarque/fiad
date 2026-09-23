@@ -98,9 +98,15 @@ function DataSet<T extends Record<string, unknown>>({
 
   // Download follows the current sort and filter — what you see is what you get.
   const download = () => {
+    // Booleans go out as Yes/No rather than true/false, so a cell reads the
+    // same in the spreadsheet as it does on screen. Timestamps stay ISO on
+    // purpose: Excel sorts and filters those correctly, where the formatted
+    // "Sep 20, 2026, 7:03 PM" is just text.
+    const cell = (c: Column<T>, r: T) =>
+      c.type === 'bool' ? (r[c.key] ? 'Yes' : 'No') : (r[c.key] as string | number);
     const csv = toCsv(
       columns.map((c) => c.label),
-      sorted.map((r) => columns.map((c) => r[c.key] as string | number | boolean)),
+      sorted.map((r) => columns.map((c) => cell(c, r))),
     );
     downloadCsv(filename, csv);
   };
@@ -192,6 +198,29 @@ function DataSet<T extends Record<string, unknown>>({
   );
 }
 
+/**
+ * Season/venue segmentation.
+ *
+ * Matches on event id rather than the venue label, because the label is a
+ * display string ("FIAD Season 2 · Mella Hotel Las Piñas") and matching on it
+ * would break the moment a venue is renamed.
+ */
+type VenueFilter = { id: string; label: string; eventIds: string[] };
+
+/** Does this row belong to the selected venue? A row carries either one event
+ *  id, or several when it represents a person who attended more than one. */
+const inFilter = (
+  row: { eventId?: string; eventIds?: string[] },
+  f: VenueFilter,
+): boolean => {
+  if (f.eventIds.length === 0) return true; // "All"
+  const ids = row.eventIds ?? (row.eventId ? [row.eventId] : []);
+  // A row with no event at all (an inquiry submitted before venues existed)
+  // only shows under All, rather than being silently attributed to a venue.
+  if (ids.length === 0) return false;
+  return ids.some((id) => f.eventIds.includes(id));
+};
+
 export function AdminExport() {
   const { data, isLoading, isFetching, error, refetch } = useQuery<ExportBundle>({
     queryKey: ['exportBundle'],
@@ -202,11 +231,80 @@ export function AdminExport() {
     refetchOnWindowFocus: false,
   });
 
+  const [venueId, setVenueId] = useState('all');
+
+  // Built from the events table, so a Season 3 venue appears here on its own
+  // rather than needing this list edited.
+  const filters: VenueFilter[] = useMemo(() => {
+    const evs = data?.events ?? [];
+    const s2 = evs.filter((e) => e.id.startsWith('evt_fiad_s2_'));
+    const s1 = evs.filter((e) => !e.id.startsWith('evt_fiad_s2_'));
+    const short = (name: string) =>
+      name.includes('·') ? name.split('·').pop()!.trim() : name.split('|')[0].trim();
+    return [
+      { id: 'all', label: 'All data', eventIds: [] },
+      ...(s2.length
+        ? [{ id: 's2', label: 'Season 2 — both venues', eventIds: s2.map((e) => e.id) }]
+        : []),
+      ...s2.map((e) => ({ id: e.id, label: short(e.name), eventIds: [e.id] })),
+      ...s1.map((e) => ({ id: e.id, label: `Season 1 — ${short(e.name)}`, eventIds: [e.id] })),
+    ];
+  }, [data?.events]);
+
+  const active = filters.find((f) => f.id === venueId) ?? filters[0];
+
+  // Every dataset narrowed to the selected venue, so the tables, the totals
+  // and the CSV all agree.
+  const view = useMemo(() => {
+    if (!data) return null;
+    const f = active;
+    return {
+      guests: data.guests.filter((r) => inFilter(r, f)),
+      transactions: data.transactions.filter((r) => inFilter(r, f)),
+      suppliers: data.suppliers.filter((r) => inFilter(r, f)),
+      prizes: data.prizes.filter((r) => inFilter(r, f)),
+      attendance: data.attendance.filter((r) => inFilter(r, f)),
+      entries: data.entries.filter((r) => inFilter(r, f)),
+      sms: data.sms.filter((r) => inFilter(r, f)),
+      inquiries: data.inquiries.filter((r) => inFilter(r, f)),
+      // Vendor applications come from the public /suppliers page and are not
+      // tied to a venue, so they are never narrowed — hiding them under a
+      // venue filter would imply an association that does not exist.
+      supplierSignups: data.supplierSignups,
+    };
+  }, [data, active]);
+
+  // Suffix so a Brittany CSV isn't indistinguishable from a Mella one on disk.
+  const slug =
+    active.id === 'all'
+      ? ''
+      : `-${active.label
+          // Fold diacritics first, so "Las Piñas" becomes "las-pinas" rather
+          // than losing the n entirely and reading "las-pi-as".
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')}`;
+
   const venueCounts = useMemo(() => {
     const m = { Brittany: 0, Mella: 0, Both: 0, 'Season 1': 0 } as Record<string, number>;
-    for (const g of data?.guests ?? []) m[g.venue] = (m[g.venue] ?? 0) + 1;
+    for (const g of view?.guests ?? []) m[g.venue] = (m[g.venue] ?? 0) + 1;
     return m;
-  }, [data]);
+  }, [view]);
+
+  const salesTotal = useMemo(
+    () => (view?.transactions ?? []).filter((t) => t.status === 'approved').reduce((n, t) => n + t.amountPhp, 0),
+    [view],
+  );
+  const smsTotals = useMemo(() => {
+    const sent = (view?.sms ?? []).filter((r) => r.status === 'sent');
+    return {
+      messages: sent.reduce((n, r) => n + r.messages, 0),
+      segments: sent.reduce((n, r) => n + r.segments, 0),
+      costPhp: sent.reduce((n, r) => n + r.costPhp, 0),
+    };
+  }, [view]);
 
   return (
     <AdminShell>
@@ -228,39 +326,57 @@ export function AdminExport() {
         </button>
       </div>
 
+      {data && filters.length > 1 && (
+        <div className="flex items-center gap-1.5 flex-wrap mb-5 text-sm">
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setVenueId(f.id)}
+              className={`px-3.5 py-1.5 rounded-full border transition ${
+                active.id === f.id
+                  ? 'bg-plum text-cream border-plum'
+                  : 'border-plum/15 text-plum/70 hover:border-plum/40'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {error && (
         <div className="card mb-6 border border-red-200 bg-red-50 text-sm text-red-700">
           Couldn't load the data: {(error as Error).message}
         </div>
       )}
 
-      {isLoading || !data ? (
+      {isLoading || !data || !view ? (
         <div className="card text-center py-14 text-plum/60">Pulling every table…</div>
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
             <div className="rounded-2xl p-4 shadow-soft bg-plum text-cream">
               <div className="text-[10px] uppercase tracking-wider opacity-70">People</div>
-              <div className="font-display text-2xl mt-1">{data.guests.length.toLocaleString()}</div>
+              <div className="font-display text-2xl mt-1">{view.guests.length.toLocaleString()}</div>
               <div className="text-[11px] opacity-75 mt-0.5">
                 {venueCounts.Brittany} Brittany · {venueCounts.Mella} Mella · {venueCounts.Both} both
               </div>
             </div>
             <div className="rounded-2xl p-4 shadow-soft bg-champagne text-plum">
               <div className="text-[10px] uppercase tracking-wider opacity-70">Sales</div>
-              <div className="font-display text-2xl mt-1">{peso(data.salesTotalPhp)}</div>
-              <div className="text-[11px] opacity-75 mt-0.5">{data.transactions.length} transactions</div>
+              <div className="font-display text-2xl mt-1">{peso(salesTotal)}</div>
+              <div className="text-[11px] opacity-75 mt-0.5">{view.transactions.length} transactions</div>
             </div>
             <div className="rounded-2xl p-4 shadow-soft bg-coral text-white">
               <div className="text-[10px] uppercase tracking-wider opacity-70">SMS sent</div>
-              <div className="font-display text-2xl mt-1">{data.smsTotals.messages.toLocaleString()}</div>
+              <div className="font-display text-2xl mt-1">{smsTotals.messages.toLocaleString()}</div>
               <div className="text-[11px] opacity-75 mt-0.5">
-                {data.smsTotals.segments.toLocaleString()} segments · {peso(data.smsTotals.costPhp)}
+                {smsTotals.segments.toLocaleString()} segments · {peso(smsTotals.costPhp)}
               </div>
             </div>
             <div className="rounded-2xl p-4 shadow-soft bg-plum text-cream">
               <div className="text-[10px] uppercase tracking-wider opacity-70">Inquiries</div>
-              <div className="font-display text-2xl mt-1">{data.inquiries.length.toLocaleString()}</div>
+              <div className="font-display text-2xl mt-1">{view.inquiries.length.toLocaleString()}</div>
               <div className="text-[11px] opacity-75 mt-0.5">from the RSVP funnel</div>
             </div>
           </div>
@@ -268,8 +384,8 @@ export function AdminExport() {
           <DataSet
             title="Guest directory"
             description="One row per person, not per registration — someone who signed up at both venues is collapsed into a single row marked Both. Looking for is what they ticked on the inquiry form; Suppliers engaged is the booths they actually visited or bought from."
-            rows={data.guests}
-            filename="fiad-guests.csv"
+            rows={view.guests}
+            filename={`fiad-guests${slug}.csv`}
             defaultSort={{ key: 'name', dir: 'asc' }}
             columns={[
               { key: 'name', label: 'Name' },
@@ -290,8 +406,8 @@ export function AdminExport() {
           <DataSet
             title="Transactions"
             description="Every down payment recorded at a booth, with the guest's contact details attached for follow-up."
-            rows={data.transactions}
-            filename="fiad-transactions.csv"
+            rows={view.transactions}
+            filename={`fiad-transactions${slug}.csv`}
             defaultSort={{ key: 'timestamp', dir: 'desc' }}
             columns={[
               { key: 'timestamp', label: 'When', type: 'date', render: (r) => fmtDate(r.timestamp) },
@@ -311,8 +427,8 @@ export function AdminExport() {
           <DataSet
             title="Supplier performance"
             description="What each booth got for being there: money taken, how many distinct people bought, and footfall from passport scans. Visits and buyers are separate on purpose — a busy booth that sold nothing is a different story from a quiet one that converted."
-            rows={data.suppliers}
-            filename="fiad-suppliers.csv"
+            rows={view.suppliers}
+            filename={`fiad-suppliers${slug}.csv`}
             defaultSort={{ key: 'salesPhp', dir: 'desc' }}
             columns={[
               { key: 'booth', label: 'Booth' },
@@ -333,8 +449,8 @@ export function AdminExport() {
           <DataSet
             title="Prizes & winners"
             description="Every raffle slot with its winner and their contact details, drawn or not."
-            rows={data.prizes}
-            filename="fiad-prizes-winners.csv"
+            rows={view.prizes}
+            filename={`fiad-prizes-winners${slug}.csv`}
             defaultSort={{ key: 'scheduledAt', dir: 'asc' }}
             columns={[
               { key: 'scheduledAt', label: 'Scheduled', type: 'date', render: (r) => fmtDate(r.scheduledAt) },
@@ -353,8 +469,8 @@ export function AdminExport() {
           <DataSet
             title="Attendance log"
             description="Every door scan, from the append-only check-in log — so it survives the daily reset and still shows who was there on which day."
-            rows={data.attendance}
-            filename="fiad-attendance.csv"
+            rows={view.attendance}
+            filename={`fiad-attendance${slug}.csv`}
             defaultSort={{ key: 'time', dir: 'desc' }}
             columns={[
               { key: 'day', label: 'Day' },
@@ -369,8 +485,8 @@ export function AdminExport() {
           <DataSet
             title="Raffle entries"
             description="Ticket-level detail — one row per entry, marked complimentary or paid."
-            rows={data.entries}
-            filename="fiad-raffle-entries.csv"
+            rows={view.entries}
+            filename={`fiad-raffle-entries${slug}.csv`}
             defaultSort={{ key: 'createdAt', dir: 'desc' }}
             columns={[
               { key: 'ticketNumber', label: 'Ticket' },
@@ -385,8 +501,8 @@ export function AdminExport() {
           <DataSet
             title="Supplier sign-ups"
             description="Vendor applications from the public /suppliers page — the pipeline for next season."
-            rows={data.supplierSignups}
-            filename="fiad-supplier-signups.csv"
+            rows={view.supplierSignups}
+            filename={`fiad-supplier-signups${slug}.csv`}
             defaultSort={{ key: 'createdAt', dir: 'desc' }}
             columns={[
               { key: 'createdAt', label: 'When', type: 'date', render: (r) => fmtDate(r.createdAt) },
@@ -404,8 +520,8 @@ export function AdminExport() {
           <DataSet
             title="SMS breakdown"
             description="Grouped by message type, venue and outcome. Segments are what the carrier bills — a long message counts as several — and only sent messages cost anything."
-            rows={data.sms}
-            filename="fiad-sms-breakdown.csv"
+            rows={view.sms}
+            filename={`fiad-sms-breakdown${slug}.csv`}
             defaultSort={{ key: 'segments', dir: 'desc' }}
             columns={[
               { key: 'kind', label: 'Message type' },
@@ -422,8 +538,8 @@ export function AdminExport() {
           <DataSet
             title="Inquiries"
             description="Leads from the public RSVP funnel, including the ones who never completed a registration."
-            rows={data.inquiries}
-            filename="fiad-inquiries.csv"
+            rows={view.inquiries}
+            filename={`fiad-inquiries${slug}.csv`}
             defaultSort={{ key: 'createdAt', dir: 'desc' }}
             columns={[
               { key: 'createdAt', label: 'When', type: 'date', render: (r) => fmtDate(r.createdAt) },
