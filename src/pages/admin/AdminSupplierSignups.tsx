@@ -4,15 +4,29 @@ import { Search, Mail, Phone, Store, Globe, FileText } from 'lucide-react';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { listSupplierSignups } from '../../services/supplierService';
 import { formatDate } from '../../utils/id';
+import { CURRENT_INTAKE_SEASON } from '../../constants/season';
 
 export function AdminSupplierSignups() {
   const { data: signups = [] } = useQuery({ queryKey: ['supplier-signups'], queryFn: listSupplierSignups });
   const [query, setQuery] = useState('');
+  // Default to the season currently taking applications, so the page opens on
+  // the intake being worked rather than on every application ever received.
+  const [season, setSeason] = useState<string>(CURRENT_INTAKE_SEASON);
+
+  // Built from the data, so a season appears here as soon as it has one
+  // application — including any this page has never heard of.
+  const seasons = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of signups) counts.set(s.season, (counts.get(s.season) ?? 0) + 1);
+    if (!counts.has(CURRENT_INTAKE_SEASON)) counts.set(CURRENT_INTAKE_SEASON, 0);
+    return [...counts.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [signups]);
 
   const filtered = useMemo(() => {
+    const bySeason = season === 'all' ? signups : signups.filter((s) => s.season === season);
     const q = query.trim().toLowerCase();
-    if (!q) return signups;
-    return signups.filter(
+    if (!q) return bySeason;
+    return bySeason.filter(
       (s) =>
         s.businessName.toLowerCase().includes(q) ||
         s.contactPerson.toLowerCase().includes(q) ||
@@ -22,7 +36,7 @@ export function AdminSupplierSignups() {
         (s.products ?? '').toLowerCase().includes(q) ||
         (s.message ?? '').toLowerCase().includes(q),
     );
-  }, [signups, query]);
+  }, [signups, query, season]);
 
   return (
     <AdminShell>
@@ -30,9 +44,35 @@ export function AdminSupplierSignups() {
         <div>
           <h1 className="font-display text-2xl md:text-3xl">Supplier sign-ups</h1>
           <p className="text-sm text-plum/60 mt-1">
-            {signups.length} {signups.length === 1 ? 'application' : 'applications'} from the
-            /suppliers page
+            {filtered.length} {filtered.length === 1 ? 'application' : 'applications'}
+            {season === 'all' ? ' across all seasons' : ` for ${season}`} from the /suppliers page
           </p>
+          <div className="flex items-center gap-1.5 mt-3 flex-wrap text-xs">
+            <button
+              onClick={() => setSeason('all')}
+              className={`px-3 py-1 rounded-full border transition ${
+                season === 'all'
+                  ? 'bg-plum text-cream border-plum'
+                  : 'border-plum/15 text-plum/70 hover:border-plum/30'
+              }`}
+            >
+              All {signups.length}
+            </button>
+            {seasons.map(([name, count]) => (
+              <button
+                key={name}
+                onClick={() => setSeason(name)}
+                className={`px-3 py-1 rounded-full border transition ${
+                  season === name
+                    ? 'bg-plum text-cream border-plum'
+                    : 'border-plum/15 text-plum/70 hover:border-plum/30'
+                }`}
+              >
+                {name} {count}
+                {name === CURRENT_INTAKE_SEASON ? ' · open' : ''}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="relative w-full sm:w-72">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-plum/40" />

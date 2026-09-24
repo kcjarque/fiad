@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { CURRENT_INTAKE_SEASON } from '../constants/season';
 import {
   Store,
   Users,
@@ -36,8 +37,8 @@ const BENEFITS = [
   },
   {
     icon: Sparkles,
-    title: 'Season 2 momentum',
-    body: 'Season 1 drew 480+ registered guests across the fair. Season 2 is bigger.',
+    title: 'Proven momentum',
+    body: 'Season 1 drew 480+ registered guests; Season 2 drew over 780 across two venues.',
   },
 ];
 
@@ -155,7 +156,7 @@ export function SupplierSignup() {
           <p className="text-plum/75 mt-3">
             Thanks, <span className="font-medium text-plum">{form.businessName.trim()}</span>. Our
             team will review your details and requirements and reach out with booth options and
-            packages for Forever in a Day Season 2.
+            packages for Forever in a Day {CURRENT_INTAKE_SEASON}.
           </p>
           <div className="mt-8 flex items-center justify-center gap-1.5 text-sm text-plum/60">
             <Sparkles size={14} className="text-champagne" aria-hidden="true" /> Forever in a Day © 2026
@@ -179,7 +180,7 @@ export function SupplierSignup() {
       {/* Hero */}
       <section className="relative max-w-3xl mx-auto px-5 pt-12 sm:pt-16 pb-10 text-center">
         <div className="reveal chip" style={{ animationDelay: '0ms' }}>
-          <Store size={13} className="text-coral" aria-hidden="true" /> FIAD Season 2 · Now accepting suppliers
+          <Store size={13} className="text-coral" aria-hidden="true" /> FIAD {CURRENT_INTAKE_SEASON} · Now accepting suppliers
         </div>
         <h1
           className="reveal font-display text-[2.5rem] leading-[1.05] sm:text-6xl text-plum mt-5"
@@ -478,7 +479,7 @@ export function SupplierSignup() {
       <footer className="max-w-5xl mx-auto px-5 pt-6 text-center">
         <div className="inline-flex items-center gap-1.5 text-sm text-plum/60">
           <CalendarDays size={14} className="text-champagne" aria-hidden="true" /> Forever in a Day
-          Season 2 · 2026
+          {' '}{CURRENT_INTAKE_SEASON}
         </div>
       </footer>
     </div>

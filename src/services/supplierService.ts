@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { SupplierSignup } from '../types';
 import { uid } from '../utils/id';
+import { CURRENT_INTAKE_SEASON } from '../constants/season';
 
 type Row = {
   id: string;
@@ -14,6 +15,8 @@ type Row = {
   message: string | null;
   document_urls: string[] | null;
   created_at: string;
+  /** Which season this application is for. See constants/season.ts. */
+  season: string;
 };
 
 const rowToSignup = (r: Row): SupplierSignup => ({
@@ -28,6 +31,7 @@ const rowToSignup = (r: Row): SupplierSignup => ({
   message: r.message ?? undefined,
   documentUrls: r.document_urls ?? undefined,
   createdAt: r.created_at,
+  season: r.season,
 });
 
 const DOCS_BUCKET = 'supplier-docs';
@@ -74,6 +78,9 @@ export const createSupplierSignup = async (data: {
     message: data.message?.trim() || null,
     document_urls: data.documentUrls && data.documentUrls.length > 0 ? data.documentUrls : null,
     created_at: new Date().toISOString(),
+    // Passed explicitly rather than leaning on the column default, so which
+    // season the form is taking is visible in the code, not only the schema.
+    season: CURRENT_INTAKE_SEASON,
   };
   const { error } = await supabase.from('supplier_signups').insert(row);
   if (error) throw error;

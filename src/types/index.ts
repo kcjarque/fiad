@@ -83,6 +83,8 @@ export type SupplierSignup = {
   /** Public URLs of uploaded DTI (or SEC) registration documents. */
   documentUrls?: string[];
   createdAt: string;
+  /** Season this application is for — "Season 3" for the current intake. */
+  season: string;
 };
 
 /** A lead captured from the "Need help organizing your event?" form. */

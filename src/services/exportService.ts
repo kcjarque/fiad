@@ -157,6 +157,9 @@ export type EntryExportRow = {
 };
 
 export type SupplierSignupExportRow = {
+  /** Season applied for. Sign-ups carry a season label rather than an event
+   *  id, because an intake opens before its venues are decided. */
+  season: string;
   createdAt: string;
   businessName: string;
   contactPerson: string;
@@ -230,6 +233,7 @@ type PrizeRow = {
   is_grand: boolean | null;
 };
 type SignupRow = {
+  season: string | null;
   created_at: string; business_name: string; contact_person: string | null;
   email: string | null; mobile: string | null; category: string | null;
   social: string | null; products: string | null; message: string | null;
@@ -256,7 +260,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
       pageAll<InqRow>('event_inquiries', 'created_at,name,email,phone,partner_name,event_type,event_date,event_id,message'),
       pageAll<EventRow>('events', 'id,name'),
       pageAll<PrizeRow>('prizes', 'id,event_id,name,scheduled_at,drawn_at,winner_guest_id,winning_ticket_number,sponsored_by_store_id,is_grand'),
-      pageAll<SignupRow>('supplier_signups', 'created_at,business_name,contact_person,email,mobile,category,social,products,message'),
+      pageAll<SignupRow>('supplier_signups', 'season,created_at,business_name,contact_person,email,mobile,category,social,products,message'),
     ]);
 
   const storeById = new Map(stores.map((s) => [s.id, s]));
@@ -547,6 +551,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
 
   const signupRows: SupplierSignupExportRow[] = signups
     .map((v) => ({
+      season: v.season ?? '',
       createdAt: v.created_at,
       businessName: v.business_name,
       contactPerson: v.contact_person ?? '',

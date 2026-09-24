@@ -265,7 +265,15 @@ function DataSet<T extends Record<string, unknown>>({
  * display string ("FIAD Season 2 · Mella Hotel Las Piñas") and matching on it
  * would break the moment a venue is renamed.
  */
-type VenueFilter = { id: string; label: string; eventIds: string[] };
+type VenueFilter = {
+  id: string;
+  label: string;
+  eventIds: string[];
+  /** Season label this filter corresponds to, for datasets that carry a
+   *  season rather than an event — supplier applications, which open before
+   *  their venues are decided. Absent on "All". */
+  season?: string;
+};
 
 /** Does this row belong to the selected venue? A row carries either one event
  *  id, or several when it represents a person who attended more than one. */
@@ -305,12 +313,20 @@ export function AdminExport() {
     return [
       { id: 'all', label: 'All data', eventIds: [] },
       ...(s2.length
-        ? [{ id: 's2', label: 'Season 2 — both venues', eventIds: s2.map((e) => e.id) }]
+        ? [{ id: 's2', label: 'Season 2 — both venues', eventIds: s2.map((e) => e.id), season: 'Season 2' }]
         : []),
-      ...s2.map((e) => ({ id: e.id, label: short(e.name), eventIds: [e.id] })),
-      ...s1.map((e) => ({ id: e.id, label: `Season 1 — ${short(e.name)}`, eventIds: [e.id] })),
+      ...s2.map((e) => ({ id: e.id, label: short(e.name), eventIds: [e.id], season: 'Season 2' })),
+      ...s1.map((e) => ({ id: e.id, label: `Season 1 — ${short(e.name)}`, eventIds: [e.id], season: 'Season 1' })),
+      // Seasons that exist only as supplier applications so far, with no event
+      // rows yet — the open intake. Derived from the data so a Season 4 chip
+      // appears on its own the moment its first application lands.
+      ...[...new Set((data?.supplierSignups ?? []).map((v) => v.season))]
+        .filter((name) => name && !evs.some((e) => e.name.includes(name)))
+        .filter((name) => name !== 'Season 1' && name !== 'Season 2')
+        .sort((a, b) => b.localeCompare(a))
+        .map((name) => ({ id: `season:${name}`, label: `${name} — applications`, eventIds: ['__none__'], season: name })),
     ];
-  }, [data?.events]);
+  }, [data?.events, data?.supplierSignups]);
 
   const active = filters.find((f) => f.id === venueId) ?? filters[0];
 
@@ -328,10 +344,13 @@ export function AdminExport() {
       entries: data.entries.filter((r) => inFilter(r, f)),
       sms: data.sms.filter((r) => inFilter(r, f)),
       inquiries: data.inquiries.filter((r) => inFilter(r, f)),
-      // Vendor applications come from the public /suppliers page and are not
-      // tied to a venue, so they are never narrowed — hiding them under a
-      // venue filter would imply an association that does not exist.
-      supplierSignups: data.supplierSignups,
+      // Vendor applications carry a season label, not an event — an intake
+      // opens before its venues are decided. So they narrow by season rather
+      // than by venue: picking Brittany or Mella shows all of that season's
+      // applications, because no application was ever made to one hotel.
+      supplierSignups: f.season
+        ? data.supplierSignups.filter((v) => v.season === f.season)
+        : data.supplierSignups,
     };
   }, [data, active]);
 
@@ -626,11 +645,12 @@ export function AdminExport() {
             tabId="supplierSignups"
             activeTab={activeTab}
             title="Supplier sign-ups"
-            description="Vendor applications from the public /suppliers page — the pipeline for next season."
+            description="Vendor applications from the public /suppliers page. Tagged by the season applied for, not by venue — an intake opens before its hotels are decided, so a season's applications are not split between them."
             rows={view.supplierSignups}
             filename={`fiad-supplier-signups${slug}.csv`}
             defaultSort={{ key: 'createdAt', dir: 'desc' }}
             columns={[
+              { key: 'season', label: 'Season' },
               { key: 'createdAt', label: 'When', type: 'date', render: (r) => fmtDate(r.createdAt) },
               { key: 'businessName', label: 'Business' },
               { key: 'contactPerson', label: 'Contact person' },
