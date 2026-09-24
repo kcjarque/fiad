@@ -589,12 +589,34 @@ export function AdminExport() {
             title="Prizes & winners"
             description="Every raffle slot with its winner and their contact details, drawn or not."
             rows={view.prizes}
+            filters={[{
+              label: 'Season',
+              allLabel: 'All seasons',
+              options: [...new Set(view.prizes.map((r) => r.season))].sort((a, b) => b.localeCompare(a)),
+              matches: (row, value) => row.season === value,
+            }, {
+              label: 'Location',
+              allLabel: 'All locations',
+              options: [...new Set(view.prizes.map((r) => r.location))].sort(),
+              matches: (row, value) => row.location === value,
+            }, {
+              label: 'Draw date',
+              allLabel: 'All dates',
+              options: [...new Set(view.prizes.map((r) => r.drawDate).filter(Boolean))]
+                .sort((a, b) => Date.parse(a) - Date.parse(b)),
+              matches: (row, value) => row.drawDate === value,
+            }]}
             filename={`fiad-prizes-winners${slug}.csv`}
-            defaultSort={{ key: 'scheduledAt', dir: 'asc' }}
+            // Grouped by season (newest first) so Season 1 and Season 2 winners
+            // never interleave; the sort is stable, so each season keeps the
+            // bundle's location-then-schedule order.
+            defaultSort={{ key: 'season', dir: 'desc' }}
             columns={[
+              { key: 'season', label: 'Season' },
+              { key: 'location', label: 'Location' },
+              { key: 'drawDate', label: 'Draw date' },
               { key: 'scheduledAt', label: 'Scheduled', type: 'date', render: (r) => fmtDate(r.scheduledAt) },
               { key: 'prize', label: 'Prize' },
-              { key: 'venue', label: 'Venue' },
               { key: 'status', label: 'Status' },
               { key: 'winnerName', label: 'Winner' },
               { key: 'winnerEmail', label: 'Email' },

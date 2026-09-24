@@ -122,8 +122,17 @@ export type SupplierExportRow = {
 
 export type PrizeExportRow = {
   eventId: string;
+  /** "Season 1" / "Season 2", so winners from different seasons can be kept
+   *  apart — the venue label alone doesn't say which season it was. */
+  season: string;
   prize: string;
   venue: string;
+  /** The hotel itself ("Brittany Hotel, BGC"), from events.venue. */
+  location: string;
+  /** PH calendar day of the draw ("Sep 19, 2026") — the scheduled slot, or
+   *  when it was actually drawn if it was never scheduled. Both Season 2
+   *  venues run on Sep 19, so this pairs with location to pick out one day. */
+  drawDate: string;
   scheduledAt: string;
   drawnAt: string;
   status: string;
@@ -245,7 +254,7 @@ type InqRow = {
   partner_name: string | null; event_type: string | null; event_date: string | null;
   event_id: string | null; message: string | null;
 };
-type EventRow = { id: string; name: string };
+type EventRow = { id: string; name: string; venue: string | null };
 
 export const buildExportBundle = async (): Promise<ExportBundle> => {
   const [guests, txs, stores, stamps, entries, checkIns, sms, inquiries, events, prizes, signups] =
@@ -258,7 +267,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
       pageAll<CheckInRow>('check_ins', 'guest_id,checked_in_at'),
       pageAll<SmsRow>('sms_log', 'event_id,kind,status,segments,created_at'),
       pageAll<InqRow>('event_inquiries', 'created_at,name,email,phone,partner_name,event_type,event_date,event_id,message'),
-      pageAll<EventRow>('events', 'id,name'),
+      pageAll<EventRow>('events', 'id,name,venue'),
       pageAll<PrizeRow>('prizes', 'id,event_id,name,scheduled_at,drawn_at,winner_guest_id,winning_ticket_number,sponsored_by_store_id,is_grand'),
       pageAll<SignupRow>('supplier_signups', 'season,created_at,business_name,contact_person,email,mobile,category,social,products,message'),
     ]);
@@ -491,14 +500,24 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
     .sort((a, b) => b.salesPhp - a.salesPhp || b.boothVisits - a.boothVisits);
 
   // ── Prizes and winners ──────────────────────────────────────────────────
+  const eventVenue = new Map(events.map((e) => [e.id, e.venue ?? '']));
+  const drawDay = (iso: string | null) =>
+    iso
+      ? new Date(iso).toLocaleDateString('en-US', {
+          timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric',
+        })
+      : '';
   const guestById = new Map(guests.map((g) => [g.id, g]));
   const prizeRows: PrizeExportRow[] = prizes
     .map((pz) => {
       const w = pz.winner_guest_id ? guestById.get(pz.winner_guest_id) : undefined;
       return {
         eventId: pz.event_id,
+        season: pz.event_id.startsWith('evt_fiad_s2_') ? 'Season 2' : 'Season 1',
         prize: pz.name,
         venue: eventName.get(pz.event_id) ?? pz.event_id,
+        location: eventVenue.get(pz.event_id) || (eventName.get(pz.event_id) ?? pz.event_id),
+        drawDate: drawDay(pz.scheduled_at || pz.drawn_at),
         scheduledAt: pz.scheduled_at ?? '',
         drawnAt: pz.drawn_at ?? '',
         status: pz.winner_guest_id ? 'Drawn' : 'Not drawn',
@@ -512,7 +531,11 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
         isGrand: !!pz.is_grand,
       };
     })
-    .sort((a, b) => (a.scheduledAt || '').localeCompare(b.scheduledAt || ''));
+    // Newest season first, then by schedule within it.
+    .sort((a, b) =>
+      b.season.localeCompare(a.season) ||
+      a.location.localeCompare(b.location) ||
+      (a.scheduledAt || '').localeCompare(b.scheduledAt || ''));
 
   // ── Attendance ──────────────────────────────────────────────────────────
   // From check_ins, the append-only door log, so it survives the daily reset
