@@ -27,7 +27,8 @@ export const KNOWN_SEASONS = ['Season 3', 'Season 2', 'Season 1'] as const;
  * location for prose where a supplier needs to know where they would be.
  */
 export const CURRENT_SEASON_VENUES = [
-  { short: 'Madison 101', full: 'Madison 101' },
+  // All caps is the venue's own styling, not emphasis — keep it verbatim.
+  { short: 'MADISON 101', full: 'MADISON 101' },
   { short: 'SM Podium', full: 'SM Podium' },
   { short: 'Eugenio Lopez Center', full: 'the Eugenio Lopez Center' },
 ] as const;
