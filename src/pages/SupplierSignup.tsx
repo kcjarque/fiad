@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { CURRENT_INTAKE_SEASON } from '../constants/season';
+import { CURRENT_INTAKE_SEASON, CURRENT_SEASON_VENUES, venueSentence } from '../constants/season';
 import {
   Store,
   Users,
@@ -27,8 +27,8 @@ const BENEFITS = [
   },
   {
     icon: MapPin,
-    title: 'Two premium venues',
-    body: 'Brittany Hotel (BGC, Taguig) and Mella Hotel (Las Piñas) — two full days at each.',
+    title: `${CURRENT_SEASON_VENUES.length === 3 ? 'Three' : String(CURRENT_SEASON_VENUES.length)} premium venues`,
+    body: `${venueSentence()} — two full days at each.`,
   },
   {
     icon: TrendingUp,
@@ -38,7 +38,7 @@ const BENEFITS = [
   {
     icon: Sparkles,
     title: 'Proven momentum',
-    body: 'Season 1 drew 480+ registered guests; Season 2 drew over 780 across two venues.',
+    body: 'Season 1 drew 480+ registered guests; Season 2 drew over 780 across two venues. Season 3 adds a third.',
   },
 ];
 
@@ -194,8 +194,8 @@ export function SupplierSignup() {
           style={{ animationDelay: '160ms' }}
         >
           Exhibit at the Philippines' premier wedding, events &amp; debut fair. Meet hundreds of
-          couples, debutants and celebrants ready to book — face to face, over two days at two
-          venues.
+          couples, debutants and celebrants ready to book — face to face, over two days at each
+          of three venues.
         </p>
         <div className="reveal mt-7" style={{ animationDelay: '240ms' }}>
           <button onClick={scrollToForm} className="btn-primary text-base inline-flex items-center gap-2">
@@ -209,7 +209,7 @@ export function SupplierSignup() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
           {[
             { n: '480+', l: 'Registered guests' },
-            { n: '2', l: 'Premium venues' },
+            { n: String(CURRENT_SEASON_VENUES.length), l: 'Premium venues' },
             { n: '2 days', l: 'At each venue' },
             { n: '20+', l: 'Supplier categories' },
           ].map((s) => (
