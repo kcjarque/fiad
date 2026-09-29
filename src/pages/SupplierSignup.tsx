@@ -38,7 +38,7 @@ const BENEFITS = [
   {
     icon: Sparkles,
     title: 'Proven momentum',
-    body: 'Season 1 drew 480+ registered guests; Season 2 drew over 780 across two venues. Season 3 adds a third.',
+    body: 'Season 1 drew 480 registered guests; Season 2 drew 780 across two venues. Season 3 adds a third.',
   },
 ];
 
@@ -208,7 +208,9 @@ export function SupplierSignup() {
       <section className="max-w-3xl mx-auto px-5 pb-12">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
           {[
-            { n: '480+', l: 'Registered guests' },
+            // Season 2's distinct guests — 820 registrations, less the 40 who
+            // came to both venues. Exact, so no "+".
+            { n: '780', l: 'Season 2 guests' },
             { n: String(CURRENT_SEASON_VENUES.length), l: 'Premium venues' },
             { n: '2 days', l: 'At each venue' },
             { n: '20+', l: 'Supplier categories' },

@@ -25,5 +25,7 @@ export const SUPPLIERS = [
   'Host',
   'Home Service Nail & Massage/ Skincare',
   'Insurance/ Home Investment',
+  'Feng Shui Master',
+  'Ting Hun Coordinator',
   'Others',
 ] as const;
