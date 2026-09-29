@@ -42,7 +42,6 @@ const EXPERIENCES = [
   { icon: Cake, label: 'Cake & food tastings', sub: 'Taste your way through caterers' },
   { icon: Camera, label: 'Same-day-edit screenings', sub: 'See real wedding films' },
   { icon: Users, label: '50+ curated suppliers', sub: 'Everything for your day, one roof' },
-  { icon: Sparkles, label: 'Fil-Chinese traditions', sub: 'From Ting Hun to your big day' },
   { icon: Star, label: 'Live bridal runway show', sub: 'Couture on the catwalk' },
   { icon: Wine, label: 'Wine & spirits workshop', sub: 'Plan the perfect toast' },
   { icon: Music, label: 'Live music & more', sub: 'A full day of celebration' },
@@ -498,9 +497,14 @@ function Landing({
             Two days of fittings, tastings, culture and celebration — all under one roof.
           </p>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-8">
+        {/* Flex rather than grid so a short last row centres instead of
+            leaving an empty slot — the count isn't a multiple of 4 or 2. */}
+        <div className="flex flex-wrap justify-center gap-3 mt-8">
           {EXPERIENCES.map((x) => (
-            <div key={x.label} className="bg-white rounded-2xl p-4 shadow-card hover:shadow-soft transition">
+            <div
+              key={x.label}
+              className="w-[calc(50%-0.375rem)] lg:w-[calc(25%-0.5625rem)] bg-white rounded-2xl p-4 shadow-card hover:shadow-soft transition"
+            >
               <x.icon size={20} className="text-coral" aria-hidden="true" />
               <div className="font-medium text-plum mt-3 leading-tight">{x.label}</div>
               <div className="text-xs text-plum/60 mt-1 leading-snug">{x.sub}</div>
