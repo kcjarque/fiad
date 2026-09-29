@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { seasonOfEvent } from '../../constants/season';
 import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -92,7 +93,7 @@ export function StoreCard() {
 
       <Card className="text-center">
         <div id="store-card-print" className="flex flex-col items-center">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-champagne">Forever in a Day · Season 2</div>
+          <div className="text-[10px] uppercase tracking-[0.3em] text-champagne">Forever in a Day · Season {seasonOfEvent(store.eventId)}</div>
           <div className="font-display text-2xl text-plum mt-1">{store.name}</div>
           <div className="text-plum/60 text-sm">Booth {store.boothNumber} · {store.category}</div>
           <div ref={wrap} className="my-5 bg-white p-4 rounded-2xl shadow-soft border border-champagne/30">

@@ -2,17 +2,19 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, KeyRound, UserPlus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { listEvents } from '../services/eventService';
-import { S2_VENUES } from '../stores/eventStore';
+import { CURRENT_SEASON, CURRENT_SEASON_VENUES } from '../constants/season';
 import type { EventInfo } from '../types';
 
 export function Landing() {
-  // Show both Season 2 venues (in S2_VENUES order) with their dates.
+  // The current season's venues, in their listed order, with their dates.
   const { data: venues = [] } = useQuery({
-    queryKey: ['landingSeason2Events'],
+    queryKey: ['landingCurrentSeasonEvents'],
     queryFn: async (): Promise<EventInfo[]> => {
       const all = await listEvents();
       const byId = new Map(all.map((e) => [e.id, e]));
-      return S2_VENUES.map((v) => byId.get(v.id)).filter((e): e is EventInfo => !!e);
+      return CURRENT_SEASON_VENUES.map((v) => byId.get(v.eventId)).filter(
+        (e): e is EventInfo => !!e,
+      );
     },
   });
 
@@ -41,7 +43,7 @@ export function Landing() {
           </p>
           <div className="mt-4 flex flex-col items-center gap-2">
             <div className="text-[11px] uppercase tracking-[0.25em] text-plum/50">
-              FIAD Season 2
+              FIAD {CURRENT_SEASON}
             </div>
             <div className="flex flex-wrap justify-center gap-2">
               {venues.length === 0 ? (

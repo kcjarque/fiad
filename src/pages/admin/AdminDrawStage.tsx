@@ -9,6 +9,7 @@ import { listPrizes } from '../../services/prizeService';
 import { listGuestsForEvents } from '../../services/guestService';
 import { allActiveEntriesForEvents } from '../../services/raffleService';
 import { useEventStore } from '../../stores/eventStore';
+import { getEventById } from '../../services/eventService';
 
 /**
  * Projector / LCD presentation view for the live raffle draw.
@@ -307,7 +308,7 @@ export function AdminDrawStage() {
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
       <footer className="px-12 pb-8 text-center text-[11px] uppercase tracking-[0.4em] text-cream/40 shrink-0">
-        Brittany Hotel BGC · June 6–7, 2026
+        <StageFooter eventId={selectedEventId} />
       </footer>
 
       {/* ── Full-screen winner reveal ────────────────────────────────────── */}
@@ -336,4 +337,27 @@ export function AdminDrawStage() {
       )}
     </div>
   );
+}
+
+/**
+ * Venue and dates for the projector footer, from the event being drawn. This
+ * was typed in as Season 1's "Brittany Hotel BGC · June 6-7, 2026" and so
+ * stayed on screen, wrong, through every Season 2 draw. Its own component so
+ * its hooks sit outside the stage's early admin-redirect return.
+ */
+function StageFooter({ eventId }: { eventId: string }) {
+  const { data: ev } = useQuery({
+    queryKey: ['event', eventId],
+    queryFn: () => getEventById(eventId),
+  });
+  if (!ev) return null;
+  const d1 = new Date(`${ev.date}T00:00:00`);
+  const d2 = new Date(d1);
+  d2.setDate(d2.getDate() + 1);
+  const mo = (d: Date) => d.toLocaleDateString('en-PH', { month: 'long' });
+  const range =
+    d1.getMonth() === d2.getMonth()
+      ? `${mo(d1)} ${d1.getDate()}–${d2.getDate()}, ${d1.getFullYear()}`
+      : `${mo(d1)} ${d1.getDate()} – ${mo(d2)} ${d2.getDate()}, ${d1.getFullYear()}`;
+  return <>{`${ev.venue} · ${range}`}</>;
 }

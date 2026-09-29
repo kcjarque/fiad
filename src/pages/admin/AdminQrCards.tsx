@@ -4,11 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { listStoresForLogin } from '../../services/authService';
-import { S2_VENUES } from '../../stores/eventStore';
+import { appVenueLabel, seasonOfEvent } from '../../constants/season';
 import type { Store } from '../../types';
 
 const ORIGIN = 'https://www.fiad.app';
-const venueLabel = (eventId: string) => S2_VENUES.find((v) => v.id === eventId)?.label ?? 'Forever in a Day';
+const venueLabel = (eventId: string) => appVenueLabel(eventId) ?? 'Forever in a Day';
 
 function QrCardPage({ store }: { store: Store }) {
   const booth = store.boothNumber.split(/\s+/).join(' ');
@@ -16,7 +16,7 @@ function QrCardPage({ store }: { store: Store }) {
     <div className="qr-page">
       <div className="qr-frame">
         <div className="qr-brand font-script">Forever in a Day</div>
-        <div className="qr-eyebrow">Season 2 · Supplier Booth</div>
+        <div className="qr-eyebrow">Season {seasonOfEvent(store.eventId)} · Supplier Booth</div>
         <div className="qr-logowrap">
           {store.logoUrl
             ? <img src={store.logoUrl} alt="" className="qr-logo" />

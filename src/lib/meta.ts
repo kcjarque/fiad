@@ -10,6 +10,7 @@
 // funnel works before Meta is wired up.
 
 import { supabase } from './supabase';
+import { CURRENT_SEASON } from '../constants/season';
 
 const PIXEL_ID: string | undefined = import.meta.env.VITE_META_PIXEL_ID;
 
@@ -90,7 +91,7 @@ export const trackLead = async (data: LeadData): Promise<void> => {
       window.fbq(
         'track',
         'Lead',
-        { content_name: 'FIAD Season 2 RSVP', content_category: 'event_registration' },
+        { content_name: `FIAD ${CURRENT_SEASON} RSVP`, content_category: 'event_registration' },
         { eventID: eventId },
       );
     }
@@ -106,7 +107,7 @@ export const trackLead = async (data: LeadData): Promise<void> => {
         last_name: lastName || undefined,
         fbp: readCookie('_fbp'),
         fbc: readCookie('_fbc'),
-        custom: { content_name: 'FIAD Season 2 RSVP', preferred_day: data.preferredDay },
+        custom: { content_name: `FIAD ${CURRENT_SEASON} RSVP`, preferred_day: data.preferredDay },
       },
     });
   } catch {

@@ -365,16 +365,21 @@ Deno.serve(async (req: Request) => {
     // check-in QR and day label. Best-effort: the email still sends without it.
     let qrToken = '';
     let prefDay: string | null = null;
+    // Season number of the guest's own event, for the SMS prefix. Read from
+    // the event id (evt_fiad_s{N}_...) rather than typed in: the text said
+    // "S2" in every confirmation, and Season 3 opened with it still there.
+    let seasonNo = '';
     try {
       const { data: g } = await db
         .from('guests')
-        .select('qr_token, preferred_day')
+        .select('qr_token, preferred_day, event_id')
         .eq('email', email)
         .eq('access_code', accessCode)
         .maybeSingle();
       if (g) {
         qrToken = g.qr_token ?? '';
         prefDay = g.preferred_day ?? null;
+        seasonNo = /^evt_fiad_s(\d+)_/.exec(g.event_id ?? '')?.[1] ?? '';
       }
     } catch {
       /* fall through — render without the QR rather than block the email */
@@ -400,7 +405,10 @@ Deno.serve(async (req: Request) => {
 
     // SMS to guest — keep under 160 chars
     if (mobile) {
-      const smsText = `Forever in a Day S2: You're in, ${firstName}! Code: ${accessCode}. ${shortVenue}, ${date}. Open the app for your check-in QR: fiad.app/app/login`;
+      // "S3" when the event is known; plain "Forever in a Day" if the lookup
+      // failed, rather than naming the wrong season.
+      const brand = seasonNo ? `Forever in a Day S${seasonNo}` : 'Forever in a Day';
+      const smsText = `${brand}: You're in, ${firstName}! Code: ${accessCode}. ${shortVenue}, ${date}. Open the app for your check-in QR: fiad.app/app/login`;
       results.sms = await sendSms({ to: mobile, message: smsText, kind: 'rsvp_confirmation' });
     }
   }

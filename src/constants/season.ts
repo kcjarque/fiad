@@ -109,3 +109,28 @@ export const VENUE_SHORT: Record<string, string> = {
   evt_fiad_s2_mella: 'Mella',
   ...Object.fromEntries(CURRENT_SEASON_VENUES.map((v) => [v.eventId, v.short])),
 };
+
+/**
+ * Every venue the guest app still serves, with the short label its venue
+ * toggle and supplier cards use. Season 2's pair stays listed because those
+ * guests keep using the app after their fair -- their tickets, entries and
+ * supplier contacts -- and their suppliers can still sign in.
+ */
+export const APP_VENUES: readonly { id: string; label: string }[] = [
+  { id: 'evt_fiad_s2_brittany', label: 'Brittany · BGC' },
+  { id: 'evt_fiad_s2_mella', label: 'Mella · Las Piñas' },
+  ...CURRENT_SEASON_VENUES.map((v) => ({ id: v.eventId, label: v.short })),
+];
+
+/**
+ * The venues of an event's own season. A guest browses between the venues of
+ * the season they registered for -- a Season 2 guest between Brittany and
+ * Mella, a Season 3 guest between Season 3's -- never across seasons, where
+ * their account has no tickets or entries.
+ */
+export const venuesOfSeason = (eventId: string) =>
+  APP_VENUES.filter((v) => seasonOfEvent(v.id) === seasonOfEvent(eventId));
+
+/** App label for an event's venue, or undefined for one the app doesn't serve. */
+export const appVenueLabel = (eventId: string): string | undefined =>
+  APP_VENUES.find((v) => v.id === eventId)?.label;

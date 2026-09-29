@@ -3,7 +3,8 @@ import { Navigate, Link } from 'react-router-dom';
 import { Trophy, Info, Sparkles, Timer, ScanLine, MapPin, QrCode } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../stores/authStore';
-import { useEventStore, S2_VENUES } from '../../stores/eventStore';
+import { useEventStore } from '../../stores/eventStore';
+import { venuesOfSeason } from '../../constants/season';
 import { getGuest } from '../../services/guestService';
 import { entriesForGuest } from '../../services/raffleService';
 import { listPrizes } from '../../services/prizeService';
@@ -32,10 +33,13 @@ export function Ticket() {
   const setSelectedEvent = useEventStore((s) => s.setSelectedEvent);
   const queryClient = useQueryClient();
 
-  // Existing guests may still be pinned to Season 1 — send them to their own
-  // Season 2 venue. (Fresh logins already set this.)
+  // The venues of the guest's OWN season -- the only ones their account has
+  // tickets and entries at. A browser pinned anywhere else (an older season, or
+  // the new season's default on a Season 2 guest's device) is sent back to
+  // their own venue. Fresh logins already set this.
+  const myVenues = guest ? venuesOfSeason(guest.eventId) : [];
   useEffect(() => {
-    if (guest && !S2_VENUES.some((v) => v.id === selectedEventId)) {
+    if (guest && !venuesOfSeason(guest.eventId).some((v) => v.id === selectedEventId)) {
       setSelectedEvent(guest.eventId);
     }
   }, [guest, selectedEventId, setSelectedEvent]);
@@ -120,13 +124,13 @@ export function Ticket() {
       </div>
 
       {/* Venue toggle — your registered venue is the default; switch to browse the other. */}
-      {S2_VENUES.some((v) => v.id === selectedEventId) && (
+      {myVenues.length > 1 && myVenues.some((v) => v.id === selectedEventId) && (
         <div className="px-5 mt-5">
           <div className="text-[10px] uppercase tracking-[0.25em] text-plum/40 mb-1.5 ml-1">
             Browsing venue
           </div>
           <div className="bg-white rounded-2xl shadow-card p-1.5 flex gap-1.5">
-            {S2_VENUES.map((v) => {
+            {myVenues.map((v) => {
               const active = v.id === selectedEventId;
               const mine = v.id === guest.eventId;
               return (

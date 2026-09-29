@@ -5,11 +5,14 @@ import {
   Phone, Mail, Globe, UserPlus, Share2, FileText, MapPin, Check, X, ExternalLink,
 } from 'lucide-react';
 import { getStoreByQr } from '../services/storeService';
-import { S2_VENUES } from '../stores/eventStore';
+import { appVenueLabel, seasonOfEvent } from '../constants/season';
 import type { Store, ContactEntry } from '../types';
 
+// Season and venue come from the supplier's own booth, so a Season 2
+// supplier's card keeps saying Season 2 after Season 3 opens.
+const seasonLabel = (eventId: string) => `Season ${seasonOfEvent(eventId)}`;
 const venueLabel = (eventId: string) =>
-  S2_VENUES.find((v) => v.id === eventId)?.label ?? 'Forever in a Day · Season 2';
+  appVenueLabel(eventId) ?? `Forever in a Day · ${seasonLabel(eventId)}`;
 
 const isInstagram = (url?: string) => !!url && /instagram\.com/i.test(url);
 
@@ -21,7 +24,7 @@ const vcardHref = (s: Store) => {
     if (c.email) lines.push(`EMAIL;TYPE=INTERNET:${c.email}`);
     if (c.social) lines.push(`URL:${c.social}`);
   });
-  lines.push(`NOTE:Forever in a Day · Season 2 — Booth ${s.boothNumber}, ${venueLabel(s.eventId)}`, 'END:VCARD');
+  lines.push(`NOTE:Forever in a Day · ${seasonLabel(s.eventId)} — Booth ${s.boothNumber}, ${venueLabel(s.eventId)}`, 'END:VCARD');
   return `data:text/vcard;charset=utf-8,${encodeURIComponent(lines.filter(Boolean).join('\r\n'))}`;
 };
 
@@ -79,7 +82,7 @@ export function CallingCard() {
         {/* Brand eyebrow */}
         <div className="text-center">
           <div className="font-script text-3xl text-coral leading-none">Forever in a Day</div>
-          <div className="mt-1 text-[10px] uppercase tracking-[0.35em] text-plum/45">Season 2 · Supplier Card</div>
+          <div className="mt-1 text-[10px] uppercase tracking-[0.35em] text-plum/45">{seasonLabel(store.eventId)} · Supplier Card</div>
         </div>
 
         {/* Logo */}

@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Admin, Store } from '../types';
-import { S2_VENUES } from '../stores/eventStore';
+import { APP_VENUES } from '../constants/season';
 
 const rowToStore = (r: {
   id: string;
@@ -93,17 +93,19 @@ export const loginStore = async (storeId: string, passcode: string): Promise<Sto
   }
 };
 
-// Season 2 only: the booth-login picker lists suppliers from the two live
-// Season 2 venues (Season 1 is archived and dropped from the list). Scoped to
-// the S2 events rather than the browser's selected event so the picker works
-// regardless of which venue the device is on. Booth ids/passcodes are unique
-// across events, so listing both venues together is safe.
-const S2_EVENT_IDS = S2_VENUES.map((v) => v.id);
+// The booth-login picker lists suppliers from every venue the app still
+// serves -- Season 2's, so its suppliers can still sign in for their customer
+// lists and any late sale, and the current season's as its booths are added.
+// Season 1 is archived and dropped. Scoped to those events rather than the
+// browser's selected event so the picker works whichever venue the device is
+// on. Booth ids/passcodes are unique across events, so listing them together
+// is safe.
+const APP_EVENT_IDS = APP_VENUES.map((v) => v.id);
 export const listStoresForLogin = async (): Promise<Store[]> => {
   const { data, error } = await supabase
     .from('stores')
     .select('*')
-    .in('event_id', S2_EVENT_IDS)
+    .in('event_id', APP_EVENT_IDS)
     .order('booth_number');
   if (error) throw error;
   return (data ?? []).map(rowToStore);
