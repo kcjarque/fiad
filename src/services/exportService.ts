@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { seasonOfEvent, VENUE_SHORT } from '../constants/season';
 
 /**
  * Data extraction for the whole system, across every event.
@@ -29,7 +30,9 @@ const pageAll = async <T>(table: string, columns: string): Promise<T[]> => {
   return out;
 };
 
-export type VenueLabel = 'Brittany' | 'Mella' | 'Both' | 'Season 1';
+/** Brittany / Mella / Both for Season 2, a venue name for Season 3, or
+ *  "Season 1" for its single event. See venueOf. */
+export type VenueLabel = string;
 
 export type GuestExportRow = {
   /** Events this person appears in. Plural because someone who registered at
@@ -204,12 +207,20 @@ const phDay = (iso: string): string =>
   new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
 const venueOf = (eventIds: Set<string>): VenueLabel => {
-  const b = eventIds.has('evt_fiad_s2_brittany');
-  const m = eventIds.has('evt_fiad_s2_mella');
-  if (b && m) return 'Both';
-  if (b) return 'Brittany';
-  if (m) return 'Mella';
-  return 'Season 1';
+  // Label by the person's most recent season, so someone who came to Season 2
+  // and has registered for Season 3 reads as a Season 3 guest. Within that
+  // season: one venue gives its name; two gives "Both" (Season 2's term, kept
+  // so existing exports read the same); three or more gives "Multiple".
+  //
+  // Driven by seasonOfEvent rather than testing for Season 2's ids. The old
+  // test returned "Season 1" for anything that wasn't Brittany or Mella, which
+  // would have filed every Season 3 guest under Season 1.
+  const ids = [...eventIds];
+  if (ids.length === 0) return 'Season 1';
+  const latest = Math.max(...ids.map(seasonOfEvent));
+  const inLatest = ids.filter((id) => seasonOfEvent(id) === latest);
+  if (inLatest.length === 1) return VENUE_SHORT[inLatest[0]] ?? `Season ${latest}`;
+  return inLatest.length === 2 ? 'Both' : 'Multiple';
 };
 
 const dayLabel = (d?: string | null) =>
@@ -513,7 +524,7 @@ export const buildExportBundle = async (): Promise<ExportBundle> => {
       const w = pz.winner_guest_id ? guestById.get(pz.winner_guest_id) : undefined;
       return {
         eventId: pz.event_id,
-        season: pz.event_id.startsWith('evt_fiad_s2_') ? 'Season 2' : 'Season 1',
+        season: `Season ${seasonOfEvent(pz.event_id)}`,
         prize: pz.name,
         venue: eventName.get(pz.event_id) ?? pz.event_id,
         location: eventVenue.get(pz.event_id) || (eventName.get(pz.event_id) ?? pz.event_id),

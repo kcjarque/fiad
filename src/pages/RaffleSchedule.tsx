@@ -44,13 +44,24 @@ export function RaffleSchedule() {
   // Only venues that are running or about to — an ended season isn't a
   // schedule anyone needs. Soonest first, so the default tab is the venue
   // opening next rather than whichever the API happened to return first.
-  const venues = useMemo(
-    () =>
-      events
-        .filter((e) => e.status === 'live' || e.status === 'draft')
-        .sort((a, b) => a.date.localeCompare(b.date)),
-    [events],
-  );
+  //
+  // Judged by date as well as status. A status stays 'live' after the fair
+  // closes, because issue_entries refuses sales at any event that is not
+  // live, so a season is kept open for late bookings well past its last day.
+  // Status alone kept Season 2's finished schedule as this page's default tab.
+  // A venue drops off once its second day (date + 1) is behind us in PH time.
+  const venues = useMemo(() => {
+    const todayPh = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    const lastDay = (date: string) => {
+      const d = new Date(`${date}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + 1);
+      return d.toISOString().slice(0, 10);
+    };
+    return events
+      .filter((e) => e.status === 'live' || e.status === 'draft')
+      .filter((e) => lastDay(e.date) >= todayPh)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [events]);
   const venueIds = useMemo(() => venues.map((v) => v.id), [venues]);
 
   const { data: prizes = [], isLoading: loadingPrizes } = useQuery({

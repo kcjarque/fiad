@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ZoomIn, ZoomOut, ExternalLink } from 'lucide-react';
+import { ZoomIn, ZoomOut, ExternalLink, Map as MapIcon } from 'lucide-react';
 import { useEventStore } from '../../stores/eventStore';
 
-// The official Season 2 floor plans (rendered from the architect's PDF) shown
-// per venue. Guests match a supplier's booth code (from Booth Info) to the plan.
+// Official floor plans (rendered from the architect's PDF) shown per venue.
+// Guests match a supplier's booth code (from Booth Info) to the plan. Add a
+// venue here once its plan exists; until then it shows "coming soon".
 const PLANS: Record<string, { src: string; label: string }> = {
   evt_fiad_s2_brittany: { src: '/img/floorplan/brittany.png', label: 'Brittany Hotel, BGC · Hall 2 (Bamboo)' },
   evt_fiad_s2_mella: { src: '/img/floorplan/mella.png', label: 'Mella Hotel, Las Piñas · Ground Floor Lobby' },
@@ -11,8 +12,25 @@ const PLANS: Record<string, { src: string; label: string }> = {
 
 export function FloorPlanImage() {
   const eventId = useEventStore((s) => s.selectedEventId);
-  const plan = PLANS[eventId] ?? PLANS.evt_fiad_s2_brittany;
+  const plan = PLANS[eventId];
   const [zoomed, setZoomed] = useState(false);
+
+  // No plan for this venue yet. This used to fall back to Brittany's, which
+  // would have handed a Season 3 guest a map of a building they aren't in —
+  // worse than no map, because they would try to follow it.
+  if (!plan) {
+    return (
+      <div className="rounded-2xl border border-champagne/30 bg-white text-center py-10 px-5">
+        <div className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-champagne/20 text-champagne mb-3">
+          <MapIcon size={20} aria-hidden="true" />
+        </div>
+        <div className="font-serif text-lg text-plum">Floor plan coming soon</div>
+        <p className="text-sm text-plum/60 mt-1 max-w-xs mx-auto">
+          The booth layout for this venue will appear here once it's final.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -32,7 +50,7 @@ export function FloorPlanImage() {
       >
         <img
           src={plan.src}
-          alt={`Season 2 floor plan — ${plan.label}`}
+          alt={`Floor plan — ${plan.label}`}
           className="block select-none"
           style={{ width: zoomed ? '240%' : '100%', maxWidth: 'none' }}
           draggable={false}

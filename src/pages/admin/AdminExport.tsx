@@ -10,6 +10,7 @@ import {
 } from '../../services/exportService';
 import { peso } from '../../utils/id';
 import { SUPPLIERS } from '../../constants/suppliers';
+import { seasonOfEvent, VENUE_SHORT } from '../../constants/season';
 import './AdminExport.css';
 
 /**
@@ -306,23 +307,47 @@ export function AdminExport() {
   // rather than needing this list edited.
   const filters: VenueFilter[] = useMemo(() => {
     const evs = data?.events ?? [];
-    const s2 = evs.filter((e) => e.id.startsWith('evt_fiad_s2_'));
-    const s1 = evs.filter((e) => !e.id.startsWith('evt_fiad_s2_'));
     const short = (name: string) =>
       name.includes('·') ? name.split('·').pop()!.trim() : name.split('|')[0].trim();
+
+    // Grouped by season number from the event id, newest season first, so a
+    // new season's venues appear here on their own. The previous split tested
+    // for Season 2's id prefix and filed everything else under Season 1.
+    const bySeason = new Map<number, typeof evs>();
+    for (const e of evs) {
+      const n = seasonOfEvent(e.id);
+      bySeason.set(n, [...(bySeason.get(n) ?? []), e]);
+    }
+    const seasonChips: VenueFilter[] = [...bySeason.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .flatMap(([n, group]) => {
+        const season = `Season ${n}`;
+        if (group.length === 1) {
+          const e = group[0];
+          return [{ id: e.id, label: `${season} — ${short(e.name)}`, eventIds: [e.id], season }];
+        }
+        const sorted = [...group].sort((a, b) => a.id.localeCompare(b.id));
+        return [
+          {
+            id: `s${n}`,
+            label: `${season} — ${group.length === 2 ? 'both' : 'all'} venues`,
+            eventIds: sorted.map((e) => e.id),
+            season,
+          },
+          ...sorted.map((e) => ({ id: e.id, label: short(e.name), eventIds: [e.id], season })),
+        ];
+      });
+    const seasonsWithEvents = new Set([...bySeason.keys()].map((n) => `Season ${n}`));
+
     return [
       { id: 'all', label: 'All data', eventIds: [] },
-      ...(s2.length
-        ? [{ id: 's2', label: 'Season 2 — both venues', eventIds: s2.map((e) => e.id), season: 'Season 2' }]
-        : []),
-      ...s2.map((e) => ({ id: e.id, label: short(e.name), eventIds: [e.id], season: 'Season 2' })),
-      ...s1.map((e) => ({ id: e.id, label: `Season 1 — ${short(e.name)}`, eventIds: [e.id], season: 'Season 1' })),
+      ...seasonChips,
       // Seasons that exist only as supplier applications so far, with no event
-      // rows yet — the open intake. Derived from the data so a Season 4 chip
-      // appears on its own the moment its first application lands.
+      // rows yet — an intake opened before its venues were set. Derived from
+      // the data, so such a chip appears on its own and disappears once the
+      // season's events are created.
       ...[...new Set((data?.supplierSignups ?? []).map((v) => v.season))]
-        .filter((name) => name && !evs.some((e) => e.name.includes(name)))
-        .filter((name) => name !== 'Season 1' && name !== 'Season 2')
+        .filter((name) => name && !seasonsWithEvents.has(name))
         .sort((a, b) => b.localeCompare(a))
         .map((name) => ({ id: `season:${name}`, label: `${name} — applications`, eventIds: ['__none__'], season: name })),
     ];
@@ -368,9 +393,39 @@ export function AdminExport() {
           .replace(/^-|-$/g, '')}`;
 
   const venueCounts = useMemo(() => {
-    const m = { Brittany: 0, Mella: 0, Both: 0, 'Season 1': 0 } as Record<string, number>;
-    for (const g of view?.guests ?? []) m[g.venue] = (m[g.venue] ?? 0) + 1;
+    const m = new Map<string, number>();
+    for (const g of view?.guests ?? []) m.set(g.venue, (m.get(g.venue) ?? 0) + 1);
     return m;
+  }, [view]);
+
+  // The three largest venue groups in view, for the People tile caption.
+  // Built from the labels present rather than a fixed Brittany/Mella/both
+  // list, which would have read "0 Brittany · 0 Mella" under a Season 3 filter.
+  const venueCaption = useMemo(
+    () =>
+      [...venueCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([label, n]) => `${n.toLocaleString()} ${label === 'Both' ? 'both' : label}`)
+        .join(' · '),
+    [venueCounts],
+  );
+
+  // Venue options for the guest directory's sub-filter, from the venues the
+  // data actually contains — newest season first.
+  const guestVenueOptions = useMemo(() => {
+    const ids = new Set<string>();
+    let both = false;
+    let multiple = false;
+    for (const g of view?.guests ?? []) {
+      g.eventIds.forEach((id) => ids.add(id));
+      if (g.venue === 'Both') both = true;
+      if (g.venue === 'Multiple') multiple = true;
+    }
+    const labels = [...ids]
+      .sort((a, b) => seasonOfEvent(b) - seasonOfEvent(a) || a.localeCompare(b))
+      .map((id) => VENUE_SHORT[id] ?? id);
+    return [...new Set(labels), ...(both ? ['Both venues'] : []), ...(multiple ? ['Multiple'] : [])];
   }, [view]);
 
   const salesTotal = useMemo(
@@ -433,7 +488,7 @@ export function AdminExport() {
               <div className="export-stat-label">People <Users size={17} aria-hidden="true" /></div>
               <div className="text-2xl font-semibold tracking-tight mt-3 tabular-nums">{view.guests.length.toLocaleString()}</div>
               <div className="text-xs text-plum/50 mt-1.5">
-                {venueCounts.Brittany} Brittany · {venueCounts.Mella} Mella · {venueCounts.Both} both
+                {venueCaption}
               </div>
             </div>
             <div className="export-stat export-stat--sales">
@@ -512,11 +567,14 @@ export function AdminExport() {
             }, {
               label: 'Venue',
               allLabel: 'All venues',
-              options: ['Brittany', 'Mella', 'Both venues', 'Season 1'],
+              options: guestVenueOptions,
+              // A venue matches anyone registered there, including people
+              // labelled Both or Multiple — checked against their events rather
+              // than the label, which only names one venue per person.
               matches: (row, value) => value === 'Both venues'
                 ? row.venue === 'Both'
                 : row.venue === value ||
-                  ((value === 'Brittany' || value === 'Mella') && row.venue === 'Both'),
+                  row.eventIds.some((id) => VENUE_SHORT[id] === value),
             }]}
             filename={`fiad-guests${slug}.csv`}
             defaultSort={{ key: 'name', dir: 'asc' }}

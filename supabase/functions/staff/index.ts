@@ -25,6 +25,9 @@ const VENUE: Record<string, string> = {
   evt_fiad_s2_brittany: 'Brittany Hotel · BGC',
   evt_fiad_s2_mella: 'Mella Hotel · Las Piñas',
   evt_fiad_dec25: 'Season 1 · Taguig',
+  evt_fiad_s3_madison: 'MADISON 101 Hotel · Quezon City',
+  evt_fiad_s3_podium: 'SM Podium · Ortigas',
+  evt_fiad_s3_eugenio: 'Eugenio Lopez Center · Antipolo',
 };
 
 const isTest = (name: string, email: string) => {

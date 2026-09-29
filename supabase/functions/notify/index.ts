@@ -314,6 +314,28 @@ function inquiryEmailHtml(inq: {
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
+/**
+ * Addresses that can never belong to a real person: the RFC 2606 reserved
+ * domains and the invented .test TLD used for fixtures.
+ *
+ * A registration on one of these is a test by construction, and nothing may be
+ * sent for it -- not even the SMS, whose number looks real. Probes of the RSVP
+ * flow used invented mobiles (+63 917 123 4567 / 4568) with .invalid emails,
+ * and each sent a genuine confirmation text to whoever owns that number. The
+ * email is the only field a tester controls the reachability of, so it is the
+ * signal: a reserved address suppresses every channel for that registration.
+ */
+const isReservedAddress = (email: string | undefined): boolean => {
+  const domain = (email ?? '').trim().toLowerCase().split('@')[1] ?? '';
+  return (
+    domain.endsWith('.invalid') ||
+    domain.endsWith('.test') ||
+    domain.endsWith('.example') ||
+    domain.endsWith('.localhost') ||
+    ['example.com', 'example.net', 'example.org'].includes(domain)
+  );
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
@@ -332,6 +354,9 @@ Deno.serve(async (req: Request) => {
   if (body.type === 'rsvp_confirmation') {
     const { name, email, mobile, accessCode, venue, date } = body.guest ?? {};
     if (!email || !accessCode) return json({ error: 'missing_fields' }, 400);
+    if (isReservedAddress(email)) {
+      return json({ ok: true, suppressed: 'reserved_address', email: false, sms: false });
+    }
 
     const firstName = (name ?? '').trim().split(' ')[0] || 'there';
     const shortVenue = (venue ?? 'the venue').split(',')[0]; // "Brittany Hotel"

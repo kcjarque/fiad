@@ -5,7 +5,6 @@ import {
   Sparkles,
   CalendarDays,
   MapPin,
-  Gem,
   Cake,
   Shirt,
   Music,
@@ -28,15 +27,14 @@ import { notifyRsvp, notifyInquiry } from '../lib/notify';
 import { toPhE164, phLocal } from '../utils/phone';
 import { toast } from '../stores/toastStore';
 import { SUPPLIERS } from '../constants/suppliers';
+import { CURRENT_SEASON, CURRENT_SEASON_VENUES, venueCountWord } from '../constants/season';
 
-// Season 2 runs at TWO venues on overlapping dates. Each venue is its own
-// event, so the admin gets a clean, separate registrant list per location
-// (switchable in the admin event switcher). The funnel maps the chosen
-// venue → its event id.
-const VENUES = [
-  { key: 'brittany', eventId: 'evt_fiad_s2_brittany', hotel: 'Brittany Hotel', area: 'BGC, Taguig' },
-  { key: 'mella', eventId: 'evt_fiad_s2_mella', hotel: 'Mella Hotel', area: 'Las Piñas' },
-] as const;
+// The current season's venues, from constants/season.ts — the same list the
+// supplier page uses, so the two public pages cannot disagree about where the
+// fair is. Each venue is its own event, so the admin gets a separate
+// registrant list per location, and the funnel maps a chosen venue to its
+// event id. Season 3's three run on the same two days, March 6-7 2027.
+const VENUES = CURRENT_SEASON_VENUES;
 type VenueKey = (typeof VENUES)[number]['key'];
 
 const EXPERIENCES = [
@@ -44,7 +42,7 @@ const EXPERIENCES = [
   { icon: Cake, label: 'Cake & food tastings', sub: 'Taste your way through caterers' },
   { icon: Camera, label: 'Same-day-edit screenings', sub: 'See real wedding films' },
   { icon: Users, label: '50+ curated suppliers', sub: 'Everything for your day, one roof' },
-  { icon: Sparkles, label: 'Hanbok & K-beauty', sub: 'A Fil-Korean cultural experience' },
+  { icon: Sparkles, label: 'Fil-Chinese traditions', sub: 'From Ting Hun to your big day' },
   { icon: Star, label: 'Live bridal runway show', sub: 'Couture on the catwalk' },
   { icon: Wine, label: 'Wine & spirits workshop', sub: 'Plan the perfect toast' },
   { icon: Music, label: 'Live music & more', sub: 'A full day of celebration' },
@@ -64,14 +62,14 @@ const VALUE_PROPS = [
   {
     icon: Sparkles,
     title: 'A day to remember',
-    body: 'Hanbok experiences, K-beauty, a live fashion show, wine workshops and music — a celebration in itself.',
+    body: 'Fil-Chinese traditions, a live fashion show, wine workshops and music — a celebration in itself.',
   },
 ];
 
 const FAQS = [
   { q: 'Is it really free?', a: 'Yes — admission is completely free when you reserve your spot here.' },
   { q: 'Can I bring my partner or family?', a: 'Please do! Bring your fiancé(e), your parents, and your entourage. The more the merrier.' },
-  { q: 'Can I attend either location?', a: 'Yes — pick whichever venue and day is most convenient for you when you register below.' },
+  { q: 'Can I attend any of the locations?', a: 'Yes — pick whichever venue and day is most convenient for you when you register below.' },
   { q: 'Do I have to stay the whole day?', a: 'Not at all. Drop by anytime during event hours and explore at your own pace.' },
   { q: 'Will there be food?', a: 'Complimentary tastings from our exhibitors, plus food available to purchase at the venue.' },
   { q: 'What should I wear?', a: 'Smart casual in any color — comfortable enough to walk, dressy enough for photos.' },
@@ -150,7 +148,7 @@ export function InviteFunnel() {
     lastName: '',
     email: '',
     mobile: '',
-    venue: 'brittany' as VenueKey,
+    venue: VENUES[0].key as VenueKey,
     day: 'day1' as 'day1' | 'day2',
     referredBy: '',
     invitedFriend: '',
@@ -176,7 +174,7 @@ export function InviteFunnel() {
           area: v.area,
           day1: fmtDay(ev?.date, 0),
           day2: fmtDay(ev?.date, 1),
-          rangeShort: ev ? `${shortDate(ev.date, 0)} & ${shortDate(ev.date, 1)}` : 'September 2026',
+          rangeShort: ev ? `${shortDate(ev.date, 0)} & ${shortDate(ev.date, 1)}` : 'March 2027',
         };
       }),
     [venueEvents],
@@ -360,7 +358,7 @@ function Landing({
                 className="reveal text-[11px] uppercase tracking-[0.28em] text-cream/70 mt-3"
                 style={{ animationDelay: '80ms' }}
               >
-                Season 2 · Wedding, Events &amp; Debut Fair
+                {CURRENT_SEASON} is now open · Wedding, Events &amp; Debut Fair
               </div>
               <h1
                 className="reveal font-cormorant font-medium text-[2.9rem] leading-[1.02] sm:text-[4.5rem] mt-3"
@@ -374,7 +372,7 @@ function Landing({
                 style={{ animationDelay: '230ms' }}
               >
                 Meet the country's most-loved suppliers, try on gowns, taste the cakes, and watch a
-                live runway show — a Fil-Korean celebration made for couples like you.
+                live runway show — a Fil-Chinese celebration made for couples like you.
               </p>
               <div
                 className="reveal flex flex-col sm:flex-row items-center justify-center gap-3 mt-7"
@@ -394,17 +392,21 @@ function Landing({
           </div>
         </div>
 
-        {/* Two locations + free admission — floating card */}
-        <div className="max-w-3xl mx-auto px-5 -mt-9 relative z-10">
+        {/* The season's locations + free admission — floating card */}
+        {/* Wider for three venues, so each column holds its name and area
+            without the date breaking mid-phrase. */}
+        <div className={`${(VENUES.length as number) >= 3 ? 'max-w-4xl' : 'max-w-3xl'} mx-auto px-5 -mt-9 relative z-10`}>
           <div className="bg-white rounded-2xl shadow-soft border border-champagne/25 p-4 sm:p-5">
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${(VENUES.length as number) >= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
               {venueOptions.map((v) => (
                 <div key={v.key} className="flex items-start gap-2.5 rounded-xl bg-cream/50 px-4 py-3">
                   <MapPin size={16} className="text-coral shrink-0 mt-0.5" aria-hidden="true" />
-                  <div>
-                    <div className="font-medium text-plum">{v.hotel}</div>
-                    <div className="text-xs text-plum/70 mt-0.5">
-                      {v.area} · {v.rangeShort}
+                  <div className="min-w-0">
+                    <div className="font-medium text-plum leading-snug">{v.hotel}</div>
+                    <div className="text-xs text-plum/70 mt-0.5 leading-snug">{v.area}</div>
+                    {/* Own line, and never split: "Mar 6 & Mar 7" is one fact. */}
+                    <div className="text-xs font-medium text-coral mt-1 whitespace-nowrap">
+                      {v.rangeShort}
                     </div>
                   </div>
                 </div>
@@ -412,7 +414,7 @@ function Landing({
             </div>
             <div className="flex items-center justify-center gap-1.5 mt-3 pt-3 border-t border-champagne/20 text-sm font-medium text-plum text-center">
               <CheckCircle2 size={16} className="text-coral shrink-0" aria-hidden="true" /> Free
-              admission at both locations · limited daily slots
+              admission at {(VENUES.length as number) === 2 ? 'both' : `all ${venueCountWord()}`} locations · limited daily slots
             </div>
           </div>
         </div>
@@ -423,9 +425,11 @@ function Landing({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
           {[
             { stat: '50+', label: 'Curated suppliers' },
-            { stat: '2', label: 'Metro locations' },
+            { stat: String(VENUES.length), label: 'Metro locations' },
             { stat: 'Free', label: 'Admission' },
-            { stat: '1', label: 'Couple wins rings' },
+            // Replaces "1 couple wins rings": Season 3's grand prize is not
+            // confirmed, and an advertised prize can't be quietly walked back.
+            { stat: '2 days', label: 'At each venue' },
           ].map((s) => (
             <div key={s.label} className="bg-white/70 rounded-2xl py-4 px-2 shadow-card">
               <div className="font-cormorant text-2xl sm:text-3xl text-coral leading-none">{s.stat}</div>
@@ -435,34 +439,8 @@ function Landing({
         </div>
       </section>
 
-      {/* ── Ring raffle hook (photo split) ── */}
-      <section className="max-w-5xl mx-auto px-5">
-        <div className="overflow-hidden rounded-3xl shadow-soft grid md:grid-cols-2 bg-plum">
-          <div className="relative min-h-[280px] md:min-h-[420px]">
-            <img
-              src="/img/wedding/fiad-ring.jpg"
-              alt="The Forever in a Day grand-prize gold wedding rings resting on a white bridal bouquet"
-              className="absolute inset-0 h-full w-full object-cover object-center"
-              width="852"
-              height="1280"
-              loading="lazy"
-            />
-          </div>
-          <div className="text-cream px-7 py-10 sm:px-10 sm:py-14 text-center md:text-left flex flex-col justify-center">
-            <Gem size={26} className="text-champagne animate-floaty mx-auto md:mx-0" aria-hidden="true" />
-            <div className="text-[11px] uppercase tracking-[0.24em] text-champagne mt-3">
-              The grand moment
-            </div>
-            <h2 className="font-cormorant text-4xl sm:text-5xl mt-2 leading-tight">
-              Win <span className="foil-gold-text foil-shimmer italic">your wedding rings</span>
-            </h2>
-            <p className="text-cream/80 mt-3 max-w-md mx-auto md:mx-0 leading-relaxed">
-              Every registered couple is entered to win a wedding ring set, drawn live on stage. Your
-              forever could begin right here.
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Ring raffle section removed for Season 3: the grand prize is not yet
+          confirmed. Restore it from git history (fiad-ring.jpg) once it is. */}
 
       {/* ── Value props ── */}
       <section className="max-w-5xl mx-auto px-5 py-14">
@@ -535,8 +513,8 @@ function Landing({
       <section className="max-w-5xl mx-auto px-5 pb-14">
         <div className="grid sm:grid-cols-2 gap-4">
           {[
-            { tag: 'Day 1', items: ['Grand opening & ribbon cutting', 'Gown fittings, cake tastings & K-culture', 'Wine selection workshop', 'Live bridal runway show', 'Musical performances'] },
-            { tag: 'Day 2', items: ['Doors open · interactive booths', 'Q&A with a celebrity wedding planner', 'Wine & spirits basics', 'Supplier awards night', 'Wedding ring raffle & Season 3 reveal'] },
+            { tag: 'Day 1', items: ['Grand opening & ribbon cutting', 'Gown fittings, cake tastings & Fil-Chinese traditions', 'Wine selection workshop', 'Live bridal runway show', 'Musical performances'] },
+            { tag: 'Day 2', items: ['Doors open · interactive booths', 'Q&A with a celebrity wedding planner', 'Wine & spirits basics', 'Supplier awards night'] },
           ].map((d) => (
             <div key={d.tag} className="card !p-6">
               <div className="font-cormorant text-2xl text-plum">{d.tag}</div>
@@ -574,11 +552,11 @@ function Landing({
           <div className="absolute inset-0 flex items-end justify-center">
             <div className="px-7 pb-8 text-cream text-center w-full max-w-lg">
               <div className="font-script text-champagne text-3xl sm:text-4xl leading-none">
-                two beautiful venues
+                {venueCountWord()} beautiful venues
               </div>
               <p className="mt-2 text-cream/90">
-                Brittany Hotel, BGC and Mella Hotel, Las Piñas — pick the day and place closest to
-                you.
+                {VENUES.map((v) => v.hotel).join(', ').replace(/, ([^,]*)$/, ' and $1')} — pick the day and
+                place closest to you.
               </p>
               <button
                 onClick={scrollToForm}
@@ -905,7 +883,7 @@ function Landing({
       </section>
 
       <footer className="text-center py-8 px-5">
-        <div className="text-[10px] text-plum/60">Forever in a Day © 2026 · A Fil-Korean Wedding &amp; Debut Fair</div>
+        <div className="text-[10px] text-plum/60">Forever in a Day © 2026 · A Fil-Chinese Wedding &amp; Debut Fair</div>
       </footer>
 
       {/* ── Sticky mobile CTA ── */}
