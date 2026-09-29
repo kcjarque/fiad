@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { CURRENT_SEASON } from '../constants/season';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, Clock, Gift, Crown, CalendarDays } from 'lucide-react';
@@ -123,7 +124,7 @@ export function RaffleSchedule() {
       <header className="bg-plum text-cream px-5 pt-10 pb-8">
         <div className="mx-auto max-w-2xl">
           <p className="text-[11px] uppercase tracking-[0.3em] text-champagne">
-            Forever in a Day · Season 2
+            Forever in a Day · {CURRENT_SEASON}
           </p>
           <h1 className="font-serif text-3xl sm:text-4xl mt-2">Raffle Draw Schedule</h1>
           <p className="text-sm text-cream/70 mt-2 max-w-md leading-relaxed">

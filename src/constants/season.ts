@@ -53,14 +53,18 @@ export const CURRENT_SEASON_VENUES = [
     hotel: 'SM Podium',
     area: 'Ortigas Center, Mandaluyong City',
   },
-  {
-    key: 'eugenio',
-    eventId: 'evt_fiad_s3_eugenio',
-    short: 'Eugenio Lopez Center',
-    full: 'the Eugenio Lopez Center',
-    hotel: 'Eugenio Lopez Center',
-    area: 'Antipolo, Rizal',
-  },
+  // Eugenio Lopez Center (Antipolo, Rizal) is off the public pages for now,
+  // at the client's request. To restore it, uncomment this entry and re-create
+  // its event row -- 0099 records the exact insert. Every count and sentence on
+  // both pages is derived from this list, so nothing else needs editing.
+  // {
+  //   key: 'eugenio',
+  //   eventId: 'evt_fiad_s3_eugenio',
+  //   short: 'Eugenio Lopez Center',
+  //   full: 'the Eugenio Lopez Center',
+  //   hotel: 'Eugenio Lopez Center',
+  //   area: 'Antipolo, Rizal',
+  // },
 ] as const;
 
 /** "A, B and C" — an Oxford-comma-free list for running prose. */
@@ -68,6 +72,12 @@ export const venueSentence = (): string => {
   const names = CURRENT_SEASON_VENUES.map((v) => v.full);
   if (names.length <= 1) return names[0] ?? '';
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+};
+
+/** "Two" / "Three" — for a heading or the start of a sentence. */
+export const venueCountTitle = (): string => {
+  const w = venueCountWord();
+  return w.charAt(0).toUpperCase() + w.slice(1);
 };
 
 /** "two" / "three" — for copy that reads better spelled out. */

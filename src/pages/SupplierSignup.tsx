@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { CURRENT_INTAKE_SEASON, CURRENT_SEASON_VENUES, venueSentence } from '../constants/season';
+import { CURRENT_INTAKE_SEASON, CURRENT_SEASON_VENUES, venueSentence, venueCountTitle, venueCountWord } from '../constants/season';
 import {
   Store,
   Users,
@@ -27,7 +27,7 @@ const BENEFITS = [
   },
   {
     icon: MapPin,
-    title: `${CURRENT_SEASON_VENUES.length === 3 ? 'Three' : String(CURRENT_SEASON_VENUES.length)} premium venues`,
+    title: `${venueCountTitle()} premium venues`,
     body: `${venueSentence()} — two full days at each.`,
   },
   {
@@ -38,7 +38,7 @@ const BENEFITS = [
   {
     icon: Sparkles,
     title: 'Proven momentum',
-    body: 'Season 1 drew 480 registered guests; Season 2 drew 780 across two venues. Season 3 adds a third.',
+    body: 'Season 1 drew 480 registered guests; Season 2 drew 780 across two venues.',
   },
 ];
 
@@ -195,7 +195,7 @@ export function SupplierSignup() {
         >
           Exhibit at the Philippines' premier wedding, events &amp; debut fair. Meet hundreds of
           couples, debutants and celebrants ready to book — face to face, over two days at each
-          of three venues.
+          of {venueCountWord()} venues.
         </p>
         <div className="reveal mt-7" style={{ animationDelay: '240ms' }}>
           <button onClick={scrollToForm} className="btn-primary text-base inline-flex items-center gap-2">
