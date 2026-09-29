@@ -28,6 +28,16 @@ export default defineConfig({
         // reachable we fetch fresh; otherwise we fall back to cache so the
         // app still loads offline. Hashed asset URLs change per build, so
         // they keep their default cache-first behavior.
+        //
+        // navigateFallback must be off for that to happen. Left at its
+        // default, the plugin registers a precache NavigationRoute BEFORE
+        // runtimeCaching, and Workbox answers with the first route that
+        // matches -- so every page load was served the precached index.html,
+        // and its old bundle, and the NetworkFirst rule below never ran. Each
+        // deploy showed returning visitors the previous version once, which
+        // is how the client came to screenshot the Season 2 page after
+        // Season 3 had shipped.
+        navigateFallback: null,
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
@@ -36,6 +46,10 @@ export default defineConfig({
               cacheName: 'fiad-html',
               networkTimeoutSeconds: 4,
               expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 },
+              // What the NavigationRoute used to give: offline, a route this
+              // device has never opened still loads the app shell rather than
+              // failing -- the case that matters on venue wifi.
+              precacheFallback: { fallbackURL: 'index.html' },
             },
           },
         ],
