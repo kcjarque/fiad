@@ -88,12 +88,20 @@ export function AdminSupplierSignups() {
 
       {filtered.length === 0 ? (
         <div className="card text-center max-w-2xl">
+          {/* Three different empties: nothing at all, nothing yet for the
+              chosen season (an intake that just opened), or a search that
+              matched nothing. They used to share "No matches -- try a
+              different search term", which read as an error on a new season. */}
           <div className="font-display text-xl text-plum">
-            {signups.length === 0 ? 'No supplier sign-ups yet' : 'No matches'}
+            {signups.length === 0
+              ? 'No supplier sign-ups yet'
+              : query.trim()
+                ? 'No matches'
+                : `No applications for ${season} yet`}
           </div>
           <p className="text-sm text-plum/60 mt-1">
-            {signups.length === 0
-              ? 'Applications appear here when a supplier submits the form at /suppliers.'
+            {signups.length === 0 || !query.trim()
+              ? 'Applications from the /suppliers page will appear here as they come in.'
               : 'Try a different search term.'}
           </p>
         </div>
