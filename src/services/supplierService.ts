@@ -17,6 +17,10 @@ type Row = {
   created_at: string;
   /** Which season this application is for. See constants/season.ts. */
   season: string;
+  /** Event ids of the venues ticked on the form. Null on Season 2 rows. */
+  venues: string[] | null;
+  /** Sales Invoice / BIR 2303 copies -- required when SM Podium is ticked. */
+  bir_document_urls: string[] | null;
 };
 
 const rowToSignup = (r: Row): SupplierSignup => ({
@@ -32,6 +36,8 @@ const rowToSignup = (r: Row): SupplierSignup => ({
   documentUrls: r.document_urls ?? undefined,
   createdAt: r.created_at,
   season: r.season,
+  venues: r.venues ?? undefined,
+  birDocumentUrls: r.bir_document_urls ?? undefined,
 });
 
 const DOCS_BUCKET = 'supplier-docs';
@@ -65,6 +71,8 @@ export const createSupplierSignup = async (data: {
   products?: string;
   message?: string;
   documentUrls?: string[];
+  venues?: string[];
+  birDocumentUrls?: string[];
 }): Promise<SupplierSignup> => {
   const row: Row = {
     id: uid('sup'),
@@ -81,6 +89,9 @@ export const createSupplierSignup = async (data: {
     // Passed explicitly rather than leaning on the column default, so which
     // season the form is taking is visible in the code, not only the schema.
     season: CURRENT_INTAKE_SEASON,
+    venues: data.venues && data.venues.length > 0 ? data.venues : null,
+    bir_document_urls:
+      data.birDocumentUrls && data.birDocumentUrls.length > 0 ? data.birDocumentUrls : null,
   };
   const { error } = await supabase.from('supplier_signups').insert(row);
   if (error) throw error;

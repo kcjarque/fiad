@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Mail, Phone, Store, Globe, FileText } from 'lucide-react';
+import { Search, Mail, Phone, Store, Globe, FileText, MapPin, AlertTriangle } from 'lucide-react';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { listSupplierSignups } from '../../services/supplierService';
 import { formatDate } from '../../utils/id';
-import { CURRENT_INTAKE_SEASON } from '../../constants/season';
+import { CURRENT_INTAKE_SEASON, CURRENT_SEASON_VENUES, appVenueLabel } from '../../constants/season';
 
 export function AdminSupplierSignups() {
   const { data: signups = [] } = useQuery({ queryKey: ['supplier-signups'], queryFn: listSupplierSignups });
@@ -123,6 +123,15 @@ export function AdminSupplierSignups() {
                 </div>
                 <div className="text-xs text-plum/50 shrink-0">{formatDate(s.createdAt)}</div>
               </div>
+              {s.venues && s.venues.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {s.venues.map((id) => (
+                    <span key={id} className="chip bg-plum text-cream inline-flex items-center gap-1">
+                      <MapPin size={11} aria-hidden="true" /> {appVenueLabel(id) ?? id}
+                    </span>
+                  ))}
+                </div>
+              )}
               {s.category && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {s.category.split(', ').map((c) => (
@@ -143,6 +152,32 @@ export function AdminSupplierSignups() {
                       <FileText size={13} className="text-coral" /> DTI doc {i + 1}
                     </a>
                   ))}
+                </div>
+              )}
+              {s.birDocumentUrls && s.birDocumentUrls.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {s.birDocumentUrls.map((url, i) => (
+                    <a
+                      key={url}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs bg-champagne/25 hover:bg-champagne/40 text-plum px-2.5 py-1.5 rounded-lg transition"
+                    >
+                      <FileText size={13} className="text-coral" /> Sales Invoice / BIR 2303 {i + 1}
+                    </a>
+                  ))}
+                </div>
+              )}
+              {/* The form enforces this, so it should never show -- but an
+                  application edited or imported outside it could get past. */}
+              {(s.venues ?? []).some((id) =>
+                CURRENT_SEASON_VENUES.some(
+                  (v) => v.eventId === id && 'requiresBir2303' in v && v.requiresBir2303,
+                ),
+              ) && !(s.birDocumentUrls && s.birDocumentUrls.length > 0) && (
+                <div className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-800 bg-amber-100 px-2.5 py-1.5 rounded-lg">
+                  <AlertTriangle size={13} aria-hidden="true" /> Missing Sales Invoice / BIR 2303
                 </div>
               )}
               {s.products && (

@@ -52,6 +52,10 @@ export const CURRENT_SEASON_VENUES = [
     full: 'SM Podium',
     hotel: 'SM Podium',
     area: 'Ortigas Center, Mandaluyong City',
+    // SM Podium requires its exhibitors' Sales Invoice / BIR 2303 copy. Set
+    // on the venue so the supplier form asks for it only when Podium is
+    // ticked, and stops asking if Podium leaves the list.
+    requiresBir2303: true,
   },
   // Eugenio Lopez Center (Antipolo, Rizal) is off the public pages for now,
   // at the client's request. To restore it, uncomment this entry and re-create

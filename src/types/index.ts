@@ -85,6 +85,10 @@ export type SupplierSignup = {
   createdAt: string;
   /** Season this application is for — "Season 3" for the current intake. */
   season: string;
+  /** Event ids of the venues applied for. Absent on Season 2 applications. */
+  venues?: string[];
+  /** Sales Invoice / BIR 2303 copies, required for SM Podium. */
+  birDocumentUrls?: string[];
 };
 
 /** A lead captured from the "Need help organizing your event?" form. */

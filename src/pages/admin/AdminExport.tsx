@@ -731,6 +731,7 @@ export function AdminExport() {
             defaultSort={{ key: 'createdAt', dir: 'desc' }}
             columns={[
               { key: 'season', label: 'Season' },
+              { key: 'venues', label: 'Venues' },
               { key: 'createdAt', label: 'When', type: 'date', render: (r) => fmtDate(r.createdAt) },
               { key: 'businessName', label: 'Business' },
               { key: 'contactPerson', label: 'Contact person' },
@@ -740,6 +741,16 @@ export function AdminExport() {
               { key: 'social', label: 'Social' },
               { key: 'products', label: 'Products' },
               { key: 'message', label: 'Message' },
+              {
+                key: 'birDocuments',
+                label: 'Sales Invoice / BIR 2303',
+                // Links in the CSV; a count on screen, where a row of URLs
+                // would push every other column off the table.
+                render: (r) => {
+                  const n = r.birDocuments ? r.birDocuments.split(' ').length : 0;
+                  return n ? `${n} file${n === 1 ? '' : 's'}` : '';
+                },
+              },
             ]}
           />
 

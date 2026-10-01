@@ -56,14 +56,34 @@ export function SupplierSignup() {
     mobile: '',
     industries: [] as string[],
     industriesOther: '',
+    /** Event ids of the venues applied for. */
+    venues: [] as string[],
     social: '',
     products: '',
     message: '',
   });
   const [files, setFiles] = useState<File[]>([]);
+  // Sales Invoice / BIR 2303 copies -- asked for only when a venue that
+  // requires them (SM Podium) is ticked.
+  const [birFiles, setBirFiles] = useState<File[]>([]);
+  const birRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const toggleVenue = (id: string) =>
+    setForm((f) => ({
+      ...f,
+      venues: f.venues.includes(id) ? f.venues.filter((x) => x !== id) : [...f.venues, id],
+    }));
+
+  // Does any ticked venue require the Sales Invoice / BIR 2303 copy?
+  const needsBir = CURRENT_SEASON_VENUES.some(
+    (v) => form.venues.includes(v.eventId) && 'requiresBir2303' in v && v.requiresBir2303,
+  );
+  const birVenueNames = CURRENT_SEASON_VENUES.filter(
+    (v) => 'requiresBir2303' in v && v.requiresBir2303,
+  ).map((v) => v.short);
 
   const toggleIndustry = (s: string) =>
     setForm((f) => ({
@@ -77,9 +97,14 @@ export function SupplierSignup() {
   // before the value is reset). We merge with a FUNCTIONAL updater so we always
   // build on the LATEST files state — never a stale closure — which means the
   // order the supplier fills the form vs. attaches files cannot matter.
-  const addFiles = (picked: File[]) => {
+  // Shared by both uploads -- the DTI / SEC files and the BIR 2303 copies --
+  // so they apply the same type, size and count rules.
+  const addFilesTo = (
+    setter: React.Dispatch<React.SetStateAction<File[]>>,
+    picked: File[],
+  ) => {
     if (picked.length === 0) return;
-    setFiles((prev) => {
+    setter((prev) => {
       const next = [...prev];
       for (const f of picked) {
         if (next.length >= MAX_FILES) {
@@ -112,6 +137,10 @@ export function SupplierSignup() {
       toast.error('Please enter your business name and contact person.');
       return;
     }
+    if (form.venues.length === 0) {
+      toast.error('Please choose the venue(s) you are applying for.');
+      return;
+    }
     if (form.industries.length === 0) {
       toast.error('Please choose at least one industry / service.');
       return;
@@ -120,12 +149,20 @@ export function SupplierSignup() {
       toast.error('Please upload your DTI registration.');
       return;
     }
+    if (needsBir && birFiles.length === 0) {
+      toast.error(`Please upload your Sales Invoice / BIR 2303 — required for ${birVenueNames.join(' and ')}.`);
+      return;
+    }
     setBusy(true);
     const industries = form.industries
       .map((s) => (s === 'Others' && form.industriesOther.trim() ? `Others: ${form.industriesOther.trim()}` : s))
       .join(', ');
     try {
       const documentUrls = await uploadSupplierDocs(files);
+      // Only sent when a ticked venue requires it, so un-ticking Podium after
+      // attaching a file doesn't file a BIR 2303 against a MADISON-only
+      // application.
+      const birDocumentUrls = needsBir ? await uploadSupplierDocs(birFiles) : [];
       await createSupplierSignup({
         businessName: form.businessName,
         contactPerson: form.contactPerson,
@@ -135,6 +172,8 @@ export function SupplierSignup() {
         social: form.social,
         products: form.products,
         documentUrls,
+        venues: form.venues,
+        birDocumentUrls,
         message: form.message,
       });
       setDone(true);
@@ -326,6 +365,40 @@ export function SupplierSignup() {
             </div>
           </div>
 
+          {/* Venue(s) applied for — multi-select */}
+          <div>
+            <div className="label mb-1.5">
+              Which venue(s) are you applying for? <span className="text-coral" aria-hidden="true">*</span>
+              <span className="text-plum/40 font-normal"> — select all that apply</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {CURRENT_SEASON_VENUES.map((v) => {
+                const checked = form.venues.includes(v.eventId);
+                return (
+                  <label
+                    key={v.eventId}
+                    className={`flex items-start gap-3 rounded-xl border px-3.5 py-2.5 cursor-pointer text-sm transition ${
+                      checked
+                        ? 'border-coral bg-coral/8 text-plum'
+                        : 'border-plum/12 text-plum/80 hover:border-plum/25'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="accent-coral h-4 w-4 shrink-0 mt-0.5"
+                      checked={checked}
+                      onChange={() => toggleVenue(v.eventId)}
+                    />
+                    <span>
+                      <span className="font-medium">{v.hotel}</span>
+                      <span className="block text-xs text-plum/55">{v.area}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Industry / Services — multi-select */}
           <div>
             <div className="label mb-1.5">
@@ -413,7 +486,7 @@ export function SupplierSignup() {
                 // (to allow re-picking the same file) empties the live list.
                 const picked = Array.from(e.target.files ?? []);
                 e.target.value = '';
-                addFiles(picked);
+                addFilesTo(setFiles, picked);
               }}
             />
             <button
@@ -450,6 +523,66 @@ export function SupplierSignup() {
               </ul>
             )}
           </div>
+
+          {/* Sales Invoice / BIR 2303 — required by SM Podium */}
+          {needsBir && (
+            <div>
+              <div className="label mb-1">
+                Sales Invoice / BIR 2303 <span className="text-coral" aria-hidden="true">*</span>
+              </div>
+              <p className="text-xs text-plum/60 mb-2 leading-relaxed">
+                Required for {birVenueNames.join(' and ')} exhibitors. Upload a copy of your Sales
+                Invoice or BIR Form 2303 (Certificate of Registration) — a PDF or a clear photo, up
+                to 5 files.
+              </p>
+              <input
+                ref={birRef}
+                type="file"
+                multiple
+                accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.heic,.heif,.webp"
+                className="hidden"
+                aria-label="Sales Invoice / BIR 2303"
+                onChange={(e) => {
+                  const picked = Array.from(e.target.files ?? []);
+                  e.target.value = '';
+                  addFilesTo(setBirFiles, picked);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => birRef.current?.click()}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-plum/25 bg-cream/40 px-4 py-4 cursor-pointer hover:border-coral text-plum/70 text-sm transition"
+              >
+                <Upload size={16} aria-hidden="true" /> Add file(s)
+              </button>
+              {birFiles.length > 0 && (
+                <ul className="mt-2 space-y-1.5">
+                  {birFiles.map((f, i) => (
+                    <li
+                      key={`${f.name}-${i}`}
+                      className="flex items-center justify-between gap-2 text-sm bg-cream/60 rounded-lg px-3 py-2"
+                    >
+                      <span className="inline-flex items-center gap-2 min-w-0">
+                        <FileText size={14} className="text-coral shrink-0" aria-hidden="true" />
+                        <span className="truncate">{f.name}</span>
+                        <span className="text-plum/40 text-xs shrink-0">
+                          {(f.size / 1024 / 1024).toFixed(1)}MB
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setBirFiles((prev) => prev.filter((_, x) => x !== i))}
+                        className="text-plum/40 hover:text-coral shrink-0"
+                        aria-label={`Remove ${f.name}`}
+                      >
+                        <X size={15} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           <div>
             <label htmlFor="sup-message" className="label">
